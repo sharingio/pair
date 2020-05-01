@@ -24,7 +24,7 @@ echo "AllowAgentForwarding no" >> /etc/ssh/sshd_config
 
 # the legend tee mucks and the terrible default bindings
 
-cat > /etc/tmux.conf <<EOF
+cat > /etc/tmux.conf.technomancy <<EOF
 set -g default-terminal "xterm-256color"
 setw -g xterm-keys on
 set -g status-bg colour111
