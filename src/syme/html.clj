@@ -23,11 +23,11 @@
       [:script {:type "text/javascript"} (-> (io/resource "analytics.js")
                                              (slurp) (format account))])
     [:div#header
-     [:h1.container [:a {:href "/"} "Syme"]]]
+     [:h1.container [:a {:href "/"} "Pairing is Sharing"]]]
     [:div#content.container body
      [:div#footer
       [:p [:a {:href "/faq"} "About"]
-       " | " [:a {:href "https://github.com/technomancy/syme"}
+       " | " [:a {:href "https://github.com/sharingio/pair"}
               "Source"]
        " | " (if username
                (list [:a {:href "/all"} "All Instances"] " | "

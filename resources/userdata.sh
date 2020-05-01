@@ -13,7 +13,7 @@ UPDATE_URL="%s"
 PROJECT_PARTS=(${PROJECT//\// })
 PROJECT_DIR="/home/syme/${PROJECT_PARTS[1]}/"
 
-wget -qO /etc/motd.tail https://raw.github.com/technomancy/syme/master/resources/motd-pending &
+wget -qO /etc/motd.tail https://raw.github.com/sharingio/pair/master/resources/motd-pending &
 
 # user
 
@@ -140,6 +140,6 @@ chmod 755 /etc/molly-guard/run.d/30-syme-clean-checkout
 
 chown -R syme /home/syme
 
-wget -qO /etc/motd.tail https://raw.github.com/technomancy/syme/master/resources/motd
+wget -qO /etc/motd.tail https://raw.github.com/sharingio/pair/master/resources/motd
 
 curl -XPOST "${UPDATE_URL}&status=ready"
