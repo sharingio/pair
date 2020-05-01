@@ -23,21 +23,24 @@
            (org.apache.commons.codec.binary Base64)))
 
 (def ami-by-region
-  {:sa-east-1 "ami-0970d814",
-   :ap-northeast-1 "ami-e58cd6e4",
-   :ap-southeast-2 "ami-cd6405f7",
-   :eu-west-1 "ami-3eba6549",
-   :ap-southeast-1 "ami-28fda67a",
-   :us-west-2 "ami-57cf8a67",
-   :us-west-1 "ami-29777b6c",
-   :us-east-1 "ami-9ac11df2"})
+  {:ap-southeast-2 "ami-0a1a4d97d4af3009b"}
+  ;; {:sa-east-1 "ami-0970d814",
+  ;;  :ap-northeast-1 "ami-e58cd6e4",
+  ;;  :ap-southeast-2 "ami-cd6405f7",
+  ;;  :eu-west-1 "ami-3eba6549",
+  ;;  :ap-southeast-1 "ami-28fda67a",
+  ;;  :us-west-2 "ami-57cf8a67",
+  ;;  :us-west-1 "ami-29777b6c",
+  ;;  :us-east-1 "ami-9ac11df2"}
+  )
 
 (defn default-ami-id [region]
   (get ami-by-region (keyword region)))
 
-(def default-region "us-west-2")
+(def default-region "ap-southeast-2")
 
-(def default-instance-type "m1.small")
+;; (def default-instance-type "m1.small")
+(def default-instance-type "c5d.2xlarge")
 
 (defn make-endpoint-url [region]
   (str "ec2." region ".amazonaws.com"))
