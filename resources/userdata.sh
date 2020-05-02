@@ -11,19 +11,21 @@ EMAIL="%s"
 UPDATE_URL="%s"
 
 PROJECT_PARTS=(${PROJECT//\// })
-PROJECT_DIR="/home/syme/${PROJECT_PARTS[1]}/"
+PROJECT_DIR="/home/ii/${PROJECT_PARTS[1]}/"
 
 wget -qO /etc/motd.tail https://raw.github.com/sharingio/pair/master/resources/motd-pending &
 
 # user
 
-adduser syme --disabled-password --gecos "" --quiet
-usermod -G sudo syme
+adduser ii --disabled-password --gecos "" --quiet
+usermod -G sudo ii
 echo "ALL            ALL = (ALL) NOPASSWD: ALL" >> /etc/sudoers
 echo "AllowAgentForwarding no" >> /etc/ssh/sshd_config
 
 # the legend tee mucks and the terrible default bindings
-
+# ^ technomancy
+# the return of the default bindings
+# ^ hh
 cat > /etc/tmux.conf.technomancy <<EOF
 set -g default-terminal "xterm-256color"
 setw -g xterm-keys on
@@ -66,10 +68,10 @@ EOF
 
 chmod 755 /usr/local/bin/add-github-key
 
-sudo -iu syme add-github-key $USERNAME
+sudo -iu ii add-github-key $USERNAME
 
 for invitee in $INVITEES; do
-    sudo -iu syme add-github-key $invitee
+    sudo -iu ii add-github-key $invitee
 done
 
 # packages
@@ -82,16 +84,16 @@ rm /etc/molly-guard/run.d/30-query-hostname # not using molly-guard for that
 
 # clone repo
 
-sudo -iu syme git clone https://github.com/$PROJECT.git
+sudo -iu ii git clone https://github.com/$PROJECT.git
 
 # configure git
 
 if [ "$EMAIL" != "" ]; then
-    sudo -iu syme git config --global user.email "$EMAIL"
+    sudo -iu ii git config --global user.email "$EMAIL"
 fi
 
 if [ "$FULLNAME" != "" ]; then
-    sudo -iu syme git config --global user.name "$FULLNAME"
+    sudo -iu ii git config --global user.name "$FULLNAME"
 fi
 
 # Language-specific configuration (spliced in by instance.clj)
@@ -101,12 +103,12 @@ fi
 # Project-specific configuration
 
 PROJECT_SYMERC="$PROJECT_DIR/.symerc"
-[ -x $PROJECT_SYMERC ] && sudo -iu syme $PROJECT_SYMERC
+[ -x $PROJECT_SYMERC ] && sudo -iu ii $PROJECT_SYMERC
 
 # User-specific configuration
 
-sudo -iu syme git clone --depth=1 git://github.com/$USERNAME/.symerc && \
-    sudo -iu syme .symerc/bootstrap $PROJECT || true
+sudo -iu ii git clone --depth=1 git://github.com/$USERNAME/.symerc && \
+    sudo -iu ii .symerc/bootstrap $PROJECT || true
 
 # Install shutdown hook
 
@@ -138,7 +140,7 @@ chmod 755 /etc/molly-guard/run.d/30-syme-clean-checkout
 
 # Wrapping up
 
-chown -R syme /home/syme
+chown -R ii /home/ii
 
 wget -qO /etc/motd.tail https://raw.github.com/sharingio/pair/master/resources/motd
 
