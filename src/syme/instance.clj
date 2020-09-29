@@ -39,8 +39,7 @@
 
 (def default-region "ap-southeast-2")
 
-;; (def default-instance-type "m1.small")
-(def default-instance-type "c5d.2xlarge")
+(def default-instance-type "m1.small")
 
 (defn make-endpoint-url [region]
   (str "ec2." region ".amazonaws.com"))
