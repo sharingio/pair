@@ -103,7 +103,7 @@ ingress.networking.k8s.io/sharingio-pair configured
 * Build
 
 Create Java jar files out of the clojure
-#+begin_src shell :dir ../
+#+begin_src shell :dir ../../
   lein uberjar
 #+end_src
 
@@ -186,7 +186,7 @@ statefulset.apps/postgres created
   (getenv "OAUTH_CLIENT_SECRET")
 #+end_src
 
-#+begin_src shell :tangle ../.env :noweb yes
+#+begin_src shell :tangle ../../.env :noweb yes
   DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
   SESSION_SECRET=hahahahahahahaha
   CANONICAL_URL=<<get-pair-host()>>
@@ -201,7 +201,7 @@ statefulset.apps/postgres created
 * Migrate the database
 
 Run migrations
-#+begin_src shell :dir ../
+#+begin_src shell :dir ../../
   export $(cat .env | xargs)
   lein run -m syme.db
 #+end_src
@@ -209,7 +209,7 @@ Run migrations
 * Launching
 
 Run this in a separate window, so it doesn't hold up the buffer:
-#+begin_src shell :dir ../
+#+begin_src shell :dir ../../
   export $(cat .env | xargs)
   java $JVM_OPTS -cp target/uberjar/syme-standalone.jar clojure.main -m syme.web
 #+end_src
