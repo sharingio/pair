@@ -1,5 +1,5 @@
 <dl>
-  <dt style="font-weight: bold">So what does Syme offer?</dt>
+  <dt style="font-weight: bold">So what does Sharing.io offer?</dt>
   <dd>It sets up disposable EC2 nodes for collaborating on GitHub
   projects via <kbd>ssh</kbd> and <kbd>tmux</kbd>.</dd>
 </dl>
@@ -7,7 +7,7 @@
 <hr>
 
 <ol>
-  <li>Enter the name of a GitHub repo. (Authorize Syme via GitHub if you haven't already.)</li>
+  <li>Enter the name of a GitHub repo. (Authorize Sharing.io via GitHub if you haven't already.)</li>
   <li>Enter your AWS credentials and names of GitHub users to invite.</li>
   <li>SSH into the instance once it's booted using the command shown and launch <kbd>tmux</kbd>.</li>
   <li>Send the login info to the users you have invited.</li>
@@ -20,10 +20,10 @@
   <dd>SSH public keys are fetched via GitHub profiles, so all
     collaborators must have a key pair with the public key uploaded to
     GitHub. You can add collaborators after the instance has launched
-    with the <kbd>add-github-key</kbd> script. The Syme codebase
-    is <a href="https://github.com/technomancy/syme/blob/master/src/syme/instance.clj">free
+    with the <kbd>add-github-key</kbd> script. The Sharing.io codebase
+    is <a href="https://github.com/sharingio/pair/blob/master/src/syme/instance.clj">free
     software</a>, so you are welcome to inspect its implementation and
-    contribute improvements.</dd>
+    contribute improvements.  It is a fork of the now archived project Syme</dd>
 
   <dt style="font-weight: bold; margin-top: 1em;">What is tmux?</dt>
   <dd>It's
@@ -47,7 +47,7 @@
     inside tmux, so each collaborator will have to run their own
     browser on their local machine. By default only the SSH port is
     open, so you'll either need to tunnel a connection to your HTTP
-    server using <kbd>ssh -L 8080:localhost:8080 syme@N.N.N.N</kbd> or
+    server using <kbd>ssh -L 8080:localhost:8080 ii@N.N.N.N</kbd> or
     open more ports in the "syme/$USERNAME" security group in your
     the <a href="https://console.aws.amazon.com/ec2/home?region=us-west-2#s=SecurityGroups">AWS
     EC2 console</a>.</dd>
@@ -58,21 +58,21 @@
     request. Forwarded SSH agents are disabled since otherwise
     collaborators would be able to hijack them, so Git access should
     be done over HTTPS instead. This means you'll have to enter your
-    password when you push. If you don't trust Syme with your full AWS
+    password when you push. If you don't trust Sharing.io with your full AWS
     credentials you can provide credentials
     to <a href="http://aws.typepad.com/aws/2011/02/aws-identity-access-management-login-console.html">IAM
     account</a> that only has permissions to launch instances. You
     need to authorize via GitHub, but this is only to verify your
-    username; GitHub does not grant access to private data to Syme.</dd>
+    username; GitHub does not grant access to private data to Sharing.io.</dd>
 
   <dt style="font-weight: bold; margin-top: 1em;">All this for free?</dt>
   <dd>Sort of. You will be billed by Amazon for EC2 time (m1.small)
-    until the instance is halted, which you can do through Syme or
-    over SSH via <kbd>sudo halt</kbd>. But Syme itself doesn't cost
+    until the instance is halted, which you can do through Sharing.io or
+    over SSH via <kbd>sudo halt</kbd>. But Sharing,io itself doesn't cost
     anything. You may want to periodically check
     your <a href="https://console.aws.amazon.com/ec2/home?region=us-west-2#s=Instances">AWS
     EC2 console</a> to ensure you aren't billed for instances you
-    intended to stop that stayed running due to problems with Syme. In
+    intended to stop that stayed running due to problems with Sharing.io. In
     particular this happens due to timeout errors.</dd>
 
   <dt style="font-weight: bold; margin-top: 1em;">Can it be customized?</dt>
@@ -85,11 +85,11 @@
     a <kbd>bootstrap</kbd> script inside it. Finally, customizations
     can be applied on a per-language basis by adding shell scripts
     into <a href="https://github.com/technomancy/syme/tree/master/resources/languages">the <kbd>resources/languages</kbd>
-    directory</a> of Syme's own codebase; pull requests for additional
+    directory</a> of Sharing.io's own codebase; pull requests for additional
     languages are welcome. All those scripts get run with passwordless
     sudo privileges after the repository has been checked out.</dd>
 </dl>
 
 <hr>
 
-<p>Syme is inspired by <a href="http://pair.io">pair.io</a>.</p>
+<p>Sharing.io is a fork of Syme which is inspired by <a href="http://pair.io">pair.io</a>.</p>
