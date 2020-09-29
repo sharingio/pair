@@ -1,0 +1,17 @@
+
+
+# Create an Ingress mapping
+
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: sharingio-pair
+spec:
+  rules:
+  - host: "pair.caleb.sharing.io"
+    http:
+      paths:
+      - backend:
+          serviceName: sharingio-pair
+          servicePort: 5000
+        path: /

@@ -1,0 +1,215 @@
+#+TITLE: Setup
+
+* Preliminary setup
+
+Declare the host to bring the site up on
+  e.g: pair.myname.sharing.io
+
+#+begin_src elisp :results none
+  (setenv "PAIR_HOST" (read-from-minibuffer "PAIR_HOST: "))
+#+end_src
+
+#+name: get-pair-host
+#+begin_src elisp :results silent
+  (getenv "PAIR_HOST")
+#+end_src
+
+* Dependencies
+
+** System
+
+Install a few system packages required for development
+#+begin_src shell
+  sudo apt update && \
+  sudo apt install -y openjdk-14-jdk rlwrap
+#+end_src
+
+** Extras
+
+Install lein
+#+begin_src shell
+  curl -OL -o lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
+  chmod +x lein
+  sudo mv lein /usr/local/bin/lein
+  lein || true
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
+
+Install clojure
+#+begin_src shell
+  curl -O https://download.clojure.org/install/linux-install-1.10.1.697.sh
+  chmod +x linux-install-1.10.1.697.sh
+  sudo ./linux-install-1.10.1.697.sh
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Downloading and expanding tar
+Installing libs into /usr/local/lib/clojure
+Installing clojure and clj into /usr/local/bin
+Installing man pages into /usr/local/share/man/man1
+Removing download
+Use clj -h for help.
+#+end_example
+
+* Map to Ingress in-cluster
+
+Create a Kubernetes Service resource into Humacs, to route traffic to pair
+#+begin_src yaml :tangle sharingio-pair-service.yaml
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: sharingio-pair
+  spec:
+    ports:
+    - name: http
+      port: 5000
+      protocol: TCP
+      targetPort: 5000
+    selector:
+      app.kubernetes.io/name: humacs
+#+end_src
+
+Create an Ingress mapping
+#+begin_src yaml :tangle sharingio-pair-ingress.yaml :noweb yes
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: sharingio-pair
+spec:
+  rules:
+  - host: <<get-pair-host()>>
+    http:
+      paths:
+      - backend:
+          serviceName: sharingio-pair
+          servicePort: 5000
+        path: /
+#+end_src
+
+#+begin_src shell
+  kubectl apply -f sharingio-pair-service.yaml -f sharingio-pair-ingress.yaml
+#+end_src
+
+#+RESULTS:
+#+begin_example
+service/sharingio-pair unchanged
+ingress.networking.k8s.io/sharingio-pair configured
+#+end_example
+
+* Build
+
+Create Java jar files out of the clojure
+#+begin_src shell :dir ../
+  lein uberjar
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Created /home/ii/pair/target/uberjar/syme-1.1.0.jar
+Created /home/ii/pair/target/uberjar/syme-standalone.jar
+#+end_example
+
+* Create a database
+
+Create a namespace
+#+begin_src shell
+  kubectl create ns pair
+#+end_src
+
+#+RESULTS:
+#+begin_example
+namespace/pair created
+#+end_example
+
+Create the database secrets
+#+begin_src shell
+  kubectl -n pair create secret generic postgres-configuration \
+    --from-literal=POSTGRES_DB=pair \
+    --from-literal=POSTGRES_USER=pair \
+    --from-literal=POSTGRES_PASSWORD=pair \
+    --from-literal=PGUSER=pair \
+    --from-literal=PGPASSWORD=pair \
+    --from-literal=PGDATABASE=pair
+#+end_src
+
+#+RESULTS:
+#+begin_example
+secret/postgres-configuration created
+#+end_example
+
+Create the Postgres instance
+#+begin_src shell
+  kubectl -n pair apply -f postgres.yaml
+#+end_src
+
+#+RESULTS:
+#+begin_example
+service/postgres created
+statefulset.apps/postgres created
+#+end_example
+
+* Config
+#+begin_src elisp :results none
+  (setenv "AWS_ACCESS_KEY" (read-from-minibuffer "AWS_ACCESS_KEY: "))
+  (setenv "AWS_SECRET_KEY" (read-from-minibuffer "AWS_SECRET_KEY: "))
+  (setenv "ZONE_ID" (read-from-minibuffer "ZONE_ID: "))
+  (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
+  (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
+#+end_src
+
+#+name: get-aws-access-key
+#+begin_src elisp :results silent
+  (getenv "AWS_ACCESS_KEY")
+#+end_src
+
+#+name: get-aws-secret-key
+#+begin_src elisp :results silent
+  (getenv "AWS_SECRET_KEY")
+#+end_src
+
+#+name: get-zone-id
+#+begin_src elisp :results silent
+  (getenv "ZONE_ID")
+#+end_src
+
+#+name: get-oauth-client-id
+#+begin_src elisp :results silent
+  (getenv "OAUTH_CLIENT_ID")
+#+end_src
+
+#+name: get-oauth-client-secret
+#+begin_src elisp :results silent
+  (getenv "OAUTH_CLIENT_SECRET")
+#+end_src
+
+#+begin_src shell :tangle ../.env :noweb yes
+  DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
+  SESSION_SECRET=hahahahahahahaha
+  CANONICAL_URL=<<get-pair-host()>>
+  SUBDOMAIN=%s.%s.<<get-pair-host()>>
+  AWS_ACCESS_KEY=<<get-aws-access-key()>>
+  AWS_SECRET_KEY=<<get-aws-secret-key()>>
+  ZONE_ID=<<get-zone-id()>>
+  OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
+  OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
+#+end_src
+
+* Migrate the database
+
+Run migrations
+#+begin_src shell :dir ../
+  export $(cat .env | xargs)
+  lein run -m syme.db
+#+end_src
+
+* Launching
+
+Run this in a separate window, so it doesn't hold up the buffer:
+#+begin_src shell :dir ../
+  export $(cat .env | xargs)
+  java $JVM_OPTS -cp target/uberjar/syme-standalone.jar clojure.main -m syme.web
+#+end_src

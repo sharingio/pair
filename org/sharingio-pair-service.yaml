@@ -1,0 +1,16 @@
+# Map to Ingress in-cluster
+
+# Create a Kubernetes Service resource into Humacs, to route traffic to pair
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: sharingio-pair
+spec:
+  ports:
+  - name: http
+    port: 5000
+    protocol: TCP
+    targetPort: 5000
+  selector:
+    app.kubernetes.io/name: humacs
