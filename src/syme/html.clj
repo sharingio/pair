@@ -117,7 +117,7 @@
         [:button {:onclick (format "halt('%s')" project)} "Confirm"]]
        [:p {:id "ip" :class status
             :title "Send this command to the users you've invited."}
-        [:tt "ssh syme@" (or dns ip)]]]
+        [:tt "ssh ii@" (or dns ip)]]]
       [:p "Waiting to boot... could take a few minutes."])
     [:hr]
     [:ul {:id "users"}
