@@ -7,7 +7,7 @@ import (
 type InstanceSpec struct {
 	Name string `json:","`
 	// either Kubernetes or Plain
-	Type     string          `json:"type"`
+	Type     InstanceType    `json:"type"`
 	Setup    types.SetupSpec `json:"setup"`
 	NodeSize string          `json:"nodeSize"`
 	Facility string          `json:"facility"`
@@ -24,4 +24,11 @@ const (
 	InstanceStatusPhaseProvisioning InstanceStatusPhase = "Provisioning"
 	InstanceStatusPhaseProvisioned  InstanceStatusPhase = "Provisioned"
 	InstanceStatusPhaseDeleting     InstanceStatusPhase = "Deleting"
+)
+
+type InstanceType string
+
+const (
+	InstanceTypeKubernetes InstanceType = "Kubernetes"
+	InstanceTypePlain      InstanceType = "Plain"
 )

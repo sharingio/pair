@@ -2,6 +2,7 @@ package instances
 
 import (
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
@@ -10,12 +11,6 @@ import (
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
-
-type Kubernetes interface {
-	create() (error, InstanceSpec)
-	update() (error, InstanceSpec)
-	delete() (error, InstanceSpec)
-}
 
 type KubernetesCluster struct {
 	KubeadmControlPlane   clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
@@ -253,10 +248,12 @@ EOF
 func get(name string) (err error, instance InstanceSpec) {
 	return err, instance
 }
+
 func list() (err error, instances []InstanceSpec) {
 	return err, instances
 }
-func create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
+
+func KubernetesCreate(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	instance.Name = "something" // + random string 6 chars
 	var newInstance = defaultKubernetesClusterConfig
@@ -264,7 +261,7 @@ func create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5], "" /*projectID*/, instance.Name)
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	// TODO default value configuration scope - deployment based configuration
@@ -283,9 +280,11 @@ func create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
 
 	return err, instanceCreated
 }
+
 func update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
 	return err, instanceUpdated
 }
-func delete(instance InstanceSpec) (err error, instanceDeleted InstanceSpec) {
-	return err, instanceDeleted
+
+func delete(instance InstanceSpec) (err error) {
+	return err
 }

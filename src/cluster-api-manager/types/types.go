@@ -31,6 +31,6 @@ type Endpoints []struct {
 type SetupSpec struct {
 	User     string   `json:"user"`
 	Guests   []string `json:"guests"`
-	Repos    []string `json:"json"`
+	Repos    []string `json:"repos"`
 	Timezone string   `json:"timezone"`
 }
