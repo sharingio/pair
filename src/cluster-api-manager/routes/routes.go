@@ -15,7 +15,6 @@ import (
 )
 
 func PostInstance(w http.ResponseWriter, r *http.Request) {
-	response := "Failed to create instance"
 	responseCode := http.StatusInternalServerError
 
 	var instance instances.InstanceSpec

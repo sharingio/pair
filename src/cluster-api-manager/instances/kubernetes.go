@@ -2,10 +2,9 @@ package instances
 
 import (
 	"fmt"
-	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"log"
+	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
@@ -25,6 +24,10 @@ type KubernetesCluster struct {
 	PacketCluster         clusterAPIPacketv1alpha3.PacketCluster
 }
 
+func Int32ToInt32Pointer(input int32) *int32 {
+	return &input
+}
+
 var defaultKubernetesClusterConfig = KubernetesCluster{
 	KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -32,7 +35,7 @@ var defaultKubernetesClusterConfig = KubernetesCluster{
 		},
 		Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
 			Version:  "1.19.0",
-			Replicas: 1,
+			Replicas: Int32ToInt32Pointer(1),
 			InfrastructureTemplate: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 				Kind:       "PacketMachineTemplate",
@@ -45,23 +48,25 @@ var defaultKubernetesClusterConfig = KubernetesCluster{
 						},
 					},
 				},
-				ClusterConfiguration: kubeadmv1beta1.ClusterConfiguration{
+				ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
 					APIServer: kubeadmv1beta1.APIServer{
-						ExtraArgs: map[string]string{
-							"cloud-provider":            "external",
-							"audit-policy-file":         "/etc/kubernetes/pki/audit-policy.yaml",
-							"audit-log-path":            "-",
-							"audit-webhook-config-file": "/etc/kubernetes/pki/audit-sink.yaml",
-							"v":                         "99",
+						ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{
+								"cloud-provider":            "external",
+								"audit-policy-file":         "/etc/kubernetes/pki/audit-policy.yaml",
+								"audit-log-path":            "-",
+								"audit-webhook-config-file": "/etc/kubernetes/pki/audit-sink.yaml",
+								"v":                         "99",
+							},
 						},
 					},
 					ControllerManager: kubeadmv1beta1.ControlPlaneComponent{
-						KubeletExtraArgs: map[string]string{
+						ExtraArgs: map[string]string{
 							"cloud-provider": "external",
 						},
 					},
 				},
-				JoinConfiguration: kubeadmv1beta1.JoinConfiguration{
+				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 						KubeletExtraArgs: map[string]string{
 							"cloud-provider": "external",
@@ -200,23 +205,23 @@ EOF
 			Name: "",
 		},
 		Spec: clusterAPIv1alpha3.ClusterSpec{
-			ClusterNetwork: clusterAPIv1alpha3.ClusterNetwork{
-				Pods: clusterAPIv1alpha3.NetworkRanges{
-					CIDRBlock: []string{
+			ClusterNetwork: &clusterAPIv1alpha3.ClusterNetwork{
+				Pods: &clusterAPIv1alpha3.NetworkRanges{
+					CIDRBlocks: []string{
 						"10.244.0.0/16",
 					},
 				},
-				Services: clusterAPIv1alpha3.NetworkRanges{
-					CIDRBlock: []string{
+				Services: &clusterAPIv1alpha3.NetworkRanges{
+					CIDRBlocks: []string{
 						"10.96.0.0/12",
 					},
 				},
 			},
-			InfrastructureRef: corev1.ObjectReference{
+			InfrastructureRef: &corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 				Kind:       "PacketCluster",
 			},
-			ControlPlaneRef: corev1.ObjectReference{
+			ControlPlaneRef: &corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 				Kind:       "KubeadmControlPlane",
 			},
@@ -245,8 +250,12 @@ EOF
 	},
 }
 
-func get(name string) (err error, instance InstanceSpec) {}
-func list() (err error, instances []InstanceSpec)        {}
+func get(name string) (err error, instance InstanceSpec) {
+	return err, instance
+}
+func list() (err error, instances []InstanceSpec) {
+	return err, instances
+}
 func create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	instance.Name = "something" // + random string 6 chars
@@ -264,13 +273,19 @@ func create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
 	newInstance.PacketCluster.Name = instance.Name
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = "something"
-	newInstance.PacketCluster.Spec.Facility = newInstance.Facility
+	newInstance.PacketCluster.Spec.Facility = instance.Facility
 
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
-	newInstance.Cluster.Spec.InfrastructureRef.Name = newInstance.Name
-	newInstance.Cluster.Spec.ControlPlaneRef.Name = newInstance.Name + "-control-plane"
+	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
+	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
 
 	// manifests
+
+	return err, instanceCreated
 }
-func update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {}
-func delete(instance InstanceSpec) (err error, instanceDeleted InstanceSpec) {}
+func update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
+	return err, instanceUpdated
+}
+func delete(instance InstanceSpec) (err error, instanceDeleted InstanceSpec) {
+	return err, instanceDeleted
+}
