@@ -1,0 +1,34 @@
+#+TITLE: Project plan
+
+* Structure
+
+** Syme / frontend + OAuth
+*** Flow
+- go to pairing.caring and put in a repo
+- click launch and be brought to github authentication
+- upon authentication be brought to project page
+- project page is for deploying machine to packet
+  - do you want kubernetes or just a box?
+  - do you have a sharing.io repo with yr preferred setup?
+    - if not, use our default setup
+- fill out form and press launch
+- box is created on packet, potentially cluster is setup
+- ssh key join code is returned to screen for you to copy/paste
+*** Unknowns
+- how the kickoff page should be structured: eg. what info we need to know from them.
+- process for seeing if they have a sharing.io repo
+** Cluster-API-Manager
+*** flow
+- post to create a cluster on Packet
+- get to see device and status
+  - IP address
+  - kubeconfig
+  - tmate
+    - ssh
+    - https
+- get all devices
+- delete to ... delete
+*** Notes
+- only talked to by Syme
+- for Kubernets Cluster, make use of https://github.com/kubernetes-sigs/cluster-api
+- for Plain boxes, make use of https://github.com/packethost/packngo
