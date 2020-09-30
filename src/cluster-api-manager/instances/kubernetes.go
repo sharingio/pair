@@ -2,7 +2,7 @@ package instances
 
 import (
 	"fmt"
-	clusterAPIPacketv1alpha3 "github.com/kubernetes-sigs/cluster-api-provider-packet/api/v1alpha3"
+	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
@@ -246,7 +246,7 @@ EOF
 }
 
 func get(name string) (err error, instance InstanceSpec) {}
-func getAll() []InstanceSpec                             {}
+func list() (err error, instances []InstanceSpec)        {}
 func create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	instance.Name = "something" // + random string 6 chars

@@ -25,7 +25,7 @@ type JSONMessageResponse struct {
 type Endpoints []struct {
 	EndpointPath string
 	HandlerFunc  http.HandlerFunc
-	HttpMethod   string
+	HttpMethods   []string
 }
 
 type SetupSpec struct {

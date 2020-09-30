@@ -11,7 +11,17 @@ func GetEndpoints(endpointPrefix string) types.Endpoints {
 		{
 			EndpointPath: endpointPrefix + "/hello",
 			HandlerFunc:  GetAPIHello,
-			HttpMethod:   http.MethodGet,
+			HttpMethods:  []string{http.MethodGet},
+		},
+		{
+			EndpointPath: endpointPrefix + "/teapot",
+			HandlerFunc:  GetTeapot,
+			HttpMethods:  []string{http.MethodGet},
+		},
+		{
+			EndpointPath: endpointPrefix + "/instance",
+			HandlerFunc:  PostInstance,
+			HttpMethods:  []string{http.MethodPost},
 		},
 	}
 }

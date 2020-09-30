@@ -1,7 +1,5 @@
 #+TITLE: Cluster-API-manager
 
-
-
 * Notes
 - https://github.com/kubernetes-sigs/cluster-api/blob/6ee07b3ff2c4162a3959969a6e9c20d813ebc4d2/api/v1alpha3/cluster_types.go
 - https://github.com/kubernetes-sigs/cluster-api-provider-packet/blob/cd4f7d7d27d6b7c715215eff60eb6a0451996df2/api/v1alpha3/packetcluster_types.go
