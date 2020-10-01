@@ -12,10 +12,10 @@ import (
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	"github.com/sharingio/pair/src/cluster-api-manager/instances"
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/dynamic"
 )
 
-func PostInstance(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
+func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 

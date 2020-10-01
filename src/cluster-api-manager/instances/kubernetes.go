@@ -6,6 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -265,22 +266,27 @@ func list() (err error, instances []InstanceSpec) {
 func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	instance.Name = "something" // + random string 6 chars
+	targetNamespace := "default"
 	var newInstance = defaultKubernetesClusterConfig
 
+	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = targetNamespace
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5], "" /*projectID*/, instance.Name)
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 
+	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = targetNamespace
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
 
-	newInstance.PacketCluster.Name = instance.Name
+	newInstance.PacketCluster.ObjectMeta.Namespace = targetNamespace
+	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = "something"
 	newInstance.PacketCluster.Spec.Facility = instance.Facility
 
+	newInstance.Cluster.ObjectMeta.Namespace = targetNamespace
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
 	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
 	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
@@ -295,7 +301,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	if err != nil {
 		return fmt.Errorf("Failed to unstructure KubeadmControlPlane"), instanceCreated
 	}
-	kubeadmControlPlane, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), newUnstr, metav1.CreateOptions{})
+	kubeadmControlPlane, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("Failed to create KubeadmControlPlane"), instanceCreated
 	}
@@ -305,11 +311,11 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	//   - newInstance.PacketMachineTemplate
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.PacketMachineTemplate.Kind}
-	newUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.PacketMachineTemplate)
+	newUnstr, err = runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.PacketMachineTemplate)
 	if err != nil {
 		return fmt.Errorf("Failed to unstructure PacketMachineTemplate"), instanceCreated
 	}
-	packetMachineTemplate, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), newUnstr, metav1.CreateOptions{})
+	packetMachineTemplate, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
 	if err != nil {
 		return fmt.Errorf("Failed to create PacketMachineTemplate"), instanceCreated
 	}
@@ -317,9 +323,33 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		return fmt.Errorf("Failed to successfully create PacketMachineTemplate. Check for dangling resources"), instanceCreated
 	}
 	//   - newInstance.PacketCluster
-	groupVersion = clusterAPIPacketv1alpha3.PacketMachineTemplate
+	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.PacketCluster.Kind}
+	newUnstr, err = runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.PacketCluster)
+	if err != nil {
+		return fmt.Errorf("Failed to unstructure PacketCluster"), instanceCreated
+	}
+	packetCluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to create PacketCluster"), instanceCreated
+	}
+	if packetCluster.GetName() != newInstance.PacketCluster.Name {
+		return fmt.Errorf("Failed to successfully create PacketCluster. Check for dangling resources"), instanceCreated
+	}
 	//   - newInstance.Cluster
-	groupVersion = clusterAPIPacketv1alpha3.PacketCluster
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.Cluster.Kind}
+	newUnstr, err = runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.Cluster)
+	if err != nil {
+		return fmt.Errorf("Failed to unstructure Cluster"), instanceCreated
+	}
+	cluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to create Cluster"), instanceCreated
+	}
+	if cluster.GetName() != newInstance.Cluster.Name {
+		return fmt.Errorf("Failed to successfully create Cluster. Check for dangling resources"), instanceCreated
+	}
 
 	return err, instanceCreated
 }
