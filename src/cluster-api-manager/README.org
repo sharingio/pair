@@ -1,5 +1,46 @@
 #+TITLE: Cluster-API-manager
 
+* Prelimiary set up
+
+Install clusterctl
+#+begin_src shell
+  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.8/clusterctl-linux-amd64 -o clusterctl
+  chmod +x ./clusterctl
+  sudo mv ./clusterctl /usr/local/bin/clusterctl
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
+
+* Deploy cluster-api in-cluster
+
+#+begin_src elisp :results none
+  (setenv "PACKET_PROJECT_ID" (read-from-minibuffer "PACKET_PROJECT_ID: "))
+  (setenv "PACKET_API_KEY" (read-from-minibuffer "PACKET_API_KEY: "))
+#+end_src
+
+#+name: get-packet-project-id
+#+begin_src elisp :results silent
+  (getenv "PACKET_PROJECT_ID")
+#+end_src
+
+#+name: get-packet-api-key
+#+begin_src elisp :results silent
+  (getenv "PACKET_API_KEY")
+#+end_src
+
+Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
+#+begin_src shell :noweb yes
+          export PACKET_PROJECT_ID=<<get-packet-project-id()>>
+          export PACKET_API_KEY=<<get-packet-api-key()>>
+  clusterctl init --infrastructure=packet
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
+
 * Notes
 - https://github.com/kubernetes-sigs/cluster-api/blob/6ee07b3ff2c4162a3959969a6e9c20d813ebc4d2/api/v1alpha3/cluster_types.go
 - https://github.com/kubernetes-sigs/cluster-api-provider-packet/blob/cd4f7d7d27d6b7c715215eff60eb6a0451996df2/api/v1alpha3/packetcluster_types.go
