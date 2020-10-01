@@ -2,6 +2,7 @@ package instances
 
 import (
 	"fmt"
+	"k8s.io/client-go/kubernetes"
 )
 
 func ValidateInstance(instance InstanceSpec) (err error) {
@@ -47,14 +48,14 @@ func List() (err string, instances []InstanceSpec) {
 	return err, instances
 }
 
-func Create(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
+func Create(instance InstanceSpec, kubernetesClientset *kubernetes.Clientset) (err error, instanceCreated InstanceSpec) {
 	err = ValidateInstance(instance)
 	if err != nil {
 		return err, instanceCreated
 	}
 	switch instance.Type {
 	case InstanceTypeKubernetes:
-		err, instanceCreated = KubernetesCreate(instance)
+		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset)
 		break
 
 	case InstanceTypePlain:

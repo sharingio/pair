@@ -12,37 +12,40 @@ import (
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	"github.com/sharingio/pair/src/cluster-api-manager/instances"
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
+	"k8s.io/client-go/kubernetes"
 )
 
-func PostInstance(w http.ResponseWriter, r *http.Request) {
-	responseCode := http.StatusInternalServerError
+func PostInstance(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		responseCode := http.StatusInternalServerError
 
-	var instance instances.InstanceSpec
-	body, _ := ioutil.ReadAll(r.Body)
-	json.Unmarshal(body, &instance)
+		var instance instances.InstanceSpec
+		body, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(body, &instance)
 
-	err, instanceCreated := instances.Create(instance)
-	if err != nil {
+		err, instanceCreated := instances.Create(instance, kubernetesClientset)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
-				Response: err.Error(),
+				Response: "Creating instance",
 			},
-			Spec:   instances.InstanceSpec{},
-			Status: instances.InstanceStatus{},
+			Spec: instanceCreated,
+			Status: instances.InstanceStatus{
+				Phase: instances.InstanceStatusPhasePending,
+			},
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
-		return
 	}
-	JSONresp := types.JSONMessageResponse{
-		Metadata: types.JSONResponseMetadata{
-			Response: "Creating instance",
-		},
-		Spec: instanceCreated,
-		Status: instances.InstanceStatus{
-			Phase: instances.InstanceStatusPhasePending,
-		},
-	}
-	common.JSONResponse(r, w, responseCode, JSONresp)
 }
 
 func APIroot(w http.ResponseWriter, r *http.Request) {

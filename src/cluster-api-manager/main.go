@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
+	"github.com/sharingio/pair/src/cluster-api-manager/kubernetes"
 	"github.com/sharingio/pair/src/cluster-api-manager/routes"
 )
 
@@ -17,7 +18,13 @@ func handleWebserver() {
 	router := mux.NewRouter().StrictSlash(true)
 	apiEndpointPrefix := "/api"
 
-	for _, endpoint := range routes.GetEndpoints(apiEndpointPrefix) {
+	err, kubernetesClientset := kubernetes.Client()
+	if err != nil {
+		log.Panicln(err)
+		return
+	}
+
+	for _, endpoint := range routes.GetEndpoints(apiEndpointPrefix, kubernetesClientset) {
 		router.HandleFunc(endpoint.EndpointPath, endpoint.HandlerFunc).Methods(endpoint.HttpMethods...)
 	}
 

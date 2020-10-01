@@ -2,9 +2,11 @@ package instances
 
 import (
 	"fmt"
+	"context"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -124,11 +126,16 @@ EOF
 					"export KUBECONFIG=/root/.kube/config",
 					// 1 = packet project ID
 					// 2 = cluster name
+					// TODO remove
 					"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"%s\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:%s\"}'",
 					"kubectl taint node --all node-role.kubernetes.io/master-",
+					// TODO remove
 					"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml",
+					// TODO remove
 					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
+					// TODO remove
 					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/node.yaml",
+					// TODO remove
 					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
 					"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
 					"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
@@ -253,7 +260,7 @@ func list() (err error, instances []InstanceSpec) {
 	return err, instances
 }
 
-func KubernetesCreate(instance InstanceSpec) (err error, instanceCreated InstanceSpec) {
+func KubernetesCreate(instance InstanceSpec, kubernetesClientset *kubernetes.Clientset) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	instance.Name = "something" // + random string 6 chars
 	var newInstance = defaultKubernetesClusterConfig
@@ -277,6 +284,16 @@ func KubernetesCreate(instance InstanceSpec) (err error, instanceCreated Instanc
 	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
 
 	// manifests
+
+	// TODO create all the things
+	//   - newInstance.KubeadmControlPlane
+	//   - newInstance.PacketMachineTemplate
+	//   - newInstance.PacketCluster
+	//   - newInstance.Cluster
+	pods, err := kubernetesClientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+	for _, pod := range pods.Items {
+		fmt.Printf("%s/%s\n", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	}
 
 	return err, instanceCreated
 }

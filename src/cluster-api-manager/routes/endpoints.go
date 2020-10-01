@@ -4,9 +4,10 @@ import (
 	"net/http"
 
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
+	"k8s.io/client-go/kubernetes"
 )
 
-func GetEndpoints(endpointPrefix string) types.Endpoints {
+func GetEndpoints(endpointPrefix string, kubernetesClientset *kubernetes.Clientset) types.Endpoints {
 	return types.Endpoints{
 		{
 			EndpointPath: endpointPrefix + "/hello",
@@ -20,7 +21,7 @@ func GetEndpoints(endpointPrefix string) types.Endpoints {
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance",
-			HandlerFunc:  PostInstance,
+			HandlerFunc:  PostInstance(kubernetesClientset),
 			HttpMethods:  []string{http.MethodPost},
 		},
 	}

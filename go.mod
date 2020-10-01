@@ -47,7 +47,7 @@ require (
 	k8s.io/api v0.19.2
 	k8s.io/apiextensions-apiserver v0.18.8 // indirect
 	k8s.io/apimachinery v0.19.2
-	k8s.io/client-go v0.19.2 // indirect
+	k8s.io/client-go v0.19.2
 	k8s.io/cluster-bootstrap v0.18.8 // indirect
 	k8s.io/code-generator v0.19.2 // indirect
 	k8s.io/klog/v2 v2.3.0 // indirect
