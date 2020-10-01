@@ -18,7 +18,7 @@ func handleWebserver() {
 	router := mux.NewRouter().StrictSlash(true)
 	apiEndpointPrefix := "/api"
 
-	err, kubernetesClientset := kubernetes.Client()
+	err, kubernetesClientset := kubernetes.DynamicClient()
 	if err != nil {
 		log.Panicln(err)
 		return

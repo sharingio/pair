@@ -1,12 +1,14 @@
 package instances
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -260,7 +262,7 @@ func list() (err error, instances []InstanceSpec) {
 	return err, instances
 }
 
-func KubernetesCreate(instance InstanceSpec, kubernetesClientset *kubernetes.Clientset) (err error, instanceCreated InstanceSpec) {
+func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	instance.Name = "something" // + random string 6 chars
 	var newInstance = defaultKubernetesClusterConfig
@@ -287,13 +289,37 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset *kubernetes.Cli
 
 	// TODO create all the things
 	//   - newInstance.KubeadmControlPlane
-	//   - newInstance.PacketMachineTemplate
-	//   - newInstance.PacketCluster
-	//   - newInstance.Cluster
-	pods, err := kubernetesClientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
-	for _, pod := range pods.Items {
-		fmt.Printf("%s/%s\n", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	groupVersion := kubeadmv1beta1.GroupVersion
+	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.KubeadmControlPlane.Kind}
+	newUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.KubeadmControlPlane)
+	if err != nil {
+		return fmt.Errorf("Failed to unstructure KubeadmControlPlane"), instanceCreated
 	}
+	kubeadmControlPlane, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), newUnstr, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to create KubeadmControlPlane"), instanceCreated
+	}
+	if kubeadmControlPlane.GetName() != newInstance.KubeadmControlPlane.Name {
+		return fmt.Errorf("Failed to successfully create KubeadmControlPlane. Check for dangling resources"), instanceCreated
+	}
+	//   - newInstance.PacketMachineTemplate
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.PacketMachineTemplate.Kind}
+	newUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.PacketMachineTemplate)
+	if err != nil {
+		return fmt.Errorf("Failed to unstructure PacketMachineTemplate"), instanceCreated
+	}
+	packetMachineTemplate, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), newUnstr, metav1.CreateOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to create PacketMachineTemplate"), instanceCreated
+	}
+	if packetMachineTemplate.GetName() != newInstance.PacketMachineTemplate.Name {
+		return fmt.Errorf("Failed to successfully create PacketMachineTemplate. Check for dangling resources"), instanceCreated
+	}
+	//   - newInstance.PacketCluster
+	groupVersion = clusterAPIPacketv1alpha3.PacketMachineTemplate
+	//   - newInstance.Cluster
+	groupVersion = clusterAPIPacketv1alpha3.PacketCluster
 
 	return err, instanceCreated
 }
