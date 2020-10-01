@@ -41,6 +41,12 @@ Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
 #+begin_example
 #+end_example
 
+* Running in development
+
+#+begin_src shell :dir ./
+  go run main.go
+#+end_src
+
 * Example commands
 
 #+begin_src shell
