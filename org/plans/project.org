@@ -32,3 +32,14 @@
 - only talked to by Syme
 - for Kubernets Cluster, make use of https://github.com/kubernetes-sigs/cluster-api
 - for Plain boxes, make use of https://github.com/packethost/packngo
+*** Considerations
+- no Packet API key should be available
+- no Node access should be available
+  - disallow ~hostPath~
+- no Packet CSI PVs should be able to be claimed
+- hostNetworking should not be allowed
+* Tasks
+** DONE complete go struct for cluster-api config       :cluster:api:manager:
+   CLOSED: [2020-10-01 Thu 09:31]
+** TODO create rough packet form                                       :website:
+** TODO create the cluster-api objects from the cluster-api-manager API :cluster:api:manager:
