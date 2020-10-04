@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
+
+	// "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	// "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	// "k8s.io/kubectl/pkg/scheme"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -297,13 +301,15 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	//   - newInstance.KubeadmControlPlane
 	groupVersion := kubeadmv1beta1.GroupVersion
 	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.KubeadmControlPlane.Kind}
-	newUnstr, err := runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.KubeadmControlPlane)
+	err, asUnstructured := common.ObjectToUnstructured(newInstance.KubeadmControlPlane)
+	asUnstructured.SetKind(newInstance.KubeadmControlPlane.Kind)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: groupVersionResource.Resource})
 	if err != nil {
-		return fmt.Errorf("Failed to unstructure KubeadmControlPlane"), instanceCreated
+		return fmt.Errorf("Failed to unstructure KubeadmControlPlane, %#v", err), instanceCreated
 	}
-	kubeadmControlPlane, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
+	kubeadmControlPlane, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to create KubeadmControlPlane"), instanceCreated
+		return fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err), instanceCreated
 	}
 	if kubeadmControlPlane.GetName() != newInstance.KubeadmControlPlane.Name {
 		return fmt.Errorf("Failed to successfully create KubeadmControlPlane. Check for dangling resources"), instanceCreated
@@ -311,13 +317,15 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	//   - newInstance.PacketMachineTemplate
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.PacketMachineTemplate.Kind}
-	newUnstr, err = runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.PacketMachineTemplate)
+	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketMachineTemplate)
+	asUnstructured.SetKind(newInstance.PacketMachineTemplate.Kind)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: groupVersionResource.Resource})
 	if err != nil {
-		return fmt.Errorf("Failed to unstructure PacketMachineTemplate"), instanceCreated
+		return fmt.Errorf("Failed to unstructure PacketMachineTemplate, %#v", err), instanceCreated
 	}
-	packetMachineTemplate, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
+	packetMachineTemplate, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to create PacketMachineTemplate"), instanceCreated
+		return fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err), instanceCreated
 	}
 	if packetMachineTemplate.GetName() != newInstance.PacketMachineTemplate.Name {
 		return fmt.Errorf("Failed to successfully create PacketMachineTemplate. Check for dangling resources"), instanceCreated
@@ -325,13 +333,15 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	//   - newInstance.PacketCluster
 	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.PacketCluster.Kind}
-	newUnstr, err = runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.PacketCluster)
+	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketCluster)
+	asUnstructured.SetKind(newInstance.PacketCluster.Kind)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: groupVersionResource.Resource})
 	if err != nil {
-		return fmt.Errorf("Failed to unstructure PacketCluster"), instanceCreated
+		return fmt.Errorf("Failed to unstructure PacketCluster, %#v", err), instanceCreated
 	}
-	packetCluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
+	packetCluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to create PacketCluster"), instanceCreated
+		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instanceCreated
 	}
 	if packetCluster.GetName() != newInstance.PacketCluster.Name {
 		return fmt.Errorf("Failed to successfully create PacketCluster. Check for dangling resources"), instanceCreated
@@ -339,13 +349,15 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	//   - newInstance.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: groupVersion.Group, Resource: newInstance.Cluster.Kind}
-	newUnstr, err = runtime.DefaultUnstructuredConverter.ToUnstructured(newInstance.Cluster)
+	err, asUnstructured = common.ObjectToUnstructured(newInstance.Cluster)
+	asUnstructured.SetKind(newInstance.Cluster.Kind)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: groupVersionResource.Resource})
 	if err != nil {
-		return fmt.Errorf("Failed to unstructure Cluster"), instanceCreated
+		return fmt.Errorf("Failed to unstructure Cluster, %#v", err), instanceCreated
 	}
-	cluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), &unstructured.Unstructured{Object: newUnstr}, metav1.CreateOptions{})
+	cluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to create Cluster"), instanceCreated
+		return fmt.Errorf("Failed to create Cluster, %#v", err), instanceCreated
 	}
 	if cluster.GetName() != newInstance.Cluster.Name {
 		return fmt.Errorf("Failed to successfully create Cluster. Check for dangling resources"), instanceCreated

@@ -5,11 +5,15 @@
 package common
 
 import (
-	"net/http"
-	"time"
 	"encoding/json"
-	"os"
+	// corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	// "k8s.io/apimachinery/pkg/runtime"
+	// "k8s.io/kubectl/pkg/scheme"
 	"log"
+	"net/http"
+	"os"
+	"time"
 
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
 )
@@ -48,4 +52,20 @@ func JSONResponse(r *http.Request, w http.ResponseWriter, code int, output types
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	w.Write(response)
+}
+
+func EncodeObject(obj interface{}) (err error, data []byte) {
+	// data, err = runtime.Encode(scheme.Codecs.LegacyCodec(corev1.SchemeGroupVersion), obj)
+	data, err = json.Marshal(obj)
+	return err, data
+}
+
+func ObjectToUnstructured(obj interface{}) (err error, unstr *unstructured.Unstructured) {
+	err, data := EncodeObject(obj)
+	if err != nil {
+		return err, unstr
+	}
+	unstrBody := map[string]interface{}{}
+	err = json.Unmarshal(data, &unstrBody)
+	return err, &unstructured.Unstructured{Object: unstrBody}
 }

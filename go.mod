@@ -52,6 +52,7 @@ require (
 	k8s.io/code-generator v0.19.2 // indirect
 	k8s.io/klog/v2 v2.3.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20200831175022-64514a1d5d59 // indirect
+	k8s.io/kubectl v0.19.2
 	k8s.io/utils v0.0.0-20200912215256-4140de9c8800 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.9 // indirect
 	sigs.k8s.io/cluster-api v0.3.9
