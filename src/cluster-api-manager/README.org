@@ -31,7 +31,7 @@ Install clusterctl
 #+end_src
 
 Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
-#+begin_src shell :noweb yes
+#+begin_src shell :noweb yes :async yes
           export PACKET_PROJECT_ID=<<get-packet-project-id()>>
           export PACKET_API_KEY=<<get-packet-api-key()>>
   clusterctl init --infrastructure=packet

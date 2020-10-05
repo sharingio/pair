@@ -5,7 +5,7 @@ import (
 )
 
 type InstanceSpec struct {
-	Name string `json:","`
+	Name string `json:"-"`
 	// either Kubernetes or Plain
 	Type     InstanceType    `json:"type"`
 	Setup    types.SetupSpec `json:"setup"`
