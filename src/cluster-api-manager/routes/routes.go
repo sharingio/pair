@@ -48,6 +48,38 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+func DeleteInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		responseCode := http.StatusInternalServerError
+
+		var instance instances.InstanceSpec
+		body, _ := ioutil.ReadAll(r.Body)
+		json.Unmarshal(body, &instance)
+
+		err := instances.Delete(instance, kubernetesClientset)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: "Deleting instance",
+			},
+			Status: instances.InstanceStatus{
+				Phase: instances.InstanceStatusPhaseDeleting,
+			},
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
 func APIroot(w http.ResponseWriter, r *http.Request) {
 	// root of API
 	JSONresp := types.JSONMessageResponse{

@@ -75,7 +75,18 @@ func Update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
 	return err, instanceUpdated
 }
 
-func Delete(instance InstanceSpec) (err error) {
+func Delete(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error) {
+	switch instance.Type {
+	case InstanceTypeKubernetes:
+		err = KubernetesDelete(instance.Name, kubernetesClientset)
+		break
+
+	case InstanceTypePlain:
+		break
+
+	default:
+		return fmt.Errorf("Invalid instance type")
+	}
 	return err
 }
 

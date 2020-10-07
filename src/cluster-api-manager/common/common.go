@@ -38,6 +38,10 @@ func GetPacketProjectID() (id string) {
 	return GetEnvOrDefault("APP_PACKET_PROJECT_ID", "")
 }
 
+func GetTargetNamespace() (namespace string) {
+	return GetEnvOrDefault("APP_TARGET_NAMESPACE", "sharingio-pair-instances")
+}
+
 func Logging(next http.Handler) http.Handler {
 	// log all requests
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

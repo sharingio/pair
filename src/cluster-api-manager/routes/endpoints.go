@@ -24,5 +24,10 @@ func GetEndpoints(endpointPrefix string, kubernetesClientset dynamic.Interface) 
 			HandlerFunc:  PostInstance(kubernetesClientset),
 			HttpMethods:  []string{http.MethodPost},
 		},
+		{
+			EndpointPath: endpointPrefix + "/instance",
+			HandlerFunc:  DeleteInstance(kubernetesClientset),
+			HttpMethods:  []string{http.MethodDelete},
+		},
 	}
 }
