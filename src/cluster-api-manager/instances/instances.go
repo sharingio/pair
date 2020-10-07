@@ -1,7 +1,10 @@
 package instances
 
 import (
+	"crypto/md5"
 	"fmt"
+	"strings"
+
 	"k8s.io/client-go/dynamic"
 )
 
@@ -53,6 +56,7 @@ func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err e
 	if err != nil {
 		return err, instanceCreated
 	}
+	instance.Name = GenerateName(instance)
 	switch instance.Type {
 	case InstanceTypeKubernetes:
 		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset)
@@ -73,4 +77,23 @@ func Update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
 
 func Delete(instance InstanceSpec) (err error) {
 	return err
+}
+
+func GenerateName(instance InstanceSpec) (name string) {
+	name = fmt.Sprintf("%s", instance.Setup.User)
+	guests := ""
+	for _, guest := range instance.Setup.Guests {
+		guests = fmt.Sprintf("%s", guest)
+	}
+	hashedString := md5.Sum([]byte(guests))
+	name = fmt.Sprintf("%s-%x", name, hashedString[0:5])
+	repos := ""
+	for _, repo := range instance.Setup.Repos {
+		repos = fmt.Sprintf("%s", repo)
+	}
+	hashedString = md5.Sum([]byte(repos))
+	name = fmt.Sprintf("%s-%x", name, hashedString[0:5])
+	name = strings.ToLower(name)
+
+	return name
 }

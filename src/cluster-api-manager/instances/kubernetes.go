@@ -355,48 +355,8 @@ func KubernetesList() (err error, instances []InstanceSpec) {
 
 func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error, instanceCreated InstanceSpec) {
 	// generate name
-	instance.Name = "something" // + random string 6 chars
-	targetNamespace := "default"
-	var newInstance = defaultKubernetesClusterConfig
-
-	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
-	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = targetNamespace
-	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[15] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[15], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
-
-	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
-	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = targetNamespace
-	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
-
-	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
-	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = targetNamespace
-	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
-	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.Spec.InfrastructureRef.Name = instance.Name + "-worker-a"
-	newInstance.MachineDeploymentWorker.Spec.Template.Spec.ClusterName = instance.Name
-
-	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
-	newInstance.PacketCluster.ObjectMeta.Namespace = targetNamespace
-	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
-	newInstance.PacketCluster.Spec.Facility = instance.Facility
-
-	newInstance.Cluster.ObjectMeta.Name = instance.Name
-	newInstance.Cluster.ObjectMeta.Namespace = targetNamespace
-	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
-	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
-
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = targetNamespace
-
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = targetNamespace
-	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
+	targetNamespace := "sharingio-pair-instances"
+	var newInstance = KubernetesTemplateResources(instance, targetNamespace)
 
 	// manifests
 	// TODO create all the things
@@ -518,4 +478,57 @@ func KubernetesUpdate(instance InstanceSpec) (err error, instanceUpdated Instanc
 func KubernetesDelete(instance InstanceSpec) (err error) {
 
 	return err
+}
+
+func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newInstance KubernetesCluster) {
+	newInstance = defaultKubernetesClusterConfig
+	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
+	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
+	newInstance.KubeadmControlPlane.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
+	log.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14])
+
+	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
+	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
+	newInstance.PacketMachineTemplate.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	// TODO default value configuration scope - deployment based configuration
+	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
+
+	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = namespace
+	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.InfrastructureRef.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.ClusterName = instance.Name
+
+	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
+	newInstance.PacketCluster.ObjectMeta.Namespace = namespace
+	newInstance.PacketCluster.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	// TODO default value configuration scope - deployment based configuration
+	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
+	newInstance.PacketCluster.Spec.Facility = instance.Facility
+
+	newInstance.Cluster.ObjectMeta.Name = instance.Name
+	newInstance.Cluster.ObjectMeta.Namespace = namespace
+	newInstance.Cluster.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
+	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
+
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = namespace
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = namespace
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	// TODO default value configuration scope - deployment based configuration
+	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
+
+	return newInstance
 }

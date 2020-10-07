@@ -43,6 +43,21 @@ Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
 
 * Running in development
 
+Create namespace for instances
+#+begin_src shell
+  kubectl create ns sharingio-pair-instances
+#+end_src
+
+#+RESULTS:
+#+begin_example
+namespace/sharingio-pair-instances created
+#+end_example
+
+Select all resources from a deployment
+#+begin_src shell
+  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines -l io.sharing.pair-instance=INSTANCE_LABEL
+#+end_src
+
 #+begin_src shell :dir ./ :noweb yes
       export APP_PACKET_PROJECT_ID=<<get-packet-project-id()>>
   go run main.go
