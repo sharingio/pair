@@ -34,6 +34,10 @@ func GetAppPort() (output string) {
 	return GetEnvOrDefault("APP_PORT", ":8080")
 }
 
+func GetPacketProjectID() (id string) {
+	return GetEnvOrDefault("APP_PACKET_PROJECT_ID", "")
+}
+
 func Logging(next http.Handler) http.Handler {
 	// log all requests
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +59,6 @@ func JSONResponse(r *http.Request, w http.ResponseWriter, code int, output types
 }
 
 func EncodeObject(obj interface{}) (err error, data []byte) {
-	// data, err = runtime.Encode(scheme.Codecs.LegacyCodec(corev1.SchemeGroupVersion), obj)
 	data, err = json.Marshal(obj)
 	return err, data
 }

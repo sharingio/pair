@@ -43,7 +43,8 @@ Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
 
 * Running in development
 
-#+begin_src shell :dir ./
+#+begin_src shell :dir ./ :noweb yes
+      export APP_PACKET_PROJECT_ID=<<get-packet-project-id()>>
   go run main.go
 #+end_src
 

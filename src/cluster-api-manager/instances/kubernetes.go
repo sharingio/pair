@@ -46,7 +46,7 @@ var defaultKubernetesClusterConfig = KubernetesCluster{
 			Name: "",
 		},
 		Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
-			Version:  "1.19.0",
+			Version:  defaultKubernetesVersion,
 			Replicas: Int32ToInt32Pointer(1),
 			InfrastructureTemplate: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
@@ -139,19 +139,7 @@ EOF
 					"mkdir -p /root/.kube",
 					"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
 					"export KUBECONFIG=/root/.kube/config",
-					// 1 = packet project ID
-					// 2 = cluster name
-					// TODO remove
-					"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"%s\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:%s\"}'",
 					"kubectl taint node --all node-role.kubernetes.io/master-",
-					// TODO remove
-					"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml",
-					// TODO remove
-					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
-					// TODO remove
-					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/node.yaml",
-					// TODO remove
-					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
 					"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
 					"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
 					"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
@@ -239,6 +227,8 @@ EOF
 				Kind:       "PacketCluster",
 			},
 			ControlPlaneRef: &corev1.ObjectReference{
+				APIVersion: "controlplane.cluster.x-k8s.io/v1alpha3",
+				Kind:       "KubeadmControlPlane",
 			},
 		},
 	},
@@ -265,7 +255,7 @@ EOF
 					},
 				},
 				Spec: clusterAPIv1alpha3.MachineSpec{
-					Version: &defaultKubernetesVersion,
+					Version:     &defaultKubernetesVersion,
 					ClusterName: "",
 					Bootstrap: clusterAPIv1alpha3.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
@@ -327,7 +317,7 @@ EOF
 					OS:           defaultMachineOS,
 					BillingCycle: "hourly",
 					// 1 = machine type
-					MachineType: "%s",
+					MachineType: "",
 				},
 			},
 		},
@@ -348,7 +338,7 @@ EOF
 					OS:           defaultMachineOS,
 					BillingCycle: "hourly",
 					// 1 = machine type
-					MachineType: "%s",
+					MachineType: "",
 				},
 			},
 		},
@@ -372,8 +362,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = targetNamespace
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5], "" /*projectID*/, instance.Name)
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[15] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[15], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = targetNamespace
@@ -393,7 +382,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
 	newInstance.PacketCluster.ObjectMeta.Namespace = targetNamespace
 	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketCluster.Spec.ProjectID = "something"
+	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
 	newInstance.PacketCluster.Spec.Facility = instance.Facility
 
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
@@ -527,5 +516,6 @@ func KubernetesUpdate(instance InstanceSpec) (err error, instanceUpdated Instanc
 }
 
 func KubernetesDelete(instance InstanceSpec) (err error) {
+
 	return err
 }
