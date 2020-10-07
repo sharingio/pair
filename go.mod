@@ -59,4 +59,5 @@ require (
 	sigs.k8s.io/cluster-api-provider-packet v0.3.3
 	sigs.k8s.io/controller-runtime v0.6.3 // indirect
 	sigs.k8s.io/kind v0.9.0 // indirect
+	sigs.k8s.io/yaml v1.2.0
 )

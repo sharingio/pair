@@ -21,19 +21,25 @@ import (
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	// "sigs.k8s.io/yaml"
 )
 
 type KubernetesCluster struct {
-	KubeadmControlPlane   clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
-	Cluster               clusterAPIv1alpha3.Cluster
-	PacketMachineTemplate clusterAPIPacketv1alpha3.PacketMachineTemplate
-	PacketCluster         clusterAPIPacketv1alpha3.PacketCluster
+	KubeadmControlPlane         clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
+	Cluster                     clusterAPIv1alpha3.Cluster
+	MachineDeploymentWorker     clusterAPIv1alpha3.MachineDeployment
+	KubeadmConfigTemplateWorker cabpkv1.KubeadmConfigTemplate
+	PacketMachineTemplate       clusterAPIPacketv1alpha3.PacketMachineTemplate
+	PacketCluster               clusterAPIPacketv1alpha3.PacketCluster
+	PacketMachineTemplateWorker clusterAPIPacketv1alpha3.PacketMachineTemplate
 }
 
 func Int32ToInt32Pointer(input int32) *int32 {
 	return &input
 }
 
+var defaultMachineOS = "ubuntu_20_04"
+var defaultKubernetesVersion = "1.19.0"
 var defaultKubernetesClusterConfig = KubernetesCluster{
 	KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -233,8 +239,81 @@ EOF
 				Kind:       "PacketCluster",
 			},
 			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-				Kind:       "KubeadmControlPlane",
+			},
+		},
+	},
+	MachineDeploymentWorker: clusterAPIv1alpha3.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "",
+			Labels: map[string]string{
+				"pool": "worker-a",
+			},
+		},
+		Spec: clusterAPIv1alpha3.MachineDeploymentSpec{
+			Replicas:    Int32ToInt32Pointer(0),
+			ClusterName: "",
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"pool": "worker-a",
+				},
+			},
+			Template: clusterAPIv1alpha3.MachineTemplateSpec{
+				ObjectMeta: clusterAPIv1alpha3.ObjectMeta{
+					Name: "",
+					Labels: map[string]string{
+						"pool": "worker-a",
+					},
+				},
+				Spec: clusterAPIv1alpha3.MachineSpec{
+					Version: &defaultKubernetesVersion,
+					ClusterName: "",
+					Bootstrap: clusterAPIv1alpha3.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+							Kind:       "KubeadmConfigTemplate",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+						Kind:       "PacketMachineTemplate",
+					},
+				},
+			},
+		},
+	},
+	KubeadmConfigTemplateWorker: cabpkv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "",
+		},
+		Spec: cabpkv1.KubeadmConfigTemplateSpec{
+			Template: cabpkv1.KubeadmConfigTemplateResource{
+				Spec: cabpkv1.KubeadmConfigSpec{
+					PreKubeadmCommands: []string{
+						"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
+						"swapoff -a",
+						"mount -a",
+						"apt-get -y update",
+						"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
+						"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
+						"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
+						"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+						"apt-key fingerprint 0EBFCD88",
+						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
+						"apt-get update -y",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl",
+						"systemctl daemon-reload",
+						"systemctl enable docker",
+						"systemctl start docker",
+						"chgrp users /var/run/docker.sock",
+					},
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+							KubeletExtraArgs: map[string]string{
+								"cloud-provider": "external",
+							},
+						},
+					},
+				},
 			},
 		},
 	},
@@ -245,7 +324,7 @@ EOF
 		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
 			Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
 				Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
-					OS:           "ubuntu_20_04",
+					OS:           defaultMachineOS,
 					BillingCycle: "hourly",
 					// 1 = machine type
 					MachineType: "%s",
@@ -259,13 +338,28 @@ EOF
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{},
 	},
+	PacketMachineTemplateWorker: clusterAPIPacketv1alpha3.PacketMachineTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "",
+		},
+		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
+			Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
+				Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
+					OS:           defaultMachineOS,
+					BillingCycle: "hourly",
+					// 1 = machine type
+					MachineType: "%s",
+				},
+			},
+		},
+	},
 }
 
-func get(name string) (err error, instance InstanceSpec) {
+func KubernetesGet(name string) (err error, instance InstanceSpec) {
 	return err, instance
 }
 
-func list() (err error, instances []InstanceSpec) {
+func KubernetesList() (err error, instances []InstanceSpec) {
 	return err, instances
 }
 
@@ -275,27 +369,45 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	targetNamespace := "default"
 	var newInstance = defaultKubernetesClusterConfig
 
-	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = targetNamespace
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
+	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = targetNamespace
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[5], "" /*projectID*/, instance.Name)
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 
-	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = targetNamespace
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
+	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = targetNamespace
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
 
-	newInstance.PacketCluster.ObjectMeta.Namespace = targetNamespace
+	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = targetNamespace
+	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.InfrastructureRef.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.ClusterName = instance.Name
+
 	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
+	newInstance.PacketCluster.ObjectMeta.Namespace = targetNamespace
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = "something"
 	newInstance.PacketCluster.Spec.Facility = instance.Facility
 
-	newInstance.Cluster.ObjectMeta.Namespace = targetNamespace
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
+	newInstance.Cluster.ObjectMeta.Namespace = targetNamespace
 	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
 	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
+
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = targetNamespace
+
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = targetNamespace
+	// TODO default value configuration scope - deployment based configuration
+	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
 
 	// manifests
 	// TODO create all the things
@@ -304,27 +416,10 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured := common.ObjectToUnstructured(newInstance.KubeadmControlPlane)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Kind: "KubeadmControlPlane"})
-	log.Printf("%#v\n", asUnstructured)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure KubeadmControlPlane, %#v", err), instanceCreated
-	}
-	list, err := kubernetesClientset.Resource(groupVersionResource).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to list KubeadmControlPlanes, %#v", err), instanceCreated
-	}
-	log.Printf("%#v\n", list)
-
-	kubeadmControlPlane, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
-	log.Printf("%#v\n", kubeadmControlPlane)
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err), instanceCreated
-	}
-	if kubeadmControlPlane.GetName() != newInstance.KubeadmControlPlane.Name {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to successfully create KubeadmControlPlane. Check for dangling resources"), instanceCreated
 	}
 
 	//   - newInstance.PacketMachineTemplate
@@ -332,19 +427,15 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachinetemplates"}
 	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketMachineTemplate)
-	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: groupVersionResource.Resource})
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketMachineTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure PacketMachineTemplate, %#v", err), instanceCreated
 	}
-	packetMachineTemplate, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
-	if err != nil {
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err), instanceCreated
-	}
-	if packetMachineTemplate.GetName() != newInstance.PacketMachineTemplate.Name {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to successfully create PacketMachineTemplate. Check for dangling resources"), instanceCreated
 	}
 
 	//   - newInstance.PacketCluster
@@ -352,19 +443,15 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
 	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketCluster)
-	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: groupVersionResource.Resource})
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketCluster"})
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure PacketCluster, %#v", err), instanceCreated
 	}
-	packetCluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
-	if err != nil {
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instanceCreated
-	}
-	if packetCluster.GetName() != newInstance.PacketCluster.Name {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to successfully create PacketCluster. Check for dangling resources"), instanceCreated
 	}
 
 	//   - newInstance.Cluster
@@ -372,28 +459,73 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
 	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured = common.ObjectToUnstructured(newInstance.Cluster)
-	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: groupVersionResource.Resource})
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: "Cluster"})
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure Cluster, %#v", err), instanceCreated
 	}
-	cluster, err := kubernetesClientset.Resource(groupVersionResource).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
-	if err != nil {
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create Cluster, %#v", err), instanceCreated
 	}
-	if cluster.GetName() != newInstance.Cluster.Name {
+
+	//   - newInstance.MachineDeploymentWorker
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
+	log.Printf("%#v\n", groupVersionResource)
+	err, asUnstructured = common.ObjectToUnstructured(newInstance.MachineDeploymentWorker)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: "MachineDeployment"})
+	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to successfully create Cluster. Check for dangling resources"), instanceCreated
+		return fmt.Errorf("Failed to unstructure MachineDeployment, %#v", err), instanceCreated
 	}
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instanceCreated
+	}
+
+	//   - newInstance.KubeadmConfigTemplateWorker
+	groupVersion = cabpkv1.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "bootstrap.cluster.x-k8s.io", Resource: "kubeadmconfigtemplates"}
+	log.Printf("%#v\n", groupVersionResource)
+	err, asUnstructured = common.ObjectToUnstructured(newInstance.KubeadmConfigTemplateWorker)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "KubeadmConfigTemplate"})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to unstructure KubeadmConfigTemplate, %#v", err), instanceCreated
+	}
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err), instanceCreated
+	}
+
+	//   - newInstance.PacketMachineTemplateWorker
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachinetemplates"}
+	log.Printf("%#v\n", groupVersionResource)
+	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketMachineTemplateWorker)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketMachineTemplate"})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to unstructure PacketMachineTemplateWorker, %#v", err), instanceCreated
+	}
+	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err), instanceCreated
+	}
+	err = nil
 
 	return err, instanceCreated
 }
 
-func update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
+func KubernetesUpdate(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
 	return err, instanceUpdated
 }
 
-func delete(instance InstanceSpec) (err error) {
+func KubernetesDelete(instance InstanceSpec) (err error) {
 	return err
 }

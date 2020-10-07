@@ -7,6 +7,7 @@ import (
 
 func DynamicClient() (err error, clientset dynamic.Interface) {
 	config, err := rest.InClusterConfig()
+	config.UserAgent = "sharingio/pair/cluster-api-manager"
 	if err != nil {
 		return err, clientset
 	}
