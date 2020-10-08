@@ -858,3 +858,15 @@ func KubernetesGetKubeconfig(name string, kubernetesClientset dynamic.Interface)
 	kubeconfig, err = clientcmd.Load(valueBytes)
 	return err, kubeconfig
 }
+
+func KubernetesExec() {
+	// TODO get restconfig from kubeconfig
+	// TODO get rest client
+	// TODO post exec
+
+	// https://github.com/kubernetes/kubectl/blob/e65caf964573fbf671c4648032da4b7df7c7eaf0/pkg/cmd/exec/exec.go#L357
+}
+
+func KubernetesGetTmateSession(name string, kubernetesClientset dynamic.Interface) {
+
+}
