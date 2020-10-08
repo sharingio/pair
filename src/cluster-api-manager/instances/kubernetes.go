@@ -722,7 +722,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	groupVersion = cabpkv1.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "bootstrap.cluster.x-k8s.io", Resource: "kubeadmconfigtemplates"}
 	log.Printf("%#v\n", groupVersionResource)
-	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err)
@@ -732,7 +732,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachinetemplates"}
 	log.Printf("%#v\n", groupVersionResource)
-	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err)
@@ -742,7 +742,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
 	log.Printf("%#v\n", groupVersionResource)
-	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create MachineDeployment, %#v", err)
@@ -750,7 +750,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	//   - newInstance.KubeadmControlPlane
 	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	log.Printf("%#v\n", groupVersionResource)
-	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to delete KubeadmControlPlane, %#v", err)
