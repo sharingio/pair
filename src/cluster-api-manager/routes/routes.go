@@ -6,17 +6,18 @@ package routes
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
-
+	"github.com/gorilla/mux"
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	"github.com/sharingio/pair/src/cluster-api-manager/instances"
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
+	"io/ioutil"
 	"k8s.io/client-go/dynamic"
+	"net/http"
 )
 
 func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Listing all Kubernetes instances"
 		responseCode := http.StatusInternalServerError
 
 		err, availableInstances := instances.KubernetesList(kubernetesClientset)
@@ -30,9 +31,12 @@ func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.Handler
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		if len(availableInstances) == 0 {
+			response = "No Kubernetes instances found"
+		}
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
-				Response: "Listing all Kubernetes instances",
+				Response: response,
 			},
 			List: availableInstances,
 		}
@@ -67,6 +71,37 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 			Spec: instanceCreated,
 			Status: instances.InstanceStatus{
 				Phase: instances.InstanceStatusPhasePending,
+			},
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
+func DeleteInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err := instances.KubernetesDelete(name, kubernetesClientset)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: "Deleting instance",
+			},
+			Status: instances.InstanceStatus{
+				Phase: instances.InstanceStatusPhaseDeleting,
 			},
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)

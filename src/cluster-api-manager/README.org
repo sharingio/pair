@@ -65,14 +65,27 @@ Select all resources from a deployment
 
 * Example commands
 
+#+NAME: create an instance
 #+begin_src shell
   curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"kubernetes/kubernetes\"]}}" | jq .
 #+end_src
 
+#+NAME: dynamicly delete instance
 #+begin_src shell
   curl -X DELETE http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"name\":\"bobymcbobs-21574680-21457462\"}" | jq .
 #+end_src
 
+#+NAME: delete a Kubernetes instance
+#+begin_src shell
+  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-65fd2a11ef | jq .
+#+end_src
+
+#+NAME: get all names of Kubernetes instances
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes | jq '.list[].spec.name'
+#+end_src
+
+#+NAME: get a list of all Kubernetes instances
 #+begin_src shell
   curl -X GET http://localhost:8080/api/instance/kubernetes | jq .
 #+end_src
