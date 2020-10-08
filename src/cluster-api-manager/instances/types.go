@@ -50,6 +50,14 @@ const (
 	InstanceTypePlain      InstanceType = "Plain"
 )
 
+type InstanceFilter struct {
+	Username string `json:"username"`
+}
+
+type InstanceListOptions struct {
+	Filter InstanceFilter `json:"filter"`
+}
+
 type InstanceAccess struct {
 	Kubeconfig  rest.Config `json:"kubeconfig"`
 	TmateString string      `json:"tmateString"`

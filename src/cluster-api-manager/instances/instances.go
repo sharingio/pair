@@ -47,7 +47,7 @@ func Get(name string) (err error, instance Instance) {
 	return err, instance
 }
 
-func List(kubernetesClientset dynamic.Interface) (err string, instances []Instance) {
+func List(kubernetesClientset dynamic.Interface, options InstanceListOptions) (err string, instances []Instance) {
 	return err, instances
 }
 

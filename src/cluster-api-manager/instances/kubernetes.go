@@ -11,9 +11,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -354,7 +355,7 @@ func KubernetesGet(name string) (err error, instance Instance) {
 	return err, instance
 }
 
-func KubernetesList(kubernetesClientset dynamic.Interface) (err error, instances []Instance) {
+func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 
@@ -377,7 +378,11 @@ func KubernetesList(kubernetesClientset dynamic.Interface) (err error, instances
 			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
 		}
 		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 		var instance = Instance{
@@ -409,7 +414,11 @@ func KubernetesList(kubernetesClientset dynamic.Interface) (err error, instances
 			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
 		}
 		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 	instances:
@@ -438,7 +447,11 @@ func KubernetesList(kubernetesClientset dynamic.Interface) (err error, instances
 			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
 		}
 		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 	instances1:
@@ -467,7 +480,11 @@ func KubernetesList(kubernetesClientset dynamic.Interface) (err error, instances
 			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
 		}
 		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 	instances2:
@@ -686,6 +703,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
 	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 	log.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14])
@@ -693,6 +711,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
 	newInstance.PacketMachineTemplate.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.PacketMachineTemplate.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
 
@@ -700,6 +719,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = namespace
 	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
 	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
 	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
@@ -711,6 +731,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
 	newInstance.PacketCluster.ObjectMeta.Namespace = namespace
 	newInstance.PacketCluster.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.PacketCluster.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
 	newInstance.PacketCluster.Spec.Facility = instance.Facility
@@ -718,18 +739,25 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
 	newInstance.Cluster.ObjectMeta.Namespace = namespace
 	newInstance.Cluster.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.Cluster.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
 	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
 
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = namespace
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = namespace
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
 
 	return newInstance
+}
+
+func KubernetesGetKubeconfig(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig rest.Config) {
+
 }

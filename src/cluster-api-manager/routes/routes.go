@@ -20,7 +20,14 @@ func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.Handler
 		response := "Listing all Kubernetes instances"
 		responseCode := http.StatusInternalServerError
 
-		err, availableInstances := instances.KubernetesList(kubernetesClientset)
+		instanceFilterUsername := r.FormValue("username")
+		options := instances.InstanceListOptions{
+			Filter: instances.InstanceFilter{
+				Username: instanceFilterUsername,
+			},
+		}
+
+		err, availableInstances := instances.KubernetesList(kubernetesClientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
