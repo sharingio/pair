@@ -7,14 +7,13 @@ import (
 
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/rest"
-
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -41,7 +40,7 @@ var defaultKubernetesVersion = "1.19.0"
 var defaultKubernetesClusterConfig = KubernetesCluster{
 	KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
+			Name:   "",
 			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
@@ -206,7 +205,7 @@ EOF
 	},
 	Cluster: clusterAPIv1alpha3.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
+			Name:   "",
 			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIv1alpha3.ClusterSpec{
@@ -236,7 +235,7 @@ EOF
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
 			Labels: map[string]string{
-				"pool": "worker-a",
+				"pool":            "worker-a",
 				"io.sharing.pair": "instance",
 			},
 		},
@@ -253,7 +252,7 @@ EOF
 					Name: "",
 					Labels: map[string]string{
 						"io.sharing.pair": "instance",
-						"pool": "worker-a",
+						"pool":            "worker-a",
 					},
 				},
 				Spec: clusterAPIv1alpha3.MachineSpec{
@@ -275,7 +274,7 @@ EOF
 	},
 	KubeadmConfigTemplateWorker: cabpkv1.KubeadmConfigTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
+			Name:   "",
 			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: cabpkv1.KubeadmConfigTemplateSpec{
@@ -312,7 +311,7 @@ EOF
 	},
 	PacketMachineTemplate: clusterAPIPacketv1alpha3.PacketMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
+			Name:   "",
 			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
@@ -328,14 +327,14 @@ EOF
 	},
 	PacketCluster: clusterAPIPacketv1alpha3.PacketCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
+			Name:   "",
 			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{},
 	},
 	PacketMachineTemplateWorker: clusterAPIPacketv1alpha3.PacketMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
+			Name:   "",
 			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
@@ -758,6 +757,21 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	return newInstance
 }
 
-func KubernetesGetKubeconfig(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig rest.Config) {
-
+func KubernetesGetKubeconfig(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig *clientcmdapi.Config) {
+	targetNamespace := common.GetTargetNamespace()
+	groupVersionResource := schema.GroupVersionResource{Version: "v1", Group: "", Resource: "secrets"}
+	secret, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err), &clientcmdapi.Config{}
+	}
+	var itemRestructured corev1.Secret
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(secret.Object, &itemRestructured)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to restructure %T; err: %v", itemRestructured, err), &clientcmdapi.Config{}
+	}
+	valueBytes := itemRestructured.Data["value"]
+	kubeconfig, err = clientcmd.Load(valueBytes)
+	return err, kubeconfig
 }

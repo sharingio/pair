@@ -6,13 +6,16 @@ package routes
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"log"
+	"net/http"
+
 	"github.com/gorilla/mux"
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	"github.com/sharingio/pair/src/cluster-api-manager/instances"
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
-	"io/ioutil"
 	"k8s.io/client-go/dynamic"
-	"net/http"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
@@ -142,6 +145,36 @@ func DeleteInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 			Status: instances.InstanceStatus{
 				Phase: instances.InstanceStatusPhaseDeleting,
 			},
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
+func GetKubernetesKubeconfig(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Getting Kubeconfig for instance"
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, kubeconfig := instances.KubernetesGetKubeconfig(name, kubernetesClientset)
+		if err != nil {
+			log.Println(err)
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec: clientcmdapi.Config{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
+			Spec: kubeconfig,
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}

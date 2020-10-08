@@ -2,7 +2,7 @@ package instances
 
 import (
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
-	rest "k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
@@ -59,6 +59,6 @@ type InstanceListOptions struct {
 }
 
 type InstanceAccess struct {
-	Kubeconfig  rest.Config `json:"kubeconfig"`
-	TmateString string      `json:"tmateString"`
+	Kubeconfig  clientcmdapi.Config `json:"kubeconfig"`
+	TmateString string              `json:"tmateString"`
 }
