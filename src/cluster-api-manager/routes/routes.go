@@ -18,6 +18,36 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
+func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, instance := instances.KubernetesGet(name, kubernetesClientset)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: "Creating instance",
+			},
+			Spec: instance.Spec,
+			Status: instance.Status,
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
 func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all Kubernetes instances"

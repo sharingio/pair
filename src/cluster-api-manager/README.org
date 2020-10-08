@@ -55,7 +55,7 @@ namespace/sharingio-pair-instances created
 
 Select all resources from a deployment
 #+begin_src shell
-  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines -l io.sharing.pair-instance=INSTANCE_LABEL
+  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines
 #+end_src
 
 #+begin_src shell :dir ./ :noweb yes
@@ -67,7 +67,7 @@ Select all resources from a deployment
 
 #+NAME: create an instance
 #+begin_src shell
-  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"kubernetes/kubernetes\"]}}" | jq .
+  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"kubernetes/kubernetes\",\"cncf/apisnoop\"]}}" | jq .
 #+end_src
 
 #+NAME: dynamicly delete instance

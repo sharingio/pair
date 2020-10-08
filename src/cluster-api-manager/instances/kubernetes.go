@@ -350,12 +350,95 @@ EOF
 	},
 }
 
-func KubernetesGet(name string) (err error, instance Instance) {
+func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
+	targetNamespace := common.GetTargetNamespace()
+
+	// manifests
+
+	//   - newInstance.MachineDeploymentWorker
+	groupVersion := clusterAPIv1alpha3.GroupVersion
+	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
+	log.Printf("%#v\n", groupVersionResource)
+	item, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to get Instance (MachineDeployment), %#v", err), instance
+	}
+	var itemRestructuredMD clusterAPIv1alpha3.MachineDeployment
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredMD)
+	if err != nil {
+		return fmt.Errorf("Failed to restructure %T", itemRestructuredMD), Instance{}
+	}
+	if itemRestructuredMD.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredMD, itemRestructuredMD.ObjectMeta.Name)
+	} else {
+		instance.Status.Resources.MachineDeploymentWorker = itemRestructuredMD.Status
+	}
+
+	//   - newInstance.KubeadmControlPlane
+	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
+	log.Printf("%#v\n", groupVersionResource)
+	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to Instance (KubeadmControlPlane), %#v", err), instance
+	}
+	var itemRestructuredKCP clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredKCP)
+	if err != nil {
+		return fmt.Errorf("Failed to restructure %T", itemRestructuredKCP), Instance{}
+	}
+	if itemRestructuredKCP.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredKCP, itemRestructuredKCP.ObjectMeta.Name)
+	} else {
+		instance.Status.Resources.KubeadmControlPlane = itemRestructuredKCP.Status
+	}
+
+	//   - newInstance.PacketCluster
+	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
+	log.Printf("%#v\n", groupVersionResource)
+	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instance
+	}
+	var itemRestructuredPC clusterAPIPacketv1alpha3.PacketCluster
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPC)
+	if err != nil {
+		return fmt.Errorf("Failed to restructure %T", itemRestructuredPC), Instance{}
+	}
+	if itemRestructuredPC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredPC, itemRestructuredPC.ObjectMeta.Name)
+	} else {
+		instance.Status.Resources.PacketCluster = itemRestructuredPC.Status
+	}
+
+	//   - newInstance.Cluster
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
+	log.Printf("%#v\n", groupVersionResource)
+	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create Cluster, %#v", err), instance
+	}
+	var itemRestructuredC clusterAPIv1alpha3.Cluster
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredC)
+	if err != nil {
+		return fmt.Errorf("Failed to restructure %T", itemRestructuredC), Instance{}
+	}
+	if itemRestructuredC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredC, itemRestructuredC.ObjectMeta.Name)
+	} else {
+		instance.Status.Resources.Cluster = itemRestructuredC.Status
+	}
+	instance.Spec.Name = itemRestructuredC.ObjectMeta.Labels["io.sharing.pair-instance"]
+	err = nil
 	return err, instance
 }
 
 func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
-	// generate name
 	targetNamespace := common.GetTargetNamespace()
 
 	// manifests
