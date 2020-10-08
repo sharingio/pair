@@ -18,13 +18,19 @@ func handleWebserver() {
 	router := mux.NewRouter().StrictSlash(true)
 	apiEndpointPrefix := "/api"
 
-	err, kubernetesClientset := kubernetes.DynamicClient()
+	err, kubernetesDynamicClientset := kubernetes.DynamicClient()
 	if err != nil {
 		log.Panicln(err)
 		return
 	}
 
-	for _, endpoint := range routes.GetEndpoints(apiEndpointPrefix, kubernetesClientset) {
+	err, restConfig := kubernetes.RestClient()
+	if err != nil {
+		log.Panicln(err)
+		return
+	}
+
+	for _, endpoint := range routes.GetEndpoints(apiEndpointPrefix, kubernetesDynamicClientset, restConfig) {
 		router.HandleFunc(endpoint.EndpointPath, endpoint.HandlerFunc).Methods(endpoint.HttpMethods...)
 	}
 

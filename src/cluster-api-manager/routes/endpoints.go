@@ -5,9 +5,10 @@ import (
 
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 )
 
-func GetEndpoints(endpointPrefix string, kubernetesClientset dynamic.Interface) types.Endpoints {
+func GetEndpoints(endpointPrefix string, kubernetesClientset dynamic.Interface, restConfig *rest.Config) types.Endpoints {
 	return types.Endpoints{
 		{
 			EndpointPath: endpointPrefix + "/hello",
