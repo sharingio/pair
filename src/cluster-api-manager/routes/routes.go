@@ -15,6 +15,31 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		responseCode := http.StatusInternalServerError
+
+		err, availableInstances := instances.KubernetesList(kubernetesClientset)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				List: []instances.Instance{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: "Listing all Kubernetes instances",
+			},
+			List: availableInstances,
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
 func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError

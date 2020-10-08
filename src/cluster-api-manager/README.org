@@ -69,6 +69,14 @@ Select all resources from a deployment
   curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"kubernetes/kubernetes\"]}}" | jq .
 #+end_src
 
+#+begin_src shell
+  curl -X DELETE http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"name\":\"bobymcbobs-21574680-21457462\"}" | jq .
+#+end_src
+
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes | jq .
+#+end_src
+
 * Notes
 - https://github.com/kubernetes-sigs/cluster-api/blob/6ee07b3ff2c4162a3959969a6e9c20d813ebc4d2/api/v1alpha3/cluster_types.go
 - https://github.com/kubernetes-sigs/cluster-api-provider-packet/blob/cd4f7d7d27d6b7c715215eff60eb6a0451996df2/api/v1alpha3/packetcluster_types.go

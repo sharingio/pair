@@ -43,11 +43,11 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	return err
 }
 
-func Get(name string) (err error, instance InstanceSpec) {
+func Get(name string) (err error, instance Instance) {
 	return err, instance
 }
 
-func List() (err string, instances []InstanceSpec) {
+func List(kubernetesClientset dynamic.Interface) (err string, instances []Instance) {
 	return err, instances
 }
 

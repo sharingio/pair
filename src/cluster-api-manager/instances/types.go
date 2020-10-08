@@ -2,7 +2,16 @@ package instances
 
 import (
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
+	rest "k8s.io/client-go/rest"
+	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
+	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
+
+type Instance struct {
+	Spec   InstanceSpec   `json:"spec"`
+	Status InstanceStatus `json:"status"`
+}
 
 type InstanceSpec struct {
 	Name string `json:"name"`
@@ -13,8 +22,16 @@ type InstanceSpec struct {
 	Facility string          `json:"facility"`
 }
 
+type InstanceResourceStatus struct {
+	KubeadmControlPlane     clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneStatus
+	Cluster                 clusterAPIv1alpha3.ClusterStatus
+	MachineDeploymentWorker clusterAPIv1alpha3.MachineDeploymentStatus
+	PacketCluster           clusterAPIPacketv1alpha3.PacketClusterStatus
+}
+
 type InstanceStatus struct {
-	Phase InstanceStatusPhase `json:"phase"`
+	Phase     InstanceStatusPhase    `json:"phase"`
+	Resources InstanceResourceStatus `json:"resources"`
 }
 
 type InstanceStatusPhase string
@@ -32,3 +49,8 @@ const (
 	InstanceTypeKubernetes InstanceType = "Kubernetes"
 	InstanceTypePlain      InstanceType = "Plain"
 )
+
+type InstanceAccess struct {
+	Kubeconfig  rest.Config `json:"kubeconfig"`
+	TmateString string      `json:"tmateString"`
+}

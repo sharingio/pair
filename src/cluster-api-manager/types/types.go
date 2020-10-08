@@ -18,14 +18,15 @@ type JSONResponseMetadata struct {
 
 type JSONMessageResponse struct {
 	Metadata JSONResponseMetadata `json:"metadata"`
-	Spec     interface{}          `json:"spec"`
-	Status   interface{}          `json:"status"`
+	Spec     interface{}          `json:"spec,omitempty"`
+	List     interface{}          `json:"list,omitempty"`
+	Status   interface{}          `json:"status,omitempty"`
 }
 
 type Endpoints []struct {
 	EndpointPath string
 	HandlerFunc  http.HandlerFunc
-	HttpMethods   []string
+	HttpMethods  []string
 }
 
 type SetupSpec struct {

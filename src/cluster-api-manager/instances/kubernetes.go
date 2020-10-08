@@ -9,19 +9,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	// "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	// "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	// "k8s.io/kubectl/pkg/scheme"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	// "sigs.k8s.io/yaml"
 )
 
 type KubernetesCluster struct {
@@ -44,6 +41,7 @@ var defaultKubernetesClusterConfig = KubernetesCluster{
 	KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
+			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
 			Version:  defaultKubernetesVersion,
@@ -208,6 +206,7 @@ EOF
 	Cluster: clusterAPIv1alpha3.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
+			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIv1alpha3.ClusterSpec{
 			ClusterNetwork: &clusterAPIv1alpha3.ClusterNetwork{
@@ -237,6 +236,7 @@ EOF
 			Name: "",
 			Labels: map[string]string{
 				"pool": "worker-a",
+				"io.sharing.pair": "instance",
 			},
 		},
 		Spec: clusterAPIv1alpha3.MachineDeploymentSpec{
@@ -251,6 +251,7 @@ EOF
 				ObjectMeta: clusterAPIv1alpha3.ObjectMeta{
 					Name: "",
 					Labels: map[string]string{
+						"io.sharing.pair": "instance",
 						"pool": "worker-a",
 					},
 				},
@@ -274,6 +275,7 @@ EOF
 	KubeadmConfigTemplateWorker: cabpkv1.KubeadmConfigTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
+			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: cabpkv1.KubeadmConfigTemplateSpec{
 			Template: cabpkv1.KubeadmConfigTemplateResource{
@@ -310,6 +312,7 @@ EOF
 	PacketMachineTemplate: clusterAPIPacketv1alpha3.PacketMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
+			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
 			Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
@@ -325,12 +328,14 @@ EOF
 	PacketCluster: clusterAPIPacketv1alpha3.PacketCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
+			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{},
 	},
 	PacketMachineTemplateWorker: clusterAPIPacketv1alpha3.PacketMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "",
+			Labels: map[string]string{"io.sharing.pair": "instance"},
 		},
 		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
 			Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
@@ -345,11 +350,135 @@ EOF
 	},
 }
 
-func KubernetesGet(name string) (err error, instance InstanceSpec) {
+func KubernetesGet(name string) (err error, instance Instance) {
 	return err, instance
 }
 
-func KubernetesList() (err error, instances []InstanceSpec) {
+func KubernetesList(kubernetesClientset dynamic.Interface) (err error, instances []Instance) {
+	// generate name
+	targetNamespace := common.GetTargetNamespace()
+
+	// manifests
+
+	//   - newInstance.MachineDeploymentWorker
+	groupVersion := clusterAPIv1alpha3.GroupVersion
+	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instances
+	}
+
+	for _, item := range items.Items {
+		var itemRestructured clusterAPIv1alpha3.MachineDeployment
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+		}
+		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+		var instance = Instance{
+			Spec: InstanceSpec{
+				Name: itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"],
+			},
+			Status: InstanceStatus{
+				Resources: InstanceResourceStatus{
+					MachineDeploymentWorker: itemRestructured.Status,
+				},
+			},
+		}
+		instances = append(instances, instance)
+	}
+
+	//   - newInstance.KubeadmControlPlane
+	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to list KubeadmControlPlane, %#v", err), instances
+	}
+
+	for _, item := range items.Items {
+		var itemRestructured clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+		}
+		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+	instances:
+		for i := range instances {
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"] {
+				instances[i].Status.Resources.KubeadmControlPlane = itemRestructured.Status
+				break instances
+			}
+		}
+	}
+
+	//   - newInstance.PacketCluster
+	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instances
+	}
+
+	for _, item := range items.Items {
+		var itemRestructured clusterAPIPacketv1alpha3.PacketCluster
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+		}
+		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+	instances1:
+		for i := range instances {
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"] {
+				instances[i].Status.Resources.PacketCluster = itemRestructured.Status
+				break instances1
+			}
+		}
+	}
+
+	//   - newInstance.Cluster
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create Cluster, %#v", err), instances
+	}
+
+	for _, item := range items.Items {
+		var itemRestructured clusterAPIv1alpha3.Cluster
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+		}
+		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
+			continue
+		}
+	instances2:
+		for i := range instances {
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"] {
+				instances[i].Status.Resources.Cluster = itemRestructured.Status
+				break instances2
+			}
+		}
+	}
+	err = nil
 	return err, instances
 }
 
@@ -556,21 +685,21 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
-	newInstance.KubeadmControlPlane.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 	log.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14])
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
-	newInstance.PacketMachineTemplate.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.PacketMachineTemplate.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
 
 	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = namespace
 	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
 	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
@@ -581,24 +710,24 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 
 	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
 	newInstance.PacketCluster.ObjectMeta.Namespace = namespace
-	newInstance.PacketCluster.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.PacketCluster.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
 	newInstance.PacketCluster.Spec.Facility = instance.Facility
 
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
 	newInstance.Cluster.ObjectMeta.Namespace = namespace
-	newInstance.Cluster.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.Cluster.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
 	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
 
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = namespace
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = namespace
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels = map[string]string{"io.sharing.pair-instance": instance.Name}
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
 
