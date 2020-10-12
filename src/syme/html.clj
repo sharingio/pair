@@ -57,34 +57,27 @@
     (when-not (:name repo)
       (throw (ex-info "Repository not found." {:status 404})))
     (layout
-     [:div
-      [:h3.project [:a {:href (:html_url repo)} repo-name]]
-      [:p {:id "desc"} (:description repo)]
-      [:hr]
-      [:form {:action "/launch" :method :post}
-       [:input {:type :hidden :name "project" :value repo-name}]
-       [:input {:type :text :name "invite" :id "invite"
-                :placeholder "users to invite (space-separated)"}]
-       [:input {:type :text :name "identity" :id "identity"
-                :value identity :placeholder "AWS Access Key"}]
-       [:input {:type :text :style "width: 320px"
-                :name "credential" :id "credential"
-                :value credential :placeholder "AWS Secret Key"}]
-       (form/drop-down "region" (->> (keys instance/ami-by-region)
-                                     (map name)
-                                     sort)
-                       "us-west-2")
-       [:input {:type :text :name "ami-id"
-                :style "width: 48%"
-                :placeholder "ami id (optional)"}]
-       [:input {:type :text :name "instance-type"
-                :style "width: 48%"
-                :placeholder "instance-type (default: m1.small)"}]
+      [:div
+       [:h3.project [:a {:href {:html_url repo}} repo-name]]
+       [:p#desc (:description repo)]
        [:hr]
-       [:p {:style "float: right; margin-top: 10px; font-size: 80%"}
-        "Your credentials are stored in an encrypted cookie, never"
-        " on the server."]
-       [:input {:type :submit :value "Launch!"}]]]
+       [:h3 "Deploy to Packet"]
+       [:form {:action "/launch" :method :post}
+        [:label {:for "type"} "Type"]
+        (form/drop-down "type" '("Kubernetes")
+                        "kubernetes")
+        [:input {:type :hidden
+                 :name "project"
+                 :value repo-name}]
+        [:input {:type :hidden
+                 :name "facility"
+                 :value "sjc1"}]
+        [:label {:for "guests"} "guests"]
+        [:input {:type :text
+                 :name "guests"
+                 :id "guests"
+                 :placeholder "users to invite (space separated)"}]
+        [:input {:type :submit :value "launch"}]]]
      username repo-name)))
 
 (defonce icon (memoize (comp :avatar_url users/user)))
