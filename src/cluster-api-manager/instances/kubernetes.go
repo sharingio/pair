@@ -179,20 +179,19 @@ EOF
 `,
 					"kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e \"s/strictARP: false/strictARP: true/\" | kubectl apply -f - -n kube-system",
 					`cat <<EOF > /root/metallb-system-config.yaml
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        namespace: metallb-system
-        name: config
-      data:
-        config: |
-          address-pools:
-            - name: default
-              protocol: layer2
-              addresses:
-                - {{ .controlPlaneEndpoint }}/32
-      EOF
-`,
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+      - name: default
+        protocol: layer2
+        addresses:
+          - {{ .controlPlaneEndpoint }}/32
+EOF`,
 					`(
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml;
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
