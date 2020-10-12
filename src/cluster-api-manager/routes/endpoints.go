@@ -5,10 +5,11 @@ import (
 
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-func GetEndpoints(endpointPrefix string, kubernetesClientset dynamic.Interface, restConfig *rest.Config) types.Endpoints {
+func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, restConfig *rest.Config) types.Endpoints {
 	return types.Endpoints{
 		{
 			EndpointPath: endpointPrefix + "/hello",
@@ -22,32 +23,37 @@ func GetEndpoints(endpointPrefix string, kubernetesClientset dynamic.Interface, 
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes",
-			HandlerFunc:  ListInstancesKubernetes(kubernetesClientset),
+			HandlerFunc:  ListInstancesKubernetes(dynamicClient),
 			HttpMethods:  []string{http.MethodGet},
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
-			HandlerFunc:  GetInstanceKubernetes(kubernetesClientset),
+			HandlerFunc:  GetInstanceKubernetes(dynamicClient),
 			HttpMethods:  []string{http.MethodGet},
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/kubeconfig",
-			HandlerFunc:  GetKubernetesKubeconfig(kubernetesClientset),
+			HandlerFunc:  GetKubernetesKubeconfig(clientset),
+			HttpMethods:  []string{http.MethodGet},
+		},
+		{
+			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate",
+			HandlerFunc:  GetKubernetesTmateSession(clientset, restConfig),
 			HttpMethods:  []string{http.MethodGet},
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance",
-			HandlerFunc:  PostInstance(kubernetesClientset),
+			HandlerFunc:  PostInstance(dynamicClient),
 			HttpMethods:  []string{http.MethodPost},
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
-			HandlerFunc:  DeleteInstanceKubernetes(kubernetesClientset),
+			HandlerFunc:  DeleteInstanceKubernetes(dynamicClient),
 			HttpMethods:  []string{http.MethodDelete},
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance",
-			HandlerFunc:  DeleteInstance(kubernetesClientset),
+			HandlerFunc:  DeleteInstance(dynamicClient),
 			HttpMethods:  []string{http.MethodDelete},
 		},
 	}

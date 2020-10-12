@@ -11,10 +11,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	"github.com/sharingio/pair/src/cluster-api-manager/instances"
 	"github.com/sharingio/pair/src/cluster-api-manager/types"
+
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
@@ -41,7 +45,7 @@ func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFu
 			Metadata: types.JSONResponseMetadata{
 				Response: "Creating instance",
 			},
-			Spec: instance.Spec,
+			Spec:   instance.Spec,
 			Status: instance.Status,
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
@@ -104,6 +108,7 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: "Creating instance",
@@ -180,9 +185,9 @@ func DeleteInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	}
 }
 
-func GetKubernetesKubeconfig(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		response := "Getting Kubeconfig for instance"
+		response := "Fetched Kubeconfig for instance"
 		responseCode := http.StatusInternalServerError
 
 		vars := mux.Vars(r)
@@ -205,6 +210,36 @@ func GetKubernetesKubeconfig(kubernetesClientset dynamic.Interface) http.Handler
 				Response: response,
 			},
 			Spec: kubeconfig,
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
+func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Fetched Tmate session for instance"
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, session := instances.KubernetesGetTmateSession(clientset, name)
+		if err != nil {
+			log.Println(err)
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec: "",
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
+			Spec: session,
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}

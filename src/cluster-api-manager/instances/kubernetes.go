@@ -1,19 +1,28 @@
 package instances
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
+	"io"
+	"strings"
 
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/tools/remotecommand"
+
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -29,6 +38,20 @@ type KubernetesCluster struct {
 	PacketMachineTemplate       clusterAPIPacketv1alpha3.PacketMachineTemplate
 	PacketCluster               clusterAPIPacketv1alpha3.PacketCluster
 	PacketMachineTemplateWorker clusterAPIPacketv1alpha3.PacketMachineTemplate
+}
+
+// ExecOptions passed to ExecWithOptions
+type ExecOptions struct {
+	Command       []string
+	Namespace     string
+	PodName       string
+	ContainerName string
+	Stdin         io.Reader
+	CaptureStdout bool
+	CaptureStderr bool
+	// If false, whitespace in std{err,out} will be removed.
+	PreserveWhitespace bool
+	TTY           bool
 }
 
 func Int32ToInt32Pointer(input int32) *int32 {
@@ -138,6 +161,12 @@ EOF
 					"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
 					"export KUBECONFIG=/root/.kube/config",
 					"kubectl taint node --all node-role.kubernetes.io/master-",
+					"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"%s\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:%s\"}'",
+					"kubectl taint node --all node-role.kubernetes.io/master-",
+					"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml",
+					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
+					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
+					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
 					"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
 					"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
 					"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
@@ -585,6 +614,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 	var newInstance = KubernetesTemplateResources(instance, targetNamespace)
+	return err, instanceCreated
 
 	// manifests
 	//   - newInstance.KubeadmControlPlane
@@ -787,8 +817,8 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
 	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
-	log.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[14])
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6], common.GetPacketProjectID(), instance.Name)
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
@@ -840,33 +870,99 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	return newInstance
 }
 
-func KubernetesGetKubeconfig(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig *clientcmdapi.Config) {
+func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) (err error, kubeconfigBytes []byte) {
 	targetNamespace := common.GetTargetNamespace()
-	groupVersionResource := schema.GroupVersionResource{Version: "v1", Group: "", Resource: "secrets"}
-	secret, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err), &clientcmdapi.Config{}
+		return fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err), []byte{}
 	}
-	var itemRestructured corev1.Secret
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(secret.Object, &itemRestructured)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to restructure %T; err: %v", itemRestructured, err), &clientcmdapi.Config{}
-	}
-	valueBytes := itemRestructured.Data["value"]
+	kubeconfigBytes = secret.Data["value"]
+	return err, kubeconfigBytes
+}
+
+func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (err error, kubeconfig *clientcmdapi.Config) {
+	err, valueBytes := KubernetesGetKubeconfigBytes(name, clientset)
 	kubeconfig, err = clientcmd.Load(valueBytes)
 	return err, kubeconfig
 }
 
-func KubernetesExec() {
+func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, options ExecOptions) (err error, stdout string, stderr string) {
 	// TODO get restconfig from kubeconfig
 	// TODO get rest client
 	// TODO post exec
+	req := clientset.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(options.PodName).
+		Namespace(options.Namespace).
+		SubResource("exec").
+		Param("container", options.ContainerName)
+	req.VersionedParams(&corev1.PodExecOptions{
+		Container: options.ContainerName,
+		Command:   options.Command,
+		Stdin:     options.Stdin != nil,
+		Stdout:    options.CaptureStdout,
+		Stderr:    options.CaptureStderr,
+		TTY:       options.TTY,
+	}, scheme.ParameterCodec)
+
+	exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", req.URL())
+	if err != nil {
+		return err, stdout, stderr
+	}
+	var stdoutBuffer, stderrBuffer bytes.Buffer
+	err = exec.Stream(remotecommand.StreamOptions{
+		Stdin:  options.Stdin,
+		Stdout: &stdoutBuffer,
+		Stderr: &stderrBuffer,
+		Tty:    options.TTY,
+	})
+	if err != nil {
+		return err, stdoutBuffer.String(), stderrBuffer.String()
+	}
+
+	if options.PreserveWhitespace {
+		return err, stdoutBuffer.String(), stderrBuffer.String()
+	}
+	return err, strings.TrimSpace(stdoutBuffer.String()), strings.TrimSpace(stderrBuffer.String())
 
 	// https://github.com/kubernetes/kubectl/blob/e65caf964573fbf671c4648032da4b7df7c7eaf0/pkg/cmd/exec/exec.go#L357
 }
 
-func KubernetesGetTmateSession(name string, kubernetesClientset dynamic.Interface) {
+func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (err error, output string) {
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(name, clientset)
+	if err != nil {
+		return err, output
+	}
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(instanceKubeconfig)
+	if err != nil {
+		return err, output
+	}
+	instanceClientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return err, output
+	}
 
+	execOptions := ExecOptions{
+		Command: []string{
+			"tmate",
+			"-S",
+			"/tmp/ii.default.target.iisocket",
+			"display",
+			"-p",
+			"'#{tmate_ssh}'",
+		},
+		Namespace: name,
+		PodName: name,
+		ContainerName: "humacs",
+		CaptureStderr: true,
+		CaptureStdout: true,
+		PreserveWhitespace: false,
+		TTY: false,
+	}
+	err, stdout, stderr := KubernetesExec(instanceClientset, restConfig, execOptions)
+	if stderr != "" {
+		return fmt.Errorf(stderr), stdout
+	}
+	return err, stdout
 }

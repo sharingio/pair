@@ -37,25 +37,16 @@ Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
   clusterctl init --infrastructure=packet
 #+end_src
 
-#+RESULTS:
-#+begin_example
-#+end_example
-
 * Running in development
 
 Create namespace for instances
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl create ns sharingio-pair-instances
 #+end_src
 
-#+RESULTS:
-#+begin_example
-namespace/sharingio-pair-instances created
-#+end_example
-
 Select all resources from a deployment
 #+begin_src shell
-  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines
+  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines,packetmachines
 #+end_src
 
 #+begin_src shell :dir ./ :noweb yes
@@ -65,19 +56,14 @@ Select all resources from a deployment
 
 * Example commands
 
-#+NAME: create an instance
+#+NAME: create a Kubernetes instance
 #+begin_src shell
-  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"kubernetes/kubernetes\",\"cncf/apisnoop\"]}}" | jq .
-#+end_src
-
-#+NAME: dynamicly delete instance
-#+begin_src shell
-  curl -X DELETE http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"name\":\"bobymcbobs-21574680-21457462\"}" | jq .
+  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"humacs/humacs\"]}}" | jq .
 #+end_src
 
 #+NAME: delete a Kubernetes instance
 #+begin_src shell
-  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-65fd2a11ef | jq .
+  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-58bf3ee127 | jq .
 #+end_src
 
 #+NAME: get all names of Kubernetes instances
@@ -85,10 +71,33 @@ Select all resources from a deployment
   curl -X GET http://localhost:8080/api/instance/kubernetes | jq '.list[].spec.name'
 #+end_src
 
+#+NAME: get tmate session for Kubernetes instance
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-58bf3ee127/tmate | jq .
+#+end_src
+
+#+NAME: get kubeconfig for Kubernetes instance
+#+begin_src shell
+  export PATH=$PATH:/home/ii/.local/bin
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-58bf3ee127/kubeconfig | jq .spec | yq -y .
+#+end_src
+
 #+NAME: get a list of all Kubernetes instances
 #+begin_src shell
   curl -X GET http://localhost:8080/api/instance/kubernetes | jq .
 #+end_src
+
+* Clean up
+Delete Packet infra provider ClusterAPI from your cluster
+#+begin_src shell :noweb yes :async yes
+          export PACKET_PROJECT_ID=<<get-packet-project-id()>>
+          export PACKET_API_KEY=<<get-packet-api-key()>>
+  clusterctl delete --infrastructure=packet 2>&1
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
 
 * Notes
 - https://github.com/kubernetes-sigs/cluster-api/blob/6ee07b3ff2c4162a3959969a6e9c20d813ebc4d2/api/v1alpha3/cluster_types.go
