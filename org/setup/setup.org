@@ -970,13 +970,8 @@ Create a namespace
   kubectl create ns pair
 #+end_src
 
-#+RESULTS:
-#+begin_example
-namespace/pair created
-#+end_example
-
 Create the database secrets
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl -n pair create secret generic postgres-configuration \
     --from-literal=POSTGRES_DB=pair \
     --from-literal=POSTGRES_USER=pair \
@@ -986,31 +981,32 @@ Create the database secrets
     --from-literal=PGDATABASE=pair
 #+end_src
 
+#+RESULTS:
+#+begin_example
+secret/postgres-configuration created
+#+end_example
+
 Create the Postgres instance
 #+begin_src shell :results silent
   kubectl -n pair apply -f postgres.yaml
 #+end_src
 
+#+RESULTS:
+#+begin_example
+service/postgres created
+statefulset.apps/postgres created
+#+end_example
+
 * Config
 #+begin_src elisp :results none
-  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:5000 if dev): "))
+  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:8080 if dev): "))
   (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
   (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
 #+end_src
 
-#+name: get-aws-access-key
+#+name: get-backend-address
 #+begin_src elisp :results silent
-  (getenv "AWS_ACCESS_KEY")
-#+end_src
-
-#+name: get-aws-secret-key
-#+begin_src elisp :results silent
-  (getenv "AWS_SECRET_KEY")
-#+end_src
-
-#+name: get-zone-id
-#+begin_src elisp :results silent
-  (getenv "ZONE_ID")
+  (getenv "BACKEND_ADDRESS")
 #+end_src
 
 #+name: get-oauth-client-id
@@ -1028,9 +1024,7 @@ Create the Postgres instance
   SESSION_SECRET=hahahahahahahaha
   CANONICAL_URL=<<get-pair-host()>>
   SUBDOMAIN=%s.%s.<<get-pair-host()>>
-  AWS_ACCESS_KEY=<<get-aws-access-key()>>
-  AWS_SECRET_KEY=<<get-aws-secret-key()>>
-  ZONE_ID=<<get-zone-id()>>
+  BACKEND_ADDRESS=<<get-backend-address()>>
   OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
   OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
 #+end_src
@@ -1042,7 +1036,7 @@ Create the Postgres instance
 * Migrate the database
 
 Run migrations
-#+begin_src shell :dir ../../ :results silent
+#+begin_src shell :dir ../../
   export $(cat .env | xargs)
   lein run -m syme.db
 #+end_src
