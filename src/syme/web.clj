@@ -62,10 +62,9 @@
          (when (db/find username project)
            (throw (ex-info "Already launched." {:status 409})))
          (packet/launch username params)
-         {:status 200 :headers {"Content-Type" "text/plain"} :body "OK"})
-         ;; (assoc (res/redirect (str "/project/" project))
-         ;;   :session (merge session (select-keys params
-         ;;                                        [:identity :credential]))))
+         (assoc (res/redirect (str "/project/" project))
+           :session (merge session (select-keys params
+                                                [:identity :credential]))))
    (GET "/project/:gh-user/:project" {{:keys [username]} :session
                                       instance :instance}
         (html/instance username instance))
@@ -160,5 +159,5 @@
                      {:port port :join? false})))
 
 ;; For interactive development:
-;;(.stop server)
-;; (def server (-main))
+(.stop server)
+(def server (-main))

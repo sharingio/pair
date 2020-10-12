@@ -7,6 +7,9 @@
             [syme.db :as db])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
+
+
+
 (defn launch
   [username {:keys [project facility type guests identity credential]}]
   ;; TODO insert into db
@@ -18,5 +21,19 @@
                                :guests [ guests ]
                                :repos [ project ]}}
         response (http/post backend {:form-params instance-spec
-                                     :content-type json})]
-    (println reponse)))
+                                     :content-type :json})]
+    (println response)
+    (db/create username project facility type)))
+
+
+  (let [backend (str "http://"(env :backend-address)"/api/instance")
+        instance-spec {:type type
+                       :facility facility
+                       :setup {:user username
+                               :guests [ guests ]
+                               :repos [ project ]}}]
+        (try+
+        response (http/post backend {:form-params instance-spec
+                                     :content-type :json})
+        (catch [:status 500] {:keys [request-time headers body]}
+          (log/warn "403" request-time headers body))))
