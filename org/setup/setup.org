@@ -993,9 +993,7 @@ Create the Postgres instance
 
 * Config
 #+begin_src elisp :results none
-  (setenv "AWS_ACCESS_KEY" (read-from-minibuffer "AWS_ACCESS_KEY: "))
-  (setenv "AWS_SECRET_KEY" (read-from-minibuffer "AWS_SECRET_KEY: "))
-  (setenv "ZONE_ID" (read-from-minibuffer "ZONE_ID: "))
+  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:5000 if dev): "))
   (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
   (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
 #+end_src
