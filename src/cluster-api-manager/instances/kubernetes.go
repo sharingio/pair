@@ -892,7 +892,7 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 	// TODO post exec
 	req := clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
-		Name(options.PodName).
+		Name(fmt.Sprintf("%s-humacs-0", options.PodName)).
 		Namespace(options.Namespace).
 		SubResource("exec").
 		Param("container", options.ContainerName)
@@ -949,7 +949,7 @@ func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (er
 			"/tmp/ii.default.target.iisocket",
 			"display",
 			"-p",
-			"'#{tmate_ssh}'",
+			"#{tmate_ssh}",
 		},
 		Namespace: name,
 		PodName: name,
