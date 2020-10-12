@@ -7,12 +7,13 @@
 
 (def db (env/env :database-url "postgres://localhost:5432/syme"))
 
-(defn create [owner project region]
+(defn create [owner project facility type]
   (let [{:keys [description]} (apply repos/specific-repo (.split project "/"))]
     (sql/with-connection db
       (sql/insert-record :instances {:project project
                                      :owner owner
-                                     :region region
+                                     :facility facility
+                                     :type type
                                      :status "starting"
                                      :shutdown_token (str (UUID/randomUUID))
                                      :description description}))))
@@ -72,6 +73,8 @@
                     [:id :serial "PRIMARY KEY"]
                     [:owner :varchar "NOT NULL"]
                     [:project :varchar "NOT NULL"]
+                    [:facility :varchar]
+                    [:type :text]
                     [:ip :varchar]
                     [:description :text]
                     [:status :varchar]
@@ -87,12 +90,6 @@
 
 (defn add-shutdown-token []
   (sql/do-commands "ALTER TABLE instances ADD COLUMN shutdown_token VARCHAR"))
-
-(defn add-dns []
-  (sql/do-commands "ALTER TABLE instances ADD COLUMN dns VARCHAR"))
-
-(defn add-region []
-  (sql/do-commands "ALTER TABLE instances ADD COLUMN region VARCHAR"))
 
 ;; migrations mechanics
 
@@ -120,6 +117,4 @@
 (defn -main []
   (migrate #'initial-schema
            #'add-instance-id
-           #'add-shutdown-token
-           #'add-dns
-           #'add-region))
+           #'add-shutdown-token))
