@@ -614,7 +614,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 	var newInstance = KubernetesTemplateResources(instance, targetNamespace)
-	return err, instanceCreated
+	instanceCreated.Name = instance.Name
 
 	// manifests
 	//   - newInstance.KubeadmControlPlane
