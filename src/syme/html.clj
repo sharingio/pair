@@ -94,8 +94,9 @@
    [:h3.project [:a {:href (link-project project)} project]]
    [:p {:id "desc"} description]])
 
-(defn instance [username {:keys [project status description ip dns invitees]
+(defn instance [username {:keys [project status description ip dns invitees instance_id type facility]
                           :as instance-info}]
+  (println (str "instance-info: "instance-info))
   (layout
    [:div
     (render-instance-info instance-info link-github-project)
@@ -111,7 +112,12 @@
        [:p {:id "ip" :class status
             :title "Send this command to the users you've invited."}
         [:tt "ssh ii@" (or dns ip)]]]
-      [:p "Waiting to boot... could take a few minutes."])
+      [:div
+       [:h3 instance_id]
+       [:p (str "Creating a "type" Project named "instance_id" on "facility)]
+        [:p "Waiting to boot... could take a few minutes."]
+        [:h4 "status"]
+        [:em status]])
     [:hr]
     [:ul {:id "users"}
      (for [u invitees]

@@ -7,14 +7,15 @@
 
 (def db (env/env :database-url "postgres://localhost:5432/syme"))
 
-(defn create [owner project facility type]
+(defn create [{:keys [owner project facility type instance-id status] :as payload}]
   (let [{:keys [description]} (apply repos/specific-repo (.split project "/"))]
     (sql/with-connection db
       (sql/insert-record :instances {:project project
                                      :owner owner
                                      :facility facility
                                      :type type
-                                     :status "starting"
+                                     :status status
+                                     :instance_id instance-id
                                      :shutdown_token (str (UUID/randomUUID))
                                      :description description}))))
 
@@ -73,7 +74,7 @@
                     [:id :serial "PRIMARY KEY"]
                     [:owner :varchar "NOT NULL"]
                     [:project :varchar "NOT NULL"]
-                    [:facility :varchar]
+                    [:facility :text]
                     [:type :text]
                     [:ip :varchar]
                     [:description :text]

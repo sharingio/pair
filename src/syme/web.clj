@@ -61,10 +61,14 @@
            (throw (ex-info "Must be logged in." {:status 401})))
          (when (db/find username project)
            (throw (ex-info "Already launched." {:status 409})))
+         (println (str "post launch params: "params))
          (packet/launch username params)
          (assoc (res/redirect (str "/project/" project))
            :session (merge session (select-keys params
                                                 [:identity :credential]))))
+         ;; {:headers {"Content-Type" "text/plain"}
+         ;;  :status 200
+         ;;  :body "OK!! yah! Good! check da db!"})
    (GET "/project/:gh-user/:project" {{:keys [username]} :session
                                       instance :instance}
         (html/instance username instance))
