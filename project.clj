@@ -15,6 +15,8 @@
                  [cheshire "5.10.0"]
                  [environ "1.2.0"]
                  [lib-noir "0.9.9"]
+                 [slingshot "0.12.2"]
+                 [org.clojure/tools.logging "1.1.0"]
                  [org.postgresql/postgresql "42.2.16.jre7"]
                  [org.clojure/java.jdbc "0.2.3"]]
   :uberjar-name "syme-standalone.jar"
