@@ -1033,6 +1033,77 @@ statefulset.apps/postgres created
 #+begin_example
 #+end_example
 
+* Create a database
+
+Create a namespace
+#+begin_src shell
+  kubectl create ns pair
+#+end_src
+
+#+RESULTS:
+#+begin_example
+namespace/pair created
+#+end_example
+
+Create the database secrets
+#+begin_src shell
+  kubectl -n pair create secret generic postgres-configuration \
+    --from-literal=POSTGRES_DB=pair \
+    --from-literal=POSTGRES_USER=pair \
+    --from-literal=POSTGRES_PASSWORD=pair \
+    --from-literal=PGUSER=pair \
+    --from-literal=PGPASSWORD=pair \
+    --from-literal=PGDATABASE=pair
+#+end_src
+
+#+RESULTS:
+#+begin_example
+secret/postgres-configuration created
+#+end_example
+
+Create the Postgres instance
+#+begin_src shell
+  kubectl -n pair apply -f postgres.yaml
+#+end_src
+
+#+RESULTS:
+#+begin_example
+service/postgres unchanged
+statefulset.apps/postgres unchanged
+#+end_example
+
+* Config
+#+begin_src elisp :results none
+  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:8080 if dev): "))
+  (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
+  (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
+#+end_src
+
+#+name: get-oauth-client-id
+#+begin_src elisp :results silent
+  (getenv "OAUTH_CLIENT_ID")
+#+end_src
+
+#+name: get-oauth-client-secret
+#+begin_src elisp :results silent
+  (getenv "OAUTH_CLIENT_SECRET")
+#+end_src
+
+#+name: get-backend-address
+#+begin_src elisp :results silent
+  (getenv "BACKEND_ADDRESS")
+#+end_src
+
+#+begin_src shell :tangle ../../.env :noweb yes
+  DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
+  SESSION_SECRET=hahahahahahahaha
+  CANONICAL_URL=<<get-pair-host()>>
+  SUBDOMAIN=%s.%s.<<get-pair-host()>>
+  BACKEND_ADDRESS=<<get-backend-address()>>
+  OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
+  OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
+#+end_src
+
 * Migrate the database
 
 Run migrations
@@ -1046,8 +1117,6 @@ Run migrations
 Running migration: initial-schema
 Running migration: add-instance-id
 Running migration: add-shutdown-token
-Running migration: add-dns
-Running migration: add-region
 #+end_example
 
 * Launching
@@ -1057,3 +1126,5 @@ Run this in a separate window, so it doesn't hold up the buffer:
   export $(cat .env | xargs)
   java $JVM_OPTS -cp target/uberjar/syme-standalone.jar clojure.main -m syme.web
 #+end_src
+
+
