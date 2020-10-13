@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"io"
+	"log"
 	"strings"
 	"text/template"
 
@@ -52,7 +52,7 @@ type ExecOptions struct {
 	CaptureStderr bool
 	// If false, whitespace in std{err,out} will be removed.
 	PreserveWhitespace bool
-	TTY           bool
+	TTY                bool
 }
 
 func Int32ToInt32Pointer(input int32) *int32 {
@@ -771,6 +771,16 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err)
 	}
 
+	//   - newInstance.PacketMachine
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachine"}
+	log.Printf("%#v\n", groupVersionResource)
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create PacketMachine, %#v", err)
+	}
+
 	//   - newInstance.MachineDeploymentWorker
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
@@ -780,6 +790,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create MachineDeployment, %#v", err)
 	}
+
 	//   - newInstance.KubeadmControlPlane
 	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	log.Printf("%#v\n", groupVersionResource)
@@ -966,13 +977,13 @@ func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (er
 			"-p",
 			"#{tmate_ssh}",
 		},
-		Namespace: name,
-		PodName: name,
-		ContainerName: "humacs",
-		CaptureStderr: true,
-		CaptureStdout: true,
+		Namespace:          name,
+		PodName:            name,
+		ContainerName:      "humacs",
+		CaptureStderr:      true,
+		CaptureStdout:      true,
 		PreserveWhitespace: false,
-		TTY: false,
+		TTY:                false,
 	}
 	err, stdout, stderr := KubernetesExec(instanceClientset, restConfig, execOptions)
 	if stderr != "" {
