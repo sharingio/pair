@@ -7,6 +7,7 @@ import (
 	"log"
 	"io"
 	"strings"
+	"text/template"
 
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 
@@ -217,7 +218,7 @@ EOF`,
           git clone https://github.com/humacs/humacs;
           cd humacs;
           kubectl create ns %s
-          helm install "%s" -n "%s" -f chart/humacs/values/apisnoop.yaml --set options.timezone="%s" chart/humacs
+          helm install "%s" -n "%s" -f chart/humacs/values/apisnoop.yaml --set options.timezone="%s" {{ range $index, $repo := $.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} chart/humacs
         )
 `,
 					`(
@@ -612,7 +613,10 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
-	var newInstance = KubernetesTemplateResources(instance, targetNamespace)
+	err, newInstance := KubernetesTemplateResources(instance, targetNamespace)
+	if err != nil {
+		return err, instanceCreated
+	}
 	instanceCreated.Name = instance.Name
 
 	// manifests
@@ -809,7 +813,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	return err
 }
 
-func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newInstance KubernetesCluster) {
+func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
@@ -818,6 +822,17 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6], common.GetPacketProjectID(), instance.Name)
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
+	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	tmpl, err := template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	if err != nil {
+		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+	}
+	templatedHumacsHelmInstall := new(bytes.Buffer)
+	err = tmpl.Execute(templatedHumacsHelmInstall, instance.Setup)
+	if err != nil {
+		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedHumacsHelmInstall.String()
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
@@ -866,7 +881,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newIn
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
 
-	return newInstance
+	return err, newInstance
 }
 
 func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) (err error, kubeconfigBytes []byte) {
