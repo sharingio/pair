@@ -33,6 +33,30 @@
                (list [:a {:href "/all"} "All Instances"] " | "
                      [:a {:href "/logout"} "Log out"])
                [:a {:href login-url} "Log in"])]]]]))
+(defn status-layout [body username & [project]]
+  (html5
+   [:head
+    [:meta {:charset "utf-8"}]
+    [:meta {:http-equiv "refresh" :content "15"}]
+    [:title (if project (str project " - Syme") "Syme")]
+    (include-css "/stylesheets/style.css" "/stylesheets/base.css"
+                 "/stylesheets/skeleton.css")
+    (include-css "https://fonts.googleapis.com/css?family=Passion+One:700")]
+   [:body
+    (if-let [account (:analytics-account env)]
+      [:script {:type "text/javascript"} (-> (io/resource "analytics.js")
+                                             (slurp) (format account))])
+    [:div#header
+     [:h1.container [:a {:href "/"} "Pairing is Sharing"]]]
+    [:div#content.container body
+     [:div#footer
+      [:p [:a {:href "/faq"} "About"]
+       " | " [:a {:href "https://github.com/sharingio/pair"}
+              "Source"]
+       " | " (if username
+               (list [:a {:href "/all"} "All Instances"] " | "
+                     [:a {:href "/logout"} "Log out"])
+               [:a {:href login-url} "Log in"])]]]]))
 
 (defn splash [username]
   (layout
@@ -95,23 +119,15 @@
    [:p {:id "desc"} description]])
 
 (defn instance [username {:keys [project status description ip dns invitees instance_id type facility]
-                          :as instance-info}]
+                          :as instance-info} kubeconfig-available?]
   (println (str "instance-info: "instance-info))
-  (layout
+  (status-layout
    [:div
     (render-instance-info instance-info link-github-project)
     [:hr]
-    (if (or dns ip)
+    (if kubeconfig-available?
       [:div
-       ;; TODO: remove inline styles
-       [:p {:id "haltbutton" :style "float: right; margin: -7px 0;"}
-        [:button {:onclick "show_halt()"} "Halt"]]
-       [:div {:id "halt" :style "float: right; clear: right; display: none"}
-        [:button {:onclick "hide_halt();"} "Cancel"]
-        [:button {:onclick (format "halt('%s')" project)} "Confirm"]]
-       [:p {:id "ip" :class status
-            :title "Send this command to the users you've invited."}
-        [:tt "ssh ii@" (or dns ip)]]]
+       [:a {:href (str "/project/"project"/kubeconfig") :download true} "download kubeconfig"]]
       [:div
        [:h3 instance_id]
        [:p (str "Creating a "type" Project named "instance_id" on "facility)]
@@ -145,3 +161,13 @@
      " due to timeout errors."
      ]]
    username "Status"))
+
+  ;; ;; TODO: remove inline styles
+  ;; [:p {:id "haltbutton" :style "float: right; margin: -7px 0;"}
+  ;;  [:button {:onclick "show_halt()"} "Halt"]]
+  ;; [:div {:id "halt" :style "float: right; clear: right; display: none"}
+  ;;  [:button {:onclick "hide_halt();"} "Cancel"]
+  ;;  [:button {:onclick (format "halt('%s')" project)} "Confirm"]]
+  ;; [:p {:id "ip" :class status
+  ;;      :title "Send this command to the users you've invited."}
+  ;;  [:tt "ssh ii@" (or dns ip)]]]

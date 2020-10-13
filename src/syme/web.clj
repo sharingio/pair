@@ -71,7 +71,14 @@
          ;;  :body "OK!! yah! Good! check da db!"})
    (GET "/project/:gh-user/:project" {{:keys [username]} :session
                                       instance :instance}
-        (html/instance username instance))
+        (let [kubeconfig-available? (packet/kubeconfig-available? (:instance_id instance))]
+        (html/instance username instance kubeconfig-available?)))
+   (GET "/project/:gh-user/:project/kubeconfig" {{:keys [username]} :session
+                                      instance :instance}
+        (let [kubeconfig (packet/get-kubeconfig instance)]
+        {:status 200
+         :header {:Content-Type "text/json"}
+         :body kubeconfig}))
    ;; for polling from JS on instance page
    (GET "/project/:gh-user/:project/status" {instance :instance}
         {:status (if (:ip instance) 200 202)

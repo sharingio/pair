@@ -8,8 +8,6 @@
             [syme.db :as db])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
-
-
 (defn launch
   [username {:keys [project facility type guests identity credential] :as params}]
   (println "launch fn params: " params)
@@ -34,4 +32,26 @@
                 :status (str api-response": "phase)})
         (println "response: " api-response phase name)))
 
+(defn kubeconfig-available?
+  "String->Boolean
+  Checks if response to get kubeconfig of given ID returns a completely empty config"
+  [instance_id]
+  (let
+      [backend (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id"/kubeconfig")
+       kubeconfig (-> (http/get backend)
+                      (:body)
+                      (json/decode true)
+                      (:spec))
+       not-empty? (complement empty?)]
+    (not-empty? (filter #(not-empty? (second %)) kubeconfig))))
 
+(defn get-kubeconfig
+  "retrieve config for instance as json string "
+  [{:keys [instance_id]}]
+  (let
+      [backend (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id"/kubeconfig")
+       kubeconfig (-> (http/get backend)
+                      (:body)
+                      (json/decode true)
+                      (:spec))]
+  (json/generate-string kubeconfig)))
