@@ -23,7 +23,7 @@
       [:script {:type "text/javascript"} (-> (io/resource "analytics.js")
                                              (slurp) (format account))])
     [:div#header
-     [:h1.container [:a {:href "/"} "Pairing is Sharing"]]]
+     [:h1.container [:a {:href "/"} "Caring is Sharing"]]]
     [:div#content.container body
      [:div#footer
       [:p [:a {:href "/faq"} "About"]
