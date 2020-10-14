@@ -34,4 +34,6 @@ type SetupSpec struct {
 	Guests   []string `json:"guests"`
 	Repos    []string `json:"repos"`
 	Timezone string   `json:"timezone"`
+	Fullname string   `json:"fullname"`
+	Email    string   `json:"email"`
 }

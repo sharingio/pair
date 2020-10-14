@@ -43,6 +43,12 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	if len(invalidRepos) > 0 {
 		return fmt.Errorf("Invalid repos, %s", invalidRepos)
 	}
+	if govalidator.IsEmail(instance.Setup.Email) != true || instance.Setup.Email == "" {
+		return fmt.Errorf("Invalid user email")
+	}
+	if instance.Setup.Fullname == "" {
+		return fmt.Errorf("Invalid name, name must not be empty")
+	}
 	return err
 }
 
