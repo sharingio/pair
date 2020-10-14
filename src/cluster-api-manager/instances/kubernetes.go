@@ -403,23 +403,25 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
 
+	instance.Spec.Type = InstanceTypeKubernetes
+
 	//   - newInstance.KubeadmControlPlane
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	log.Printf("%#v\n", groupVersionResource)
 	item, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to Instance (KubeadmControlPlane), %#v", err), instance
-	}
-	var itemRestructuredKCP clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredKCP)
-	if err != nil {
-		return fmt.Errorf("Failed to restructure %T", itemRestructuredKCP), Instance{}
-	}
-	if itemRestructuredKCP.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredKCP, itemRestructuredKCP.ObjectMeta.Name)
 	} else {
-		instance.Status.Resources.KubeadmControlPlane = itemRestructuredKCP.Status
+		var itemRestructuredKCP clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredKCP)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructuredKCP), Instance{}
+		}
+		if itemRestructuredKCP.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredKCP, itemRestructuredKCP.ObjectMeta.Name)
+		} else {
+			instance.Status.Resources.KubeadmControlPlane = itemRestructuredKCP.Status
+		}
 	}
 
 	//   - newInstance.PacketCluster
@@ -429,38 +431,40 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instance
-	}
-	var itemRestructuredPC clusterAPIPacketv1alpha3.PacketCluster
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPC)
-	if err != nil {
-		return fmt.Errorf("Failed to restructure %T", itemRestructuredPC), Instance{}
-	}
-	if itemRestructuredPC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredPC, itemRestructuredPC.ObjectMeta.Name)
 	} else {
-		instance.Status.Resources.PacketCluster = itemRestructuredPC.Status
+		var itemRestructuredPC clusterAPIPacketv1alpha3.PacketCluster
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPC)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructuredPC), Instance{}
+		}
+		if itemRestructuredPC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredPC, itemRestructuredPC.ObjectMeta.Name)
+		} else {
+			instance.Status.Resources.PacketCluster = itemRestructuredPC.Status
+		}
 	}
 
 	//   - newInstance.Cluster
+	var itemRestructuredC clusterAPIv1alpha3.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
 	log.Printf("%#v\n", groupVersionResource)
 	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create Cluster, %#v", err), instance
-	}
-	var itemRestructuredC clusterAPIv1alpha3.Cluster
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredC)
-	if err != nil {
-		return fmt.Errorf("Failed to restructure %T", itemRestructuredC), Instance{}
-	}
-	if itemRestructuredC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredC, itemRestructuredC.ObjectMeta.Name)
+		return fmt.Errorf("Failed to get Cluster, %#v", err), instance
 	} else {
-		instance.Status.Resources.Cluster = itemRestructuredC.Status
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredC)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructuredC), Instance{}
+		}
+		if itemRestructuredC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredC, itemRestructuredC.ObjectMeta.Name)
+		} else {
+			instance.Status.Resources.Cluster = itemRestructuredC.Status
+		}
 	}
+
 	err, kubeconfigBytes := KubernetesDynamicGetKubeconfigBytes(name, kubernetesClientset)
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -476,8 +480,17 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		log.Printf("%#v\n", err)
 	}
 	instance.Status.Resources.HumacsPod = humacsPod.Status
+	fmt.Println(itemRestructuredC.ObjectMeta.Annotations)
 
-	instance.Spec.Name = itemRestructuredC.ObjectMeta.Labels["io.sharing.pair-instance"]
+	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
+	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
+	instance.Spec.Facility = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
+	instance.Spec.Setup.User = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
+	instance.Spec.Setup.Guests = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
+	instance.Spec.Setup.Repos = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
+	instance.Spec.Setup.Timezone = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
+	instance.Spec.Setup.Fullname = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"]
+	instance.Spec.Setup.Email = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"]
 
 	err = nil
 	return err, instance
@@ -506,13 +519,13 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
-		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] != options.Filter.Username {
 			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 		var instance = Instance{
 			Spec: InstanceSpec{
-				Name: itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"],
+				Name: itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"],
 			},
 			Status: InstanceStatus{
 				Resources: InstanceResourceStatus{
@@ -543,13 +556,13 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
-		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] != options.Filter.Username {
 			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 	instances1:
 		for i := range instances {
-			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"] {
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
 				instances[i].Status.Resources.PacketCluster = itemRestructured.Status
 				break instances1
 			}
@@ -576,14 +589,24 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
-		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
+		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] != options.Filter.Username {
 			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
 	instances2:
 		for i := range instances {
-			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"] {
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
+				fmt.Println(itemRestructured.ObjectMeta.Annotations)
 				instances[i].Status.Resources.Cluster = itemRestructured.Status
+				instances[i].Spec.Name = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
+				instances[i].Spec.NodeSize = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
+				instances[i].Spec.Facility = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
+				instances[i].Spec.Setup.User = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
+				instances[i].Spec.Setup.Guests = strings.Split(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
+				instances[i].Spec.Setup.Repos = strings.Split(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
+				instances[i].Spec.Setup.Timezone = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
+				instances[i].Spec.Setup.Fullname = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"]
+				instances[i].Spec.Setup.Email = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"]
 				break instances2
 			}
 		}
@@ -829,11 +852,22 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 }
 
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
+	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
+	instance.NodeSize = instanceDefaultNodeSize
+
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
-	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations = map[string]string{}
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6], common.GetPacketProjectID(), instance.Name)
 	tmpl, err := template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
@@ -860,50 +894,107 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
-	newInstance.PacketMachineTemplate.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.PacketMachineTemplate.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations = map[string]string{}
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = "c1.small.x86"
+	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = instanceDefaultNodeSize
 
 	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = namespace
-	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.MachineDeploymentWorker.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations = map[string]string{}
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
 	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.MachineDeploymentWorker.Spec.Template.Spec.InfrastructureRef.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.Spec.Template.Spec.ClusterName = instance.Name
 
 	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
 	newInstance.PacketCluster.ObjectMeta.Namespace = namespace
-	newInstance.PacketCluster.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.PacketCluster.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.PacketCluster.ObjectMeta.Annotations = map[string]string{}
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
 	newInstance.PacketCluster.Spec.Facility = instance.Facility
 
 	newInstance.Cluster.ObjectMeta.Name = instance.Name
 	newInstance.Cluster.ObjectMeta.Namespace = namespace
-	newInstance.Cluster.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.Cluster.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.Cluster.ObjectMeta.Annotations = map[string]string{}
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
 	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
 
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = namespace
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations = map[string]string{}
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = namespace
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels["io.sharing.pair-instance"] = instance.Name
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations = map[string]string{}
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = "c1.small.x86"
+	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = instanceDefaultNodeSize
 
 	return err, newInstance
 }

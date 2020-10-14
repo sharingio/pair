@@ -102,17 +102,17 @@ func Delete(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err e
 
 func GenerateName(instance InstanceSpec) (name string) {
 	name = fmt.Sprintf("%s", instance.Setup.User)
-	guests := ""
+	portionOne := instance.Setup.Fullname + " " + instance.Setup.Email
 	for _, guest := range instance.Setup.Guests {
-		guests = fmt.Sprintf("%s", guest)
+		portionOne = fmt.Sprintf("%s", guest)
 	}
-	hashedString := md5.Sum([]byte(guests))
+	hashedString := md5.Sum([]byte(portionOne))
 	name = fmt.Sprintf("%s-%x", name, hashedString[0:5])
-	repos := ""
+	portionTwo := ""
 	for _, repo := range instance.Setup.Repos {
-		repos = fmt.Sprintf("%s", repo)
+		portionTwo = fmt.Sprintf("%s", repo)
 	}
-	hashedString = md5.Sum([]byte(repos))
+	hashedString = md5.Sum([]byte(portionTwo))
 	name = fmt.Sprintf("%s-%x", name, hashedString[0:5])
 	name = strings.ToLower(name)
 

@@ -44,7 +44,7 @@ func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFu
 		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
-				Response: "Creating instance",
+				Response: "Fetched Kubernetes instance",
 			},
 			Spec:   instance.Spec,
 			Status: instance.Status,
