@@ -403,30 +403,10 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
 
-	//   - newInstance.MachineDeploymentWorker
-	groupVersion := clusterAPIv1alpha3.GroupVersion
-	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
-	log.Printf("%#v\n", groupVersionResource)
-	item, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.GetOptions{})
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to get Instance (MachineDeployment), %#v", err), instance
-	}
-	var itemRestructuredMD clusterAPIv1alpha3.MachineDeployment
-	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredMD)
-	if err != nil {
-		return fmt.Errorf("Failed to restructure %T", itemRestructuredMD), Instance{}
-	}
-	if itemRestructuredMD.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredMD, itemRestructuredMD.ObjectMeta.Name)
-	} else {
-		instance.Status.Resources.MachineDeploymentWorker = itemRestructuredMD.Status
-	}
-
 	//   - newInstance.KubeadmControlPlane
-	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
+	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	log.Printf("%#v\n", groupVersionResource)
-	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.GetOptions{})
+	item, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to Instance (KubeadmControlPlane), %#v", err), instance
@@ -443,7 +423,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	}
 
 	//   - newInstance.PacketCluster
-	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
+	groupVersion := clusterAPIPacketv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
 	log.Printf("%#v\n", groupVersionResource)
 	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
@@ -508,47 +488,9 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 
 	// manifests
 
-	//   - newInstance.MachineDeploymentWorker
-	groupVersion := clusterAPIv1alpha3.GroupVersion
-	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
+	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	log.Printf("%#v\n", groupVersionResource)
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil && apierrors.IsNotFound(err) != true {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instances
-	}
-
-	for _, item := range items.Items {
-		var itemRestructured clusterAPIv1alpha3.MachineDeployment
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
-		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
-		}
-		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
-			continue
-		}
-		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Labels["io.sharing.pair-username"] != options.Filter.Username {
-			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
-			continue
-		}
-		var instance = Instance{
-			Spec: InstanceSpec{
-				Name: itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"],
-			},
-			Status: InstanceStatus{
-				Resources: InstanceResourceStatus{
-					MachineDeploymentWorker: itemRestructured.Status,
-				},
-			},
-		}
-		instances = append(instances, instance)
-	}
-
-	//   - newInstance.KubeadmControlPlane
-	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
-	log.Printf("%#v\n", groupVersionResource)
-	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to list KubeadmControlPlane, %#v", err), instances
@@ -568,17 +510,21 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
-	instances:
-		for i := range instances {
-			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"] {
-				instances[i].Status.Resources.KubeadmControlPlane = itemRestructured.Status
-				break instances
-			}
+		var instance = Instance{
+			Spec: InstanceSpec{
+				Name: itemRestructured.ObjectMeta.Labels["io.sharing.pair-instance"],
+			},
+			Status: InstanceStatus{
+				Resources: InstanceResourceStatus{
+					KubeadmControlPlane: itemRestructured.Status,
+				},
+			},
 		}
+		instances = append(instances, instance)
 	}
 
 	//   - newInstance.PacketCluster
-	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
+	groupVersion := clusterAPIPacketv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
 	log.Printf("%#v\n", groupVersionResource)
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
@@ -666,7 +612,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	//   - newInstance.PacketMachineTemplate
 	groupVersion := clusterAPIv1alpha3.GroupVersion
@@ -683,7 +631,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	//   - newInstance.PacketCluster
 	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
@@ -700,7 +650,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	//   - newInstance.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
@@ -717,7 +669,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create Cluster, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	//   - newInstance.MachineDeploymentWorker
 	groupVersion = clusterAPIv1alpha3.GroupVersion
@@ -734,7 +688,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	//   - newInstance.KubeadmConfigTemplateWorker
 	groupVersion = cabpkv1.GroupVersion
@@ -751,7 +707,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	//   - newInstance.PacketMachineTemplateWorker
 	groupVersion = clusterAPIv1alpha3.GroupVersion
@@ -768,7 +726,9 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err), instanceCreated
 	}
-	log.Println("Already exists", apierrors.IsAlreadyExists(err))
+	if apierrors.IsAlreadyExists(err) {
+		log.Println("Already exists")
+	}
 
 	err = nil
 
@@ -886,7 +846,6 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedBuffer.String()
-	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 
 	tmpl, err = template.New("ssh-keys").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 	if err != nil {
@@ -898,7 +857,6 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
-	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
