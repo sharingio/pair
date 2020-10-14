@@ -143,7 +143,7 @@ EOF`,
 					"apt-key fingerprint 0EBFCD88",
 					"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 					"apt-get update -y",
-					"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl",
+					"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id",
 					"systemctl daemon-reload",
 					"systemctl enable docker",
 					"systemctl start docker",
@@ -229,6 +229,10 @@ EOF`,
           useradd -m -G users,sudo -u 1000 -s /bin/bash ii
         )
 `,
+					`(
+          sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
+          {{ range $.Setup.Guests }}sudo -iu ii ssh-import-id gh:{{ . }}{{ end }}
+)`,
 				},
 			},
 		},
@@ -850,18 +854,29 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	newInstance.KubeadmControlPlane.ObjectMeta.Labels["io.sharing.pair-username"] = instance.Setup.User
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6], common.GetPacketProjectID(), instance.Name)
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
 	tmpl, err := template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	if err != nil {
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
-	templatedHumacsHelmInstall := new(bytes.Buffer)
-	err = tmpl.Execute(templatedHumacsHelmInstall, instance.Setup)
+	templatedBuffer := new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedHumacsHelmInstall.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedBuffer.String()
 	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+
+	tmpl, err = template.New("ssh-keys").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
+	if err != nil {
+		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
+	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
