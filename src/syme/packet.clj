@@ -63,7 +63,8 @@
   "InstanceID -> Boolean
   Does the tmate command given by get-tmate start with ssh? if so, it's a valid tmate command and not an err message"
   [instance_id]
-  (clojure.string/starts-with? (get-tmate instance_id) "ssh"))
+  false)
+;;  (clojure.string/starts-with? (get-tmate instance_id) "ssh"))
 
 
 (defn status-levels
@@ -88,12 +89,18 @@
                             (json/decode true)
                             (:status)
                             (:resources))
-        cluster-status (-> status-response :Cluster :phase)
-        humacs-status (->  status-response :HumacsPod :phase)]
-    {:level (status-levels cluster-status humacs-status (kubeconfig-available? instance_id) (tmate-available? instance_id))
+        cluster-status (-> status-response :Cluster :phase)]
+    {:level "1"
      :cluster cluster-status
-     :humacs humacs-status
-     :tmate (get-tmate instance_id)}))
+     :humacs "not running"
+     :tmate false}))
+
+        ;; cluster-status (-> status-response :Cluster :phase)
+        ;; humacs-status (->  status-response :HumacsPod :phase)]
+    ;; {:level (status-levels cluster-status humacs-status (kubeconfig-available? instance_id) (tmate-available? instance_id))
+    ;;  :cluster cluster-status
+    ;;  :humacs humacs-status
+    ;;  :tmate (get-tmate instance_id)}))
 
 (defn get-kubeconfig
   "retrieve config for instance as json string "
@@ -105,3 +112,9 @@
                       (json/decode true)
                       (:spec))]
   (json/generate-string kubeconfig)))
+
+
+(let [status-address (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-58bf3ee127")]
+  (-> (http/get status-address)
+      (:body)
+      (json/decode true)))
