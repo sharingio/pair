@@ -8,6 +8,7 @@ import (
 	"log"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/sharingio/pair/src/cluster-api-manager/common"
 
@@ -469,7 +470,9 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	if err != nil {
 		log.Printf("%#v\n", err)
 	}
-	humacsPod, err := instanceClientset.CoreV1().Pods(name).Get(context.TODO(), fmt.Sprintf("%s-humacs-0", name), metav1.GetOptions{})
+	deadline := time.Now().Add(time.Second * 2)
+	ctx, _ := context.WithDeadline(context.TODO(), deadline)
+	humacsPod, err := instanceClientset.CoreV1().Pods(name).Get(ctx, fmt.Sprintf("%s-humacs-0", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
 	}
