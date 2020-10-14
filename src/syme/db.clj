@@ -1,11 +1,12 @@
 (ns syme.db
   (:require [clojure.java.jdbc :as sql]
             [environ.core :as env]
-            [tentacles.repos :as repos])
+            [tentacles.users :as users])
   (:import (java.util UUID))
   (:refer-clojure :exclude [find]))
 
 (def db (env/env :database-url "postgres://localhost:5432/syme"))
+
 
 (defn create [{:keys [owner project facility type instance-id status] :as payload}]
   (let [{:keys [description]} (apply repos/specific-repo (.split project "/"))]
