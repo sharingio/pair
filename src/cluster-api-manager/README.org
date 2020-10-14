@@ -58,37 +58,31 @@ Select all resources from a deployment
 
 #+NAME: create a Kubernetes instance
 #+begin_src shell
-  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\", \"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"sharingio/pair\", \"https://gitlab.com/humacs/humacs\"]}}" | jq .
+  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"humacs/humacs\",\"sharingio/pair\"],\"fullname\":\"Test User\",\"email\":\"email@example.com\"}}" | jq .
 #+end_src
 
 #+NAME: delete a Kubernetes instance
 #+begin_src shell
-  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-1a3866b444 | jq .
+  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-65fd2a11ef | jq .
 #+end_src
 
 #+NAME: get all names of Kubernetes instances
 #+begin_src shell
-  curl -X GET http://localhost:8080/api/instance/kubernetes | jq '.list[].spec.name'
+  curl -X GET http://localhost:8080/api/instance/kubernetes | jq -r '.list[].spec.name'
 #+end_src
-
-#+RESULTS: get all names of Kubernetes instances
-#+begin_example
-"bobymcbobs-b556f7da7a-128d9375a4"
-#+end_example
 
 #+NAME: get a Kubernetes instance
 #+begin_src shell
-  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-128d9375a4 | jq .
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-1a3866b444 | jq .
 #+end_src
 
 #+NAME: get tmate session for Kubernetes instance
 #+begin_src shell
-  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-0ae9250ebe/tmate | jq .
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-1a3866b444/tmate | jq .
 #+end_src
 
 #+NAME: get kubeconfig for Kubernetes instance
 #+begin_src shell
-  export PATH=$PATH:/home/ii/.local/bin
   curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-128d9375a4/kubeconfig | jq .spec
 #+end_src
 
