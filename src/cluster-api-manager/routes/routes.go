@@ -41,6 +41,7 @@ func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFu
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: "Creating instance",
@@ -78,6 +79,7 @@ func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.Handler
 		if len(availableInstances) == 0 {
 			response = "No Kubernetes instances found"
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: response,
@@ -141,6 +143,7 @@ func DeleteInstanceKubernetes(kubernetesClientset dynamic.Interface) http.Handle
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: "Deleting instance",
@@ -173,6 +176,7 @@ func DeleteInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: "Deleting instance",
@@ -205,6 +209,7 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: response,
@@ -235,6 +240,7 @@ func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: response,
