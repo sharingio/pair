@@ -96,8 +96,8 @@
    [:h3.project [:a {:href (link-project project)} project]]
    [:p {:id "desc"} description]])
 
-(defn instance [username {:keys [project status description invitees instance_id type facility]
-                          :as instance-info} kubeconfig-available?]
+(defn instance [username {:keys [project description invitees instance_id type facility]
+                          :as instance-info} status]
   (println (str "instance-info: "instance-info))
   (layout
    [:div
@@ -108,10 +108,10 @@
        [:p (str "A "type" instance on Equinix, using facility "facility)]
         [:em "This page refreshes every 20 seconds to get current status of your instance"]
         [:h4 "status"]
-        [:em status]]
-    (when kubeconfig-available?
-    [:div
-     [:a {:href (str "/project/"project"/kubeconfig") :download true} "download kubeconfig"]])
+        [:em (str "STATUS "status)]]
+    ;; (when kubeconfig-available?
+    ;; [:div
+    ;;  [:a {:href (str "/project/"project"/kubeconfig") :download true} "download kubeconfig"]])
     [:hr]
     [:ul {:id "users"}
      (for [u invitees]

@@ -71,8 +71,8 @@
          ;;  :body "OK!! yah! Good! check da db!"})
    (GET "/project/:gh-user/:project" {{:keys [username]} :session
                                       instance :instance}
-        (let [kubeconfig-available? (packet/kubeconfig-available? (:instance_id instance))]
-        (html/instance username instance kubeconfig-available?)))
+        (let [status (packet/get-status instance)]
+        (html/instance username instance status)))
    (GET "/project/:gh-user/:project/kubeconfig" {{:keys [username]} :session
                                       instance :instance}
         (let [kubeconfig (packet/get-kubeconfig instance)]
@@ -170,5 +170,5 @@
                      {:port port :join? false})))
 
 ;; For interactive development:
-;(.stop server)
+(.stop server)
 (def server (-main))

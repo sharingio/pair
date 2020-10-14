@@ -47,16 +47,53 @@
        not-empty? (complement empty?)]
     (not-empty? (filter #(not-empty? (second %)) kubeconfig))))
 
+
+(defn get-tmate
+  "retrieve config for instance as json string "
+  [instance_id]
+  (let
+      [tmate-address (str backend-address"/api/instance/kubernetes/"instance_id"/tmate")
+       tmate-command (-> (http/get tmate-address)
+                      (:body)
+                      (json/decode true)
+                      (:spec))]
+       tmate-command))
+
+(defn tmate-available?
+  "InstanceID -> Boolean
+  Does the tmate command given by get-tmate start with ssh? if so, it's a valid tmate command and not an err message"
+  [instance_id]
+  (clojure.string/starts-with? (get-tmate instance_id) "ssh"))
+
+
+(defn status-levels
+  "Status->String
+  returns 1 through 5 depending on phases of cluster and humacs"
+  [cluster humacs kubeconfig? tmate?]
+  (cond
+    (= "Pending" cluster) "1"
+    (and (= "Pending" cluster) kubeconfig?) "2"
+    (and (= "Provisioned" cluster)(empty? humacs)) "3"
+    (and (= "Provisioned" cluster)
+         (= "Running" humacs)
+         (= tmate? false)) "4"
+    :else "5"))
+
 (defn get-status
   "get relevant status of instance including its level and message from api"
   [{:keys [instance_id]}]
   (let [status-address (str backend-address "/api/instance/kubernetes/" instance_id)
         status-response (-> (http/get status-address)
                             (:body)
-                            (json/decode true))]
-    status-response))
-
-
+                            (json/decode true)
+                            (:status)
+                            (:resources))
+        cluster-status (-> status-response :Cluster :phase)
+        humacs-status (->  status-response :HumacsPod :phase)]
+    {:level (status-levels cluster-status humacs-status (kubeconfig-available? instance_id) (tmate-available? instance_id))
+     :cluster cluster-status
+     :humacs humacs-status
+     :tmate (get-tmate instance_id)}))
 
 (defn get-kubeconfig
   "retrieve config for instance as json string "
@@ -68,7 +105,3 @@
                       (json/decode true)
                       (:spec))]
   (json/generate-string kubeconfig)))
-
-
-;; (def instance {:instance_id "zachmandeville-5e36941b3d-65fd2a11ef"})
-;; (get-status instance)
