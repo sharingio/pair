@@ -8,6 +8,8 @@
             [syme.db :as db])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
+(def backend-address (str "http://"(env :backend-address)))
+
 (defn launch
   [username {:keys [project facility type guests identity credential] :as params}]
   (println "launch fn params: " params)
@@ -45,6 +47,17 @@
        not-empty? (complement empty?)]
     (not-empty? (filter #(not-empty? (second %)) kubeconfig))))
 
+(defn get-status
+  "get relevant status of instance including its level and message from api"
+  [{:keys [instance_id]}]
+  (let [status-address (str backend-address "/api/instance/kubernetes/" instance_id)
+        status-response (-> (http/get status-address)
+                            (:body)
+                            (json/decode true))]
+    status-response))
+
+
+
 (defn get-kubeconfig
   "retrieve config for instance as json string "
   [{:keys [instance_id]}]
@@ -55,3 +68,7 @@
                       (json/decode true)
                       (:spec))]
   (json/generate-string kubeconfig)))
+
+
+;; (def instance {:instance_id "zachmandeville-5e36941b3d-65fd2a11ef"})
+;; (get-status instance)
