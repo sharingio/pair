@@ -110,7 +110,7 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
-		responseCode = http.StatusOK
+		responseCode = http.StatusCreated
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: "Creating instance",
