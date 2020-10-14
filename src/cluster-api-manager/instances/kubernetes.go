@@ -381,7 +381,6 @@ EOF`,
 
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
-
 	// manifests
 
 	//   - newInstance.MachineDeploymentWorker
@@ -462,7 +461,22 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	} else {
 		instance.Status.Resources.Cluster = itemRestructuredC.Status
 	}
+	err, kubeconfigBytes := KubernetesDynamicGetKubeconfigBytes(name, kubernetesClientset)
+	if err != nil {
+		log.Printf("%#v\n", err)
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes)
+	if err != nil {
+		log.Printf("%#v\n", err)
+	}
+	humacsPod, err := instanceClientset.CoreV1().Pods(name).Get(context.TODO(), fmt.Sprintf("%s-humacs-0", name), metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+	}
+	instance.Status.Resources.HumacsPod = humacsPod.Status
+
 	instance.Spec.Name = itemRestructuredC.ObjectMeta.Labels["io.sharing.pair-instance"]
+
 	err = nil
 	return err, instance
 }
@@ -726,6 +740,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err), instanceCreated
 	}
+
 	err = nil
 
 	return err, instanceCreated
@@ -833,7 +848,6 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6], common.GetPacketProjectID(), instance.Name)
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20], instance.Name, instance.Name, instance.Name, instance.Setup.Timezone)
-	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	tmpl, err := template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	if err != nil {
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
@@ -844,6 +858,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedHumacsHelmInstall.String()
+	fmt.Println(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
@@ -906,6 +921,24 @@ func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) 
 	return err, kubeconfigBytes
 }
 
+func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig []byte) {
+	targetNamespace := common.GetTargetNamespace()
+	groupVersionResource := schema.GroupVersionResource{Version: "v1", Group: "", Resource: "secrets"}
+	secret, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err), []byte{}
+	}
+	var itemRestructured corev1.Secret
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(secret.Object, &itemRestructured)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to restructure %T; err: %v", itemRestructured, err), []byte{}
+	}
+	kubeconfigBytes := itemRestructured.Data["value"]
+	return err, kubeconfigBytes
+}
+
 func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (err error, kubeconfig *clientcmdapi.Config) {
 	err, valueBytes := KubernetesGetKubeconfigBytes(name, clientset)
 	kubeconfig, err = clientcmd.Load(valueBytes)
@@ -913,9 +946,6 @@ func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (err 
 }
 
 func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, options ExecOptions) (err error, stdout string, stderr string) {
-	// TODO get restconfig from kubeconfig
-	// TODO get rest client
-	// TODO post exec
 	req := clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(fmt.Sprintf("%s-humacs-0", options.PodName)).
@@ -963,7 +993,7 @@ func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (er
 	if err != nil {
 		return err, output
 	}
-	instanceClientset, err := kubernetes.NewForConfig(restConfig)
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
 		return err, output
 	}
@@ -990,4 +1020,13 @@ func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (er
 		return fmt.Errorf(stderr), stdout
 	}
 	return err, stdout
+}
+
+func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, clientset *kubernetes.Clientset) {
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
+	if err != nil {
+		return err, &kubernetes.Clientset{}
+	}
+	clientset, err = kubernetes.NewForConfig(restConfig)
+	return err, clientset
 }

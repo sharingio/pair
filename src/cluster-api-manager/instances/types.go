@@ -6,6 +6,7 @@ import (
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	corev1 "k8s.io/api/core/v1"
 )
 
 type Instance struct {
@@ -27,6 +28,7 @@ type InstanceResourceStatus struct {
 	Cluster                 clusterAPIv1alpha3.ClusterStatus
 	MachineDeploymentWorker clusterAPIv1alpha3.MachineDeploymentStatus
 	PacketCluster           clusterAPIPacketv1alpha3.PacketClusterStatus
+	HumacsPod               corev1.PodStatus
 }
 
 type InstanceStatus struct {
