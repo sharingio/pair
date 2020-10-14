@@ -10,34 +10,12 @@
 (def login-url (str "https://github.com/login/oauth/authorize?"
                     "client_id=" (env :oauth-client-id)))
 
-(defn layout [body username & [project]]
+(defn layout [body username & [project status]]
   (html5
    [:head
     [:meta {:charset "utf-8"}]
-    [:title (if project (str project " - Syme") "Syme")]
-    (include-css "/stylesheets/style.css" "/stylesheets/base.css"
-                 "/stylesheets/skeleton.css")
-    (include-css "https://fonts.googleapis.com/css?family=Passion+One:700")]
-   [:body
-    (if-let [account (:analytics-account env)]
-      [:script {:type "text/javascript"} (-> (io/resource "analytics.js")
-                                             (slurp) (format account))])
-    [:div#header
-     [:h1.container [:a {:href "/"} "Caring is Sharing"]]]
-    [:div#content.container body
-     [:div#footer
-      [:p [:a {:href "/faq"} "About"]
-       " | " [:a {:href "https://github.com/sharingio/pair"}
-              "Source"]
-       " | " (if username
-               (list [:a {:href "/all"} "All Instances"] " | "
-                     [:a {:href "/logout"} "Log out"])
-               [:a {:href login-url} "Log in"])]]]]))
-(defn status-layout [body username & [project]]
-  (html5
-   [:head
-    [:meta {:charset "utf-8"}]
-    [:meta {:http-equiv "refresh" :content "15"}]
+    (when (some? status)
+      [:meta {:http-equiv "refresh" :content "20"}])
     [:title (if project (str project " - Syme") "Syme")]
     (include-css "/stylesheets/style.css" "/stylesheets/base.css"
                  "/stylesheets/skeleton.css")
@@ -118,32 +96,28 @@
    [:h3.project [:a {:href (link-project project)} project]]
    [:p {:id "desc"} description]])
 
-(defn instance [username {:keys [project status description ip dns invitees instance_id type facility]
+(defn instance [username {:keys [project status description invitees instance_id type facility]
                           :as instance-info} kubeconfig-available?]
   (println (str "instance-info: "instance-info))
-  (status-layout
+  (layout
    [:div
     (render-instance-info instance-info link-github-project)
     [:hr]
-    (if kubeconfig-available?
-      [:div
-       [:a {:href (str "/project/"project"/kubeconfig") :download true} "download kubeconfig"]]
       [:div
        [:h3 instance_id]
-       [:p (str "Creating a "type" Project named "instance_id" on "facility)]
-        [:p "Waiting to boot... could take a few minutes."]
+       [:p (str "A "type" instance on Equinix, using facility "facility)]
+        [:em "This page refreshes every 20 seconds to get current status of your instance"]
         [:h4 "status"]
-        [:em status]])
+        [:em status]]
+    (when kubeconfig-available?
+    [:div
+     [:a {:href (str "/project/"project"/kubeconfig") :download true} "download kubeconfig"]])
     [:hr]
     [:ul {:id "users"}
      (for [u invitees]
        [:li [:a {:href (str "https://github.com/" u)}
-             [:img {:src (icon u) :alt u :title u :height 80 :width 80}]]])]
-    [:script {:type "text/javascript", :src "/syme.js"
-              :onload (if ip
-                        (format "watch_status('%s')" project)
-                        (format "wait_for_boot('%s')" project))}]]
-   username project))
+             [:img {:src (icon u) :alt u :title u :height 80 :width 80}]]])]]
+   username project status))
 
 (defn all [username instances]
   (layout
