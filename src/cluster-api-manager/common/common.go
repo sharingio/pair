@@ -6,9 +6,11 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	// corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	// "k8s.io/apimachinery/pkg/runtime"
+	"github.com/asaskevich/govalidator"
 	// "k8s.io/kubectl/pkg/scheme"
 	"log"
 	"net/http"
@@ -75,4 +77,14 @@ func ObjectToUnstructured(obj interface{}) (err error, unstr *unstructured.Unstr
 	unstrBody := map[string]interface{}{}
 	err = json.Unmarshal(data, &unstrBody)
 	return err, &unstructured.Unstructured{Object: unstrBody}
+}
+
+func AddRepoGitHubPrefix(repos []string) (reposModified []string) {
+	for _, repo := range repos {
+		if govalidator.IsURL(repo) != true {
+			repo = fmt.Sprintf("https://github.com/%s", repo)
+		}
+		reposModified = append(reposModified, repo)
+	}
+	return reposModified
 }

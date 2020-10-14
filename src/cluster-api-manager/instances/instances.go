@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
+	"github.com/sharingio/pair/src/cluster-api-manager/common"
 	"k8s.io/client-go/dynamic"
 )
 
@@ -33,7 +35,8 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	}
 	invalidRepos := []string{}
 	for _, repo := range instance.Setup.Repos {
-		if repo == "" {
+		filePathValid, _ := govalidator.IsFilePath(repo)
+		if repo == "" || !(govalidator.IsURL(repo) != true || filePathValid != true) {
 			invalidRepos = append(invalidRepos, repo)
 		}
 	}
@@ -57,6 +60,7 @@ func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err e
 		return err, instanceCreated
 	}
 	instance.Name = GenerateName(instance)
+	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
 	switch instance.Type {
 	case InstanceTypeKubernetes:
 		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset)

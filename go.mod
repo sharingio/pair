@@ -5,6 +5,7 @@ go 1.13
 require (
 	cloud.google.com/go v0.67.0 // indirect
 	github.com/Azure/go-autorest/autorest v0.11.7 // indirect
+	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a
 	github.com/caddyserver/caddy v1.0.5 // indirect
 	github.com/coreos/etcd v3.3.25+incompatible // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
