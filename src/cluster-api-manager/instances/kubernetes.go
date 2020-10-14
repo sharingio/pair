@@ -480,7 +480,13 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		log.Printf("%#v\n", err)
 	}
 	instance.Status.Resources.HumacsPod = humacsPod.Status
-	fmt.Println(itemRestructuredC.ObjectMeta.Annotations)
+
+	instance.Status.Phase = InstanceStatusPhaseProvisioning
+	if instance.Status.Resources.Cluster.Phase == "Deleting" {
+		instance.Status.Phase = InstanceStatusPhaseDeleting
+	} else if instance.Status.Resources.HumacsPod.Phase == corev1.PodRunning {
+		instance.Status.Phase = InstanceStatusPhaseProvisioned
+	}
 
 	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
 	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
@@ -596,7 +602,6 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	instances2:
 		for i := range instances {
 			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
-				fmt.Println(itemRestructured.ObjectMeta.Annotations)
 				instances[i].Status.Resources.Cluster = itemRestructured.Status
 				instances[i].Spec.Name = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
 				instances[i].Spec.NodeSize = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
