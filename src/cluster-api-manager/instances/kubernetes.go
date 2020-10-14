@@ -211,15 +211,30 @@ EOF`,
           helm install auditlogger -n apisnoop charts/auditlogger
         )
 `,
-					// 1,2,3 = cluster name
-					// 4 = timezone
 					`(
           set -x;
           cd /root;
           git clone https://github.com/humacs/humacs;
           cd humacs;
-          kubectl create ns %s
-          helm install "%s" -n "%s" -f chart/humacs/values/apisnoop.yaml --set options.timezone="%s" {{ range $index, $repo := $.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} chart/humacs
+          kubectl create ns {{ $.Name }}
+          helm install "{{ $.Name }}" -n "{{ $.Name }}" \
+            --set image.repository=registry.gitlab.com/humacs/humacs/ii \
+            --set image.tag=2020.09.09 \
+            --set options.hostDockerSocket=true \
+            --set options.hostTmp=true \
+            --set options.timezone="{{ $.Setup.Timezone }}" \
+            --set options.gitName="{{ $.Setup.Fullname }}" \
+            --set options.gitEmail="{{ $.Setup.Email }}" \
+            --set options.preinitScript='(
+              for repo in $(find ~ -type d -name ".git"); do
+                if [ -x $repo/../.sharingio/init ]; then
+                  $repo/../.sharingio/init
+                fi
+              done
+              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharingio && ./.sharingio/init || true
+)' \
+            {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
+            chart/humacs
         )
 `,
 					`(
@@ -651,6 +666,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	//   - newInstance.PacketMachineTemplate
 	groupVersion := clusterAPIv1alpha3.GroupVersion
@@ -667,6 +683,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	//   - newInstance.PacketCluster
 	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
@@ -683,6 +700,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	//   - newInstance.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
@@ -699,6 +717,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create Cluster, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	//   - newInstance.MachineDeploymentWorker
 	groupVersion = clusterAPIv1alpha3.GroupVersion
@@ -715,6 +734,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	//   - newInstance.KubeadmConfigTemplateWorker
 	groupVersion = cabpkv1.GroupVersion
@@ -731,6 +751,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	//   - newInstance.PacketMachineTemplateWorker
 	groupVersion = clusterAPIv1alpha3.GroupVersion
@@ -747,6 +768,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err), instanceCreated
 	}
+	log.Println("Already exists", apierrors.IsAlreadyExists(err))
 
 	err = nil
 
