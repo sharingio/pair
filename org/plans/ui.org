@@ -1,0 +1,38 @@
+#+TITLE: UI Steps
+* Form
+  Needs:
+  - Type
+  - guests
+  - additional repos (full urls) validation
+  - Timezone (format:??)
+* Submit, go to project page which shows its status
+** Status 1
+   post submitted, box is being created, but nothing is ready yet.
+   Necessary Info:
+   - box name
+   - facility
+   - status
+   *can get this with api/instance/:instance_id and looking in status.resources.Cluster*
+** Status 2
+   box is being created, kubeconfig now available
+   (likely cannot do much with it yet)
+   Necessary info:
+   - box name
+   - facility
+   - status
+   - kubeconfig link and helper text
+   *can get this by pinging api/instance/isntance_id/kubeconfig and checking its valid*
+** Status 3
+   box is fully up, software isn't yet cloned?
+   *can get this api/instance/:id and status.resources.HumacsPod*
+** Status 4
+   box is fully up, software is up, tmate may not be ready.
+   necessary info
+   - box name
+   - facility
+   - status
+   - kubeconfig download
+   - tmate ssh link
+   *can get this ?? then getting api/instance/instance/_id/tmate and wait until status message starts with ssh*
+** Status 5
+   box is up, software is up, kubeconfig available, tmate link shared, everything good to go
