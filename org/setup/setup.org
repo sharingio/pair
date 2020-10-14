@@ -966,76 +966,6 @@ Create Java jar files out of the clojure
 * Create a database
 
 Create a namespace
-#+begin_src shell :results silent
-  kubectl create ns pair
-#+end_src
-
-Create the database secrets
-#+begin_src shell :results silent
-  kubectl -n pair create secret generic postgres-configuration \
-    --from-literal=POSTGRES_DB=pair \
-    --from-literal=POSTGRES_USER=pair \
-    --from-literal=POSTGRES_PASSWORD=pair \
-    --from-literal=PGUSER=pair \
-    --from-literal=PGPASSWORD=pair \
-    --from-literal=PGDATABASE=pair
-#+end_src
-
-#+RESULTS:
-#+begin_example
-secret/postgres-configuration created
-#+end_example
-
-Create the Postgres instance
-#+begin_src shell :results silent
-  kubectl -n pair apply -f postgres.yaml
-#+end_src
-
-#+RESULTS:
-#+begin_example
-service/postgres created
-statefulset.apps/postgres created
-#+end_example
-
-* Config
-#+begin_src elisp :results none
-  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:8080 if dev): "))
-  (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
-  (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
-#+end_src
-
-#+name: get-backend-address
-#+begin_src elisp :results silent
-  (getenv "BACKEND_ADDRESS")
-#+end_src
-
-#+name: get-oauth-client-id
-#+begin_src elisp :results silent
-  (getenv "OAUTH_CLIENT_ID")
-#+end_src
-
-#+name: get-oauth-client-secret
-#+begin_src elisp :results silent
-  (getenv "OAUTH_CLIENT_SECRET")
-#+end_src
-
-#+begin_src shell :tangle ../../.env :noweb yes
-  DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
-  SESSION_SECRET=hahahahahahahaha
-  CANONICAL_URL=<<get-pair-host()>>
-  SUBDOMAIN=%s.%s.<<get-pair-host()>>
-  BACKEND_ADDRESS=<<get-backend-address()>>
-  OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
-  OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
-#+end_src
-
-#+RESULTS:
-#+begin_example
-#+end_example
-
-* Create a database
-
-Create a namespace
 #+begin_src shell
   kubectl create ns pair
 #+end_src
@@ -1068,8 +998,8 @@ Create the Postgres instance
 
 #+RESULTS:
 #+begin_example
-service/postgres unchanged
-statefulset.apps/postgres unchanged
+service/postgres created
+statefulset.apps/postgres created
 #+end_example
 
 * Config
@@ -1103,6 +1033,10 @@ statefulset.apps/postgres unchanged
   OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
   OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
 #+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
 
 * Migrate the database
 
