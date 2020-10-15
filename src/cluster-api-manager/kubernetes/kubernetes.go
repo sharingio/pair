@@ -30,5 +30,6 @@ func DynamicClient() (err error, clientset dynamic.Interface) {
 
 func RestClient() (err error, config *rest.Config) {
 	config, err = rest.InClusterConfig()
+	config.UserAgent = defaultKubeClientUserAgent
 	return err, config
 }
