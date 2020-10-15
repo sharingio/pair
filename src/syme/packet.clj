@@ -74,14 +74,14 @@
   returns 1 through 5 depending on phases of cluster and humacs"
   [phase cluster humacs instance_id]
   (cond
-    (= "Pending" phase) "1"
-    (= "Provisioning" phase) "2"
+    (= "Pending" phase) 1
+    (= "Provisioning" phase) 2
     (and (= "Provisioned" phase)
-         (empty? humacs)) "3"
+         (empty? humacs)) 3
     (and (= "Provisioned" phase)
          (= "Running" humacs)
          (= (tmate-available? instance_id) false)) 4
-    :else "5"))
+    :else 5))
 
 (http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-68aa470aa4"))
 
@@ -109,6 +109,7 @@
         cluster-status (-> status-response :resources :Cluster :phase)
         humacs-status (-> status-response :resources :HumacsPod :phase)]
     {:level (status-levels phase cluster-status humacs-status instance_id)
+     :phase phase
      :cluster cluster-status
      :humacs humacs-status
      :instance instance_id}))
@@ -124,7 +125,7 @@
                       (:spec))]
   (json/generate-string kubeconfig)))
 
-(-> (http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-1d0a6b90a3"))
+(-> (http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-4f91f0d23f"))
     (:body)
     (json/decode true)
-    (-> :status :resources :HumacsPod))
+    (-> :status :phase))
