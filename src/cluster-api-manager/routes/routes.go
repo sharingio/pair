@@ -278,8 +278,10 @@ func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest
 		name := vars["name"]
 
 		err, session := instances.KubernetesGetTmateSession(clientset, name)
-		notFound := err != nil && strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig")
+		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
+			strings.Contains(err.Error(), "not found"))
 		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" && err == nil || notFound {
+			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
 					Response: "Resource not found",
