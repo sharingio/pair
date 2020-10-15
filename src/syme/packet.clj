@@ -124,8 +124,3 @@
                       (json/decode true)
                       (:spec))]
   (json/generate-string kubeconfig)))
-
-(-> (http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-4f91f0d23f"))
-    (:body)
-    (json/decode true)
-    (-> :status :phase))

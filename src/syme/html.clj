@@ -4,6 +4,7 @@
             [tentacles.users :as users]
             [environ.core :refer [env]]
             [syme.instance :as instance]
+            [syme.packet :as packet]
             [hiccup.page :refer [html5 include-css]]
             [hiccup.form :as form]))
 
@@ -25,7 +26,7 @@
       [:script {:type "text/javascript"} (-> (io/resource "analytics.js")
                                              (slurp) (format account))])
     [:div#header
-     [:h1.container [:a {:href "/"} "Pairing is Sharing"]]]
+     [:h1.container [:a {:href "/"} "Sharing is Pairing"]]]
     [:div#content.container body
      [:div#footer
       [:p [:a {:href "/faq"} "About"]
@@ -90,34 +91,37 @@
 (defn- link-github-project [project]
   (format "https://github.com/%s" project))
 
-(defn- render-instance-info [{:keys [status project description]} link-project]
+(defn- render-instance-info [{:keys [project description]} phase link-project]
   [:div
-   [:p {:id "status" :class status} status]
+   [:p {:id "status"} phase]
    [:h3.project [:a {:href (link-project project)} project]]
    [:p {:id "desc"} description]])
 
 (defn instance [username {:keys [project description invitees instance_id type facility]
-                          :as instance-info} status]
-  (println (str "instance-info: "instance-info))
+                          :as instance-info} {:keys [level phase cluster humacs] :as status}]
   (layout
    [:div
-    (render-instance-info instance-info link-github-project)
+    (render-instance-info instance-info phase link-github-project)
     [:hr]
       [:div
-       [:h3 instance_id]
        [:p (str "A "type" instance on Equinix, using facility "facility)]
-        [:em "This page refreshes every 20 seconds to get current status of your instance"]
         [:h4 "status"]
-        [:em (str "STATUS "status)]]
-    ;; (when kubeconfig-available?
-    ;; [:div
-    ;;  [:a {:href (str "/project/"project"/kubeconfig") :download true} "download kubeconfig"]])
-    [:hr]
-    [:ul {:id "users"}
-     (for [u invitees]
-       [:li [:a {:href (str "https://github.com/" u)}
-             [:img {:src (icon u) :alt u :title u :height 80 :width 80}]]])]]
-   username project status))
+       [:em "This page refreshes every 20 seconds to get current status of your instance"]
+       (if (nil? cluster)
+         [:ul [:li [:strong "The cluster is not yet ready"]]]
+         [:ul
+          [:li [:strong (str "The Cluster is " cluster)]]
+          (when (and (> level 1) (packet/kubeconfig-available? instance_id))
+          [:li [:strong "kubeconfig is available "]
+           [:a {:href (str "/project/"project"/kubeconfig") :download true} (str "download " instance_id"-kubeconfig")]])
+          (when (and (>= level 2)(< level 5))
+            [:li [:strong "Configuring cluster for pairing"]])
+          (when (= level 5)
+            [:li [:strong "Pairing setup ready"]
+             [:div [:strong "paste this into your terminal to join tmate session: "]
+              [:pre (packet/get-tmate instance_id )]]])])]]
+username project status))
+
 
 (defn all [username instances]
   (layout
@@ -145,3 +149,9 @@
   ;; [:p {:id "ip" :class status
   ;;      :title "Send this command to the users you've invited."}
   ;;  [:tt "ssh ii@" (or dns ip)]]]
+;; TODO bring back the guest invites
+;; [:hr]
+;; [:ul {:id "users"}
+;;  (for [u invitees]
+;;    [:li [:a {:href (str "https://github.com/" u)}
+;;          [:img {:src (icon u) :alt u :title u :height 80 :width 80}]]])]]
