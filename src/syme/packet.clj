@@ -66,58 +66,65 @@
   "InstanceID -> Boolean
   Does the tmate command given by get-tmate start with ssh? if so, it's a valid tmate command and not an err message"
   [instance_id]
-  false)
-;;  (clojure.string/starts-with? (get-tmate instance_id) "ssh"))
+  (clojure.string/starts-with? (get-tmate instance_id) "ssh"))
 
 
 (defn status-levels
   "Status->String
   returns 1 through 5 depending on phases of cluster and humacs"
-  [cluster humacs kubeconfig? tmate?]
+  [phase cluster humacs instance_id]
   (cond
-    (= "Pending" cluster) "1"
-    (and (= "Pending" cluster) kubeconfig?) "2"
-    (and (= "Provisioned" cluster)(empty? humacs)) "3"
-    (and (= "Provisioned" cluster)
+    (= "Pending" phase) "1"
+    (= "Provisioning" phase) "2"
+    (and (= "Provisioned" phase)
+         (empty? humacs)) "3"
+    (and (= "Provisioned" phase)
          (= "Running" humacs)
-         (= tmate? false)) "4"
+         (= (tmate-available? instance_id) false)) 4
     :else "5"))
 
 (http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-68aa470aa4"))
 
+(defn get-status-response
+  "Grab a status payload rom backend, or placeholder if not status available yet"
+  [backend]
+  (println backend)
+  (let [response (try+ (http/get backend) (catch Object _ "404"))]
+    (println response)
+    (if (= response "404")
+      {:Cluster {:phase "Not available yet"}
+       :HumacsPod {:phase "Not available yet"}}
+      (-> response
+          (:body)
+          (json/decode true)
+          (:status)))))
 
 (defn get-status
   "get relevant status of instance including its level and message from api"
   [{:keys [instance_id]}]
-  (println "INSTANCE"instance_id)
   (let [
         status-address (str backend-address "/api/instance/kubernetes/" instance_id)
-        status-response (-> (http/get status-address)
-                            (:body)
-                            (json/decode true)
-                            (:status)
-                            (:resources))
-        cluster-status (-> status-response :Cluster :phase)
-        humacs-status (-> status-response :HumacsPod :phase)]
-    {:level "1"
+        status-response (get-status-response status-address)
+        phase (-> status-response :phase)
+        cluster-status (-> status-response :resources :Cluster :phase)
+        humacs-status (-> status-response :resources :HumacsPod :phase)]
+    {:level (status-levels phase cluster-status humacs-status instance_id)
      :cluster cluster-status
      :humacs humacs-status
-     :tmate false
      :instance instance_id}))
-        ;; cluster-status (-> status-response :Cluster :phase)
-        ;; humacs-status (->  status-response :HumacsPod :phase)]
-    ;; {:level (status-levels cluster-status humacs-status (kubeconfig-available? instance_id) (tmate-available? instance_id))
-    ;;  :cluster cluster-status
-    ;;  :humacs humacs-status
-    ;;  :tmate (get-tmate instance_id)}))
 
-;; (defn get-kubeconfig
-;;   "retrieve config for instance as json string "
-;;   [{:keys [instance_id]}]
-;;   (let
-;;       [backend (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id"/kubeconfig")
-;;        kubeconfig (-> (http/get backend)
-;;                       (:body)
-;;                       (json/decode true)
-;;                       (:spec))]
-;;   (json/generate-string kubeconfig)))
+(defn get-kubeconfig
+  "retrieve config for instance as json string "
+  [{:keys [instance_id]}]
+  (let
+      [backend (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id"/kubeconfig")
+       kubeconfig (-> (http/get backend)
+                      (:body)
+                      (json/decode true)
+                      (:spec))]
+  (json/generate-string kubeconfig)))
+
+(-> (http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-1d0a6b90a3"))
+    (:body)
+    (json/decode true)
+    (-> :status :resources :HumacsPod))
