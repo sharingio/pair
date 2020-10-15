@@ -235,8 +235,8 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, kubeconfig := instances.KubernetesGetKubeconfig(name, kubernetesClientset)
-		if len(kubeconfig.Clusters) < 1 && err == nil {
+		err, kubeconfig := instances.KubernetesGetKubeconfigYAML(name, kubernetesClientset)
+		if kubeconfig == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -253,7 +253,7 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 				Metadata: types.JSONResponseMetadata{
 					Response: err.Error(),
 				},
-				Spec: clientcmdapi.Config{},
+				Spec: kubeconfig,
 			}
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return

@@ -163,7 +163,7 @@ EOF
 					"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
 					"export KUBECONFIG=/root/.kube/config",
 					"kubectl taint node --all node-role.kubernetes.io/master-",
-					"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"%s\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:%s\"}'",
+					"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\"}'",
 					"kubectl taint node --all node-role.kubernetes.io/master-",
 					"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml",
 					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
@@ -874,25 +874,46 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = fmt.Sprintf(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6], common.GetPacketProjectID(), instance.Name)
-	tmpl, err := template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	tmpl, err := template.New("packet-cloud-config-secret").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
 	if err != nil {
-		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
 	}
 	templatedBuffer := new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
+		"PacketProjectID": common.GetPacketProjectID(),
+		"InstanceName":    instance.Name,
+		// NOTE I could find a way to ignore this field during templating, here's a neat little hack to ignore it ;)
+		"apiKey": "{{ .apiKey }}",
+	})
+	if err != nil {
+		log.Printf("%#v\n", err.Error())
+		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
+
+	tmpl, err = template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
+		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedBuffer.String()
 
 	tmpl, err = template.New("ssh-keys").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 	if err != nil {
-		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
+		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
@@ -1013,6 +1034,14 @@ func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) 
 	}
 	kubeconfigBytes = secret.Data["value"]
 	return err, kubeconfigBytes
+}
+
+func KubernetesGetKubeconfigYAML(name string, clientset *kubernetes.Clientset) (err error, kubeconfig string) {
+	err, kubeconfigBytes := KubernetesGetKubeconfigBytes(name, clientset)
+	if err != nil {
+		return err, kubeconfig
+	}
+	return err, string(kubeconfigBytes)
 }
 
 func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig []byte) {
