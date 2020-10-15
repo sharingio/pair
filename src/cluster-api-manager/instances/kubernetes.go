@@ -246,7 +246,9 @@ EOF`,
 `,
 					`(
           sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
-          {{ range $.Setup.Guests }}sudo -iu ii ssh-import-id gh:{{ . }}{{ end }}
+          {{ range $.Setup.Guests }}
+          sudo -iu ii ssh-import-id gh:{{ . }}
+          {{ end }}
 )`,
 				},
 			},
