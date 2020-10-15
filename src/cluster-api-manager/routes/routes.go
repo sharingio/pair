@@ -31,7 +31,7 @@ func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFu
 		name := vars["name"]
 
 		err, instance := instances.KubernetesGet(name, kubernetesClientset)
-		if instance.Spec.Name == "" {
+		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -236,22 +236,22 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 		name := vars["name"]
 
 		err, kubeconfig := instances.KubernetesGetKubeconfig(name, kubernetesClientset)
-		if err != nil {
-			log.Println(err)
+		if len(kubeconfig.Clusters) < 1 && err == nil {
+			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
-					Response: err.Error(),
+					Response: "Resource not found",
 				},
 				Spec: clientcmdapi.Config{},
 			}
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
-		if len(kubeconfig.Clusters) < 1 {
-			responseCode = http.StatusNotFound
+		if err != nil {
+			log.Println(err)
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
-					Response: "Resource not found",
+					Response: err.Error(),
 				},
 				Spec: clientcmdapi.Config{},
 			}
@@ -278,21 +278,22 @@ func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest
 		name := vars["name"]
 
 		err, session := instances.KubernetesGetTmateSession(clientset, name)
-		if err != nil {
-			log.Println(err)
+		notFound := err != nil && strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig")
+		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" && err == nil || notFound {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
-					Response: err.Error(),
+					Response: "Resource not found",
 				},
 				Spec: "",
 			}
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
-		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" {
+		if err != nil {
+			log.Println(err)
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
-					Response: "Resource not found",
+					Response: err.Error(),
 				},
 				Spec: "",
 			}
