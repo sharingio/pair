@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 
@@ -30,6 +31,18 @@ func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFu
 		name := vars["name"]
 
 		err, instance := instances.KubernetesGet(name, kubernetesClientset)
+		if instance.Spec.Name == "" {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -131,7 +144,32 @@ func DeleteInstanceKubernetes(kubernetesClientset dynamic.Interface) http.Handle
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err := instances.KubernetesDelete(name, kubernetesClientset)
+		err, instance := instances.KubernetesGet(name, kubernetesClientset)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if instance.Spec.Name == "" {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+
+		err = instances.KubernetesDelete(name, kubernetesClientset)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -209,6 +247,17 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
 		}
+		if len(kubeconfig.Clusters) < 1 {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec: clientcmdapi.Config{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
 		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
@@ -234,6 +283,16 @@ func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
 					Response: err.Error(),
+				},
+				Spec: "",
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
 				},
 				Spec: "",
 			}
