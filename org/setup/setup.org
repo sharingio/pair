@@ -894,6 +894,75 @@ service/sharingio-pair created
 ingress.networking.k8s.io/sharingio-pair created
 #+end_example
 
+** Certs (optional)
+
+Create a Certificate (management resource)
+#+begin_src yaml :tangle sharingio-pair-certificate.yaml :noweb yes
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: letsencrypt-prod-sharingio-pair
+spec:
+  secretName: letsencrypt-prod-sharingio-pair
+  issuerRef:
+    name: letsencrypt-prod-sharing.io-pair
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - <<get-pair-host()>>
+#+end_src
+
+Create a ClusterIssuer resource
+#+begin_src yaml :tangle sharingio-pair-cluster-issuer.yaml :noweb yes
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-sharingio-pair
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: pair-sharing-io-certificates@ii.coop
+    privateKeySecretRef:
+      name: letsencrypt-prod-sharingio-pair
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+        selector:
+          dnsNames:
+            - <<get-pair-host()>>
+#+end_src
+
+Create an Ingress mapping
+#+begin_src yaml :tangle sharingio-pair-ingress-tls.yaml :noweb yes
+  apiVersion: networking.k8s.io/v1beta1
+  kind: Ingress
+  metadata:
+    name: sharingio-pair
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      kubernetes.io/ingress.class: nginx
+      certmanager.k8s.io/cluster-issuer: "letsencrypt-prod-sharingio-pair"
+      certmanager.k8s.io/acme-challenge-type: http01
+  spec:
+    tls:
+    - hosts:
+      - <<get-pair-host()>>
+      secretName: letsencrypt-prod-sharingio-pair
+    rules:
+    - host: <<get-pair-host()>>
+      http:
+        paths:
+        - backend:
+            serviceName: sharingio-pair
+            servicePort: 5000
+          path: /
+#+end_src
+
+#+begin_src shell :results silent
+  kubectl apply -f sharingio-pair-certificate.yaml -f sharingio-pair-cluster-issuer.yaml -f sharingio-pair-ingress-tls.yaml
+#+end_src
+
 * Build
 
 Create Java jar files out of the clojure
