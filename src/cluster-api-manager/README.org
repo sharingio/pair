@@ -1,0 +1,109 @@
+#+TITLE: Cluster-API-manager
+
+* Prelimiary set up
+
+Install clusterctl
+#+begin_src shell
+  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.8/clusterctl-linux-amd64 -o clusterctl
+  chmod +x ./clusterctl
+  sudo mv ./clusterctl /usr/local/bin/clusterctl
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
+
+* Deploy cluster-api in-cluster
+
+#+begin_src elisp :results none
+  (setenv "PACKET_PROJECT_ID" (read-from-minibuffer "PACKET_PROJECT_ID: "))
+  (setenv "PACKET_API_KEY" (read-from-minibuffer "PACKET_API_KEY: "))
+#+end_src
+
+#+name: get-packet-project-id
+#+begin_src elisp :results silent
+  (getenv "PACKET_PROJECT_ID")
+#+end_src
+
+#+name: get-packet-api-key
+#+begin_src elisp :results silent
+  (getenv "PACKET_API_KEY")
+#+end_src
+
+Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
+#+begin_src shell :noweb yes :async yes
+          export PACKET_PROJECT_ID=<<get-packet-project-id()>>
+          export PACKET_API_KEY=<<get-packet-api-key()>>
+  clusterctl init --infrastructure=packet
+#+end_src
+
+* Running in development
+
+Create namespace for instances
+#+begin_src shell :results silent
+  kubectl create ns sharingio-pair-instances
+#+end_src
+
+Select all resources from a deployment
+#+begin_src shell
+  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines,packetmachines
+#+end_src
+
+#+begin_src shell :dir ./ :noweb yes
+      export APP_PACKET_PROJECT_ID=<<get-packet-project-id()>>
+  go run main.go
+#+end_src
+
+* Example commands
+
+#+NAME: create a Kubernetes instance
+#+begin_src shell
+  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"humacs/humacs\",\"sharingio/pair\"],\"fullname\":\"Test User\",\"email\":\"email@example.com\"}}" | jq .
+#+end_src
+
+#+NAME: delete a Kubernetes instance
+#+begin_src shell
+  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-65fd2a11ef | jq .
+#+end_src
+
+#+NAME: get all names of Kubernetes instances
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes | jq -r '.list[].spec.name'
+#+end_src
+
+#+NAME: get a Kubernetes instance
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-1a3866b444 | jq .
+#+end_src
+
+#+NAME: get tmate session for Kubernetes instance
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-1a3866b444/tmate | jq .
+#+end_src
+
+#+NAME: get kubeconfig for Kubernetes instance
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-128d9375a4/kubeconfig | jq .spec
+#+end_src
+
+#+NAME: get a list of all Kubernetes instances
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes | jq .
+#+end_src
+
+* Clean up
+Delete Packet infra provider ClusterAPI from your cluster
+#+begin_src shell :noweb yes :async yes
+          export PACKET_PROJECT_ID=<<get-packet-project-id()>>
+          export PACKET_API_KEY=<<get-packet-api-key()>>
+  clusterctl delete --infrastructure=packet 2>&1
+#+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
+
+* Notes
+- https://github.com/kubernetes-sigs/cluster-api/blob/6ee07b3ff2c4162a3959969a6e9c20d813ebc4d2/api/v1alpha3/cluster_types.go
+- https://github.com/kubernetes-sigs/cluster-api-provider-packet/blob/cd4f7d7d27d6b7c715215eff60eb6a0451996df2/api/v1alpha3/packetcluster_types.go
+- https://github.com/kubernetes/api/blob/master/core/v1/types.go
