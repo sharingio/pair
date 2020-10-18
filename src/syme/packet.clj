@@ -37,18 +37,6 @@
                 :status (str api-response": "phase)})
         (println "spec: " instance-spec)))
 
-(defn kubeconfig-available?
-  "String->Boolean
-  Checks if response to get kubeconfig of given ID returns a completely empty config"
-  [instance_id]
-  (let
-      [backend (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id"/kubeconfig")
-       kubeconfig (-> (http/get backend)
-                      (:body)
-                      (json/decode true)
-                      (:spec))
-       not-empty? (complement empty?)]
-    (not-empty? (filter #(not-empty? (second %)) kubeconfig))))
 
 
 (defn get-tmate
@@ -82,8 +70,6 @@
          (= "Running" humacs)
          (= (tmate-available? instance_id) false)) 4
     :else 5))
-
-(http/get (str backend-address "/api/instance/kubernetes/" "zachmandeville-5e36941b3d-68aa470aa4"))
 
 (defn get-status-response
   "Grab a status payload rom backend, or placeholder if not status available yet"
@@ -123,4 +109,17 @@
                       (:body)
                       (json/decode true)
                       (:spec))]
-  (json/generate-string kubeconfig)))
+    kubeconfig))
+
+(defn kubeconfig-available?
+  "String->Boolean
+  Checks if response to get kubeconfig of given ID returns a completely empty config"
+  [instance_id]
+  (let
+      [backend (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id"/kubeconfig")
+       kubeconfig (-> (http/get backend)
+                      (:body)
+                      (json/decode true)
+                      (:spec))
+       not-empty? (complement empty?)]
+    (not-empty? kubeconfig)))
