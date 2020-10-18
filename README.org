@@ -1,0 +1,18 @@
+#+TITLE: Pair
+
+#+begin_quote
+Pairing is sharing
+#+end_quote
+
+* Features
+- provision a Kubernetes cluster on Equinix Metal / Packet with a repo ready to pair shortly
+- get a Kubeconfig and a tmate session to begin
+
+* Setup
+For setting up a Pair operator, check out the [[./org/setup/setup.org][setup.org doc]].
+
+* License
+
+Copyright 2020 Sharingio authors and contributors.
+
+Pair is license under the Apache 2.0 license.
