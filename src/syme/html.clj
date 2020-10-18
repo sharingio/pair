@@ -113,7 +113,7 @@
           [:li [:strong (str "The Cluster is " cluster)]]
           (when (and (> level 1) (packet/kubeconfig-available? instance_id))
           [:li [:strong "kubeconfig is available "]
-           [:a {:href (str "/project/"project"/kubeconfig") :download true} (str "download " instance_id"-kubeconfig")]])
+           [:a {:href (str "/project/"project"/kubeconfig") :download (str instance_id "-kubeconfig")} (str "download " instance_id"-kubeconfig")]])
           (when (and (>= level 2)(< level 5))
             [:li [:strong "Configuring cluster for pairing"]])
           (when (= level 5)
