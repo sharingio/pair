@@ -1,7 +1,8 @@
 (ns syme.db
   (:require [clojure.java.jdbc :as sql]
             [environ.core :as env]
-            [tentacles.users :as users])
+            [tentacles.users :as users]
+            [tentacles.repos :as repos])
   (:import (java.util UUID))
   (:refer-clojure :exclude [find]))
 
