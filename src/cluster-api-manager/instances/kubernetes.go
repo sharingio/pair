@@ -876,7 +876,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	tmpl, err := template.New("packet-cloud-config-secret").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
+	tmpl, err := template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%s", instance.Name, time.Now().Unix())).Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
@@ -894,7 +894,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
 
-	tmpl, err = template.New("humacs-helm-install").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	tmpl, err = template.New(fmt.Sprint("humacs-helm-install-%s-%s", instance.Name, time.Now().Unix())).Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
@@ -907,7 +907,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedBuffer.String()
 
-	tmpl, err = template.New("ssh-keys").Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
+	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%s", instance.Name, time.Now().Unix())).Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
