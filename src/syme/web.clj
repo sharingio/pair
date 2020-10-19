@@ -55,7 +55,9 @@
          :status 200
          :body (html/splash username)})
    (GET "/all" {{:keys [username]} :session}
-        (html/all username (db/find-all username)))
+        (let [instances (db/find-all username)
+              updated-instances (packet/update-instances username instances)]
+        (html/all username updated-instances)))
    (GET "/launch" {{:keys [username] :as session} :session
                    {:keys [project]} :params}
         (if-let [instance (db/find username project)]
@@ -93,6 +95,10 @@
         {:status (if (:ip instance) 200 202)
          :headers {"Content-Type" "application/json"}
          :body (json/encode instance)})
+   (GET "/project/:gh-user/:project/delete" {{:keys [username] :as session} :session
+                                      instance :instance}
+        (packet/delete-instance (:instance_id instance))
+        (res/redirect "/all"))
    (POST "/status" {{:keys [token status]} :params}
          (when-let [{:keys [id dns ip]} (db/by-token token)]
            (db/update-status id {:status status})
@@ -185,5 +191,5 @@
                      {:port port :join? false})))
 
 ;; For interactive development:
-;; (.stop server)
+(.stop server)
 (def server (-main))
