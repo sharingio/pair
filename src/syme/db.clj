@@ -117,7 +117,7 @@
                      :fullname :text
                      :email :text
                      ;; TODO: an org array for the orgs this person is a part of, or better an org table that we can link to
-                     :sharing_member :boolean]))
+                     :sharingio_member :boolean]))
 
 (defn add-instance-id []
   (sql/do-commands "ALTER TABLE instances ADD COLUMN instance_id VARCHAR"))
