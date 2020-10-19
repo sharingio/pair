@@ -19,7 +19,7 @@ Declare the host to bring the site up on
 ** System
 
 Install a few system packages required for development
-#+begin_src shell
+#+begin_src shell :results silent
   sudo apt update && \
   sudo apt install -y openjdk-14-jdk rlwrap
 #+end_src
@@ -773,13 +773,14 @@ update-alternatives: using /usr/lib/jvm/java-14-openjdk-amd64/bin/jconsole to pr
 ** Extras
 
 Install lein
-#+begin_src shell
+#+begin_src shell :results silent
   curl -OL -o lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
   chmod +x lein
   sudo mv lein /usr/local/bin/lein
   lein || true
 #+end_src
 
+<<<<<<< HEAD
 #+RESULTS:
 #+begin_example
 /home/ii/.lein/self-installs/leiningen-2.9.4-standalone.jar.pending: OK
@@ -831,23 +832,15 @@ See also: readme, faq, tutorial, news, sample, profiles, deploying, gpg,
 mixed-source, templates, and copying.
 #+end_example
 
+=======
+>>>>>>> silent code blocks and remove results from setup.org
 Install clojure
-#+begin_src shell
+#+begin_src shell :results silent
   curl -O https://download.clojure.org/install/linux-install-1.10.1.697.sh
   chmod +x linux-install-1.10.1.697.sh
   sudo ./linux-install-1.10.1.697.sh
   rm ./linux-install-1.10.1.697.sh
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Downloading and expanding tar
-Installing libs into /usr/local/lib/clojure
-Installing clojure and clj into /usr/local/bin
-Installing man pages into /usr/local/share/man/man1
-Removing download
-Use clj -h for help.
-#+end_example
 
 * Map to Ingress in-cluster
 
@@ -884,7 +877,7 @@ spec:
         path: /
 #+end_src
 
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl apply -f sharingio-pair-service.yaml -f sharingio-pair-ingress.yaml
 #+end_src
 
@@ -966,20 +959,14 @@ Create an Ingress mapping
 * Build
 
 Create Java jar files out of the clojure
-#+begin_src shell :dir ../../
+#+begin_src shell :dir ../../ :results silent
   lein uberjar
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Created /home/ii/pair/target/uberjar/syme-1.1.0.jar
-Created /home/ii/pair/target/uberjar/syme-standalone.jar
-#+end_example
 
 * Create a database
 
 Create a namespace
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl create ns pair
 #+end_src
 
@@ -999,21 +986,10 @@ Create the database secrets
     --from-literal=PGDATABASE=pair
 #+end_src
 
-#+RESULTS:
-#+begin_example
-secret/postgres-configuration created
-#+end_example
-
 Create the Postgres instance
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl -n pair apply -f postgres.yaml
 #+end_src
-
-#+RESULTS:
-#+begin_example
-service/postgres created
-statefulset.apps/postgres created
-#+end_example
 
 * Config
 #+begin_src elisp :results none
@@ -1068,7 +1044,7 @@ statefulset.apps/postgres created
 * Migrate the database
 
 Run migrations
-#+begin_src shell :dir ../../
+#+begin_src shell :dir ../../ :results silent
   export $(cat .env | xargs)
   lein run -m syme.db
 #+end_src
