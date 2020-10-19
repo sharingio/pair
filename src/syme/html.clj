@@ -81,11 +81,22 @@
         [:input {:type :hidden
                  :name "facility"
                  :value "sjc1"}]
+        [:input {:type :hidden
+                 :name "fullname"
+                 :value (:fullname details)}]
+        [:input {:type :hidden
+                 :name "email"
+                 :value (:email details)}]
         [:label {:for "guests"} "guests"]
         [:input {:type :text
                  :name "guests"
                  :id "guests"
                  :placeholder "users to invite (space separated)"}]
+        [:label {:for "repos"} "Additional Repos"]
+        [:input {:type :text
+                 :name "repos"
+                 :id "repos"
+                 :placeholder "additional repos to add (space separated)"}]
         [:input {:type :submit :value "launch"}]]]
          [:div "you aren't allowed"])]
      username repo-name)))

@@ -14,15 +14,15 @@
 (defonce github-name (memoize (comp :name users/user)))
 
 (defn launch
-  [username {:keys [project facility type guests identity credential] :as params}]
+  [username {:keys [project facility type guests identity credential fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
                        :setup {:user username
-                               :guests [ guests ]
-                               :repos [ project ]
-                               :fullname "Zach Mandeville DOG"
-                               :email "zz@ii.coop"}}
+                               :guests (clojure.string/split guests #" ")
+                               :repos (cons project (clojure.string/split repos #" "))
+                               :fullname fullname
+                               :email email}}
         response (-> (http/post backend {:form-params instance-spec :content-type :json})
                      (:body)
                      (json/decode true))
@@ -35,6 +35,8 @@
                 :type type
                 :instance-id name
                 :status (str api-response": "phase)})))
+
+
 
 
 (defn get-tmate
