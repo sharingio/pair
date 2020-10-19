@@ -111,13 +111,12 @@
                     [:invitee :varchar "NOT NULL"]
                     [:instance_id :integer "NOT NULL"]
                     [:at :timestamp "NOT NULL" "DEFAULT CURRENT_TIMESTAMP"])
-  (sql/create-table "user"
-                    [:id :serial "PRIMARY KEY"
-                     :username :text "NOT NULL"
-                     :fullname :text
-                     :email :text
-                     ;; TODO: an org array for the orgs this person is a part of, or better an org table that we can link to
-                     :sharingio_member :boolean]))
+  (sql/create-table "user_detail"
+                    ;; TODO: an org array for the orgs this person is a part of, or better an org table that we can link to
+                    [:username :text "NOT NULL"]
+                    [:fullname :text]
+                    [:email :text]
+                    [:sharingio_member :boolean]))
 
 (defn add-instance-id []
   (sql/do-commands "ALTER TABLE instances ADD COLUMN instance_id VARCHAR"))
