@@ -27,7 +27,8 @@
                  {:form-params (merge dev-oauth
                                       {:client_id (env :oauth-client-id)
                                        :client_secret (env :oauth-client-secret)
-                                       :code code})
+                                       :code code
+                                       :scope "user read:org"})
                   :headers {"Accept" "application/json"}})
       (:body) (json/decode true) :access_token))
 
@@ -35,6 +36,17 @@
   (-> (http/get (str "https://api.github.com/user?access_token=" token)
                 {:headers {"accept" "application/json"}})
       (:body) (json/decode true) :login))
+
+(defn get-user [token]
+  (-> (http/get (str "https://api.github.com/user?access_token=" token)
+                {:headers {"accept" "application/json"}})
+      (:body) (json/decode true)))
+
+(defn get-orgs
+  [username token]
+  (-> (http/get (str "https://api.github.com/user/orgs?access_token="token)
+                {:headers {"accept" "application/json"}})
+      (:body)(json/decode true)))
 
 (def app
   (routes
@@ -49,10 +61,11 @@
         (if-let [instance (db/find username project)]
           (res/redirect (str "/project/" project))
           (if username
+            (let [details (db/find-details username)]
             {:headers {"Content-Type" "text/html"}
              :status 200
              :body (html/launch username (or project (:project session))
-                                (:identity session) (:credential session))}
+                                (:identity session) (:credential session) details)})
             (assoc (res/redirect html/login-url)
               :session (merge session {:project project})))))
    (POST "/launch" {{:keys [username] :as session} :session
@@ -61,7 +74,6 @@
            (throw (ex-info "Must be logged in." {:status 401})))
          (when (db/find username project)
            (throw (ex-info "Already launched." {:status 409})))
-         (println (str "post launch params: "params))
          (packet/launch username params)
          (assoc (res/redirect (str "/project/" project))
            :session (merge session (select-keys params
@@ -104,7 +116,13 @@
    (GET "/oauth" {{:keys [code]} :params session :session}
         (if code
           (let [token (get-token code)
-                username (get-username token)]
+                {username :login
+                 email :email
+                 fullname :name} (get-user token)
+                 orgs (get-orgs username token)
+                 sharingio-member ((complement empty?)(filter #(= "sharingio" (:login %)) orgs))]
+            (when (nil? (db/find-details username))
+              (db/add-user username email fullname sharingio-member))
             (assoc (res/redirect (if (:project session) "/launch" "/"))
               :session (merge session {:token token :username username})))
           {:status 403}))

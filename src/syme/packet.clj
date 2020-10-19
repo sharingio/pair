@@ -34,9 +34,7 @@
                 :facility facility
                 :type type
                 :instance-id name
-                :status (str api-response": "phase)})
-        (println "spec: " instance-spec)))
-
+                :status (str api-response": "phase)})))
 
 
 (defn get-tmate
@@ -74,9 +72,7 @@
 (defn get-status-response
   "Grab a status payload rom backend, or placeholder if not status available yet"
   [backend]
-  (println backend)
   (let [response (try+ (http/get backend) (catch Object _ "404"))]
-    (println response)
     (if (= response "404")
       {:Cluster {:phase "Not available yet"}
        :HumacsPod {:phase "Not available yet"}}

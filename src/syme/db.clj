@@ -21,6 +21,30 @@
                                      :shutdown_token (str (UUID/randomUUID))
                                      :description description}))))
 
+
+(defn add-user
+  [username email fullname sharingio-member]
+  (sql/with-connection db
+    (sql/insert-record :user_detail {:username username
+                                     :email email
+                                     :fullname fullname
+                                     :sharingio_member sharingio-member})))
+
+(defn find-details
+  [username]
+  (sql/with-connection db
+    (sql/with-query-results details
+      ["select username, fullname, email, sharingio_member
+          from user_detail
+         where username = ?" username]
+      (first details))))
+
+(defn find-all [username]
+  (sql/with-connection db
+    (sql/with-query-results instances
+      ["SELECT * FROM instances WHERE owner = ? ORDER BY at DESC" username]
+      (doall instances))))
+
 (defn update-status [id args]
   (sql/with-connection db
     (sql/update-values :instances ["id = ?" id] args)))
@@ -86,7 +110,14 @@
                     [:id :serial "PRIMARY KEY"]
                     [:invitee :varchar "NOT NULL"]
                     [:instance_id :integer "NOT NULL"]
-                    [:at :timestamp "NOT NULL" "DEFAULT CURRENT_TIMESTAMP"]))
+                    [:at :timestamp "NOT NULL" "DEFAULT CURRENT_TIMESTAMP"])
+  (sql/create-table "user"
+                    [:id :serial "PRIMARY KEY"
+                     :username :text "NOT NULL"
+                     :fullname :text
+                     :email :text
+                     ;; TODO: an org array for the orgs this person is a part of, or better an org table that we can link to
+                     :sharing_member :boolean]))
 
 (defn add-instance-id []
   (sql/do-commands "ALTER TABLE instances ADD COLUMN instance_id VARCHAR"))

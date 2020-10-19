@@ -9,7 +9,8 @@
             [hiccup.form :as form]))
 
 (def login-url (str "https://github.com/login/oauth/authorize?"
-                    "client_id=" (env :oauth-client-id)))
+                    "client_id=" (env :oauth-client-id)
+                    "&scope=user"))
 
 (defn layout [body username & [project status]]
   (html5
@@ -49,12 +50,14 @@
      [:input {:type :text :name "project"
               :style "width: 48%; height: 14px; font-weight: bold;"
               :placeholder "user/project"}]]
-    [:p {:style "margin-bottom: 700px;"} "&nbsp;"]] username))
+    [:p {:style "margin-bottom: 700px;"} "&nbsp;"]
+    [:p "Hello!"]
+    ] username))
 
 (defn faq [username]
   (layout (slurp (io/resource "faq.html")) username))
 
-(defn launch [username repo-name identity credential]
+(defn launch [username repo-name identity credential details]
   (let [repo (try (apply repos/specific-repo (.split repo-name "/"))
                   (catch Exception _))]
     (when-not (:name repo)
@@ -62,8 +65,11 @@
     (layout
       [:div
        [:h3.project [:a {:href {:html_url repo}} repo-name]]
+       [:p (str "Hello, " (:fullname details))]
        [:p#desc (:description repo)]
        [:hr]
+       (if (:sharingio_member details)
+         [:div
        [:h3 "Deploy to Packet"]
        [:form {:action "/launch" :method :post}
         [:label {:for "type"} "Type"]
@@ -81,6 +87,7 @@
                  :id "guests"
                  :placeholder "users to invite (space separated)"}]
         [:input {:type :submit :value "launch"}]]]
+         [:div "you aren't allowed"])]
      username repo-name)))
 
 (defonce icon (memoize (comp :avatar_url users/user)))
