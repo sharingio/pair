@@ -19,8 +19,12 @@
         instance-spec {:type type
                        :facility facility
                        :setup {:user username
-                               :guests (clojure.string/split guests #" ")
-                               :repos (cons project (clojure.string/split repos #" "))
+                               :guests (if (empty? guests)
+                                         guests
+                                         (clojure.string/split guests #" "))
+                               :repos (if (empty? repos)
+                                        project
+                                        (cons project (clojure.string/split repos #" ")))
                                :fullname fullname
                                :email email}}
         response (-> (http/post backend {:form-params instance-spec :content-type :json})
@@ -35,9 +39,6 @@
                 :type type
                 :instance-id name
                 :status (str api-response": "phase)})))
-
-
-
 
 (defn get-tmate
   "retrieve config for instance as json string "
@@ -62,6 +63,7 @@
   returns 1 through 5 depending on phases of cluster and humacs"
   [phase cluster humacs instance_id]
   (cond
+    (= "Deleting" phase) 0
     (= "Pending" phase) 1
     (= "Provisioning" phase) 2
     (and (= "Provisioned" phase)
@@ -121,3 +123,19 @@
                       (:spec))
        not-empty? (complement empty?)]
     (not-empty? kubeconfig)))
+
+(defn delete-instance
+  [instance_id]
+  (-> (http/delete (str "http://"(env :backend-address)"/api/instance/kubernetes/"instance_id))
+      (:body)
+      (json/decode true)
+      (:status)))
+
+(defn update-instances
+  "InstanceIDs->InstanceIDs
+  for each instance id, get its current status, update the db accordingly, and return the instance ID"
+  [username instances]
+  (doseq [instance instances]
+    (let [{status :phase} (get-status instance)]
+      (db/update-status (:id instance) {:status status})))
+  (db/find-all username))
