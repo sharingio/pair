@@ -129,6 +129,7 @@
          [:ul [:li [:strong "The cluster is not yet ready"]]]
          [:ul
           [:li [:strong (str "The Cluster is " cluster)]]
+          [:li [:a {:href (str "/project/"project"/delete")}"delete this instance"]]
           (when (and (> level 1) (packet/kubeconfig-available? instance_id))
           [:li [:strong "kubeconfig is available "]
            [:a {:href (str "/project/"project"/kubeconfig") :download (str instance_id "-kubeconfig")} (str "download " instance_id"-kubeconfig")]])
@@ -145,28 +146,11 @@ username project status))
   (layout
    [:div [:h3 "All Instances"]
     (if instances
-      (map #(render-instance-info % link-syme-project) instances)
-      [:p "You have no instances"])
-    [:hr]
-    [:p "You may want to periodically check your "
-     [:a {:href
-          "https://console.aws.amazon.com/ec2/home?region=us-west-2#s=Instances"}
-      "AWS EC2 console"]
-     " to ensure you aren't billed for instances you intended to stop that"
-     " stayed running due to problems with Syme. In particular this happens"
-     " due to timeout errors."
-     ]]
+      [:ul
+      (for [instance instances]
+        [:li [:strong (str (:project instance)": ")] (:status instance)])])]
    username "Status"))
 
-  ;; ;; TODO: remove inline styles
-  ;; [:p {:id "haltbutton" :style "float: right; margin: -7px 0;"}
-  ;;  [:button {:onclick "show_halt()"} "Halt"]]
-  ;; [:div {:id "halt" :style "float: right; clear: right; display: none"}
-  ;;  [:button {:onclick "hide_halt();"} "Cancel"]
-  ;;  [:button {:onclick (format "halt('%s')" project)} "Confirm"]]
-  ;; [:p {:id "ip" :class status
-  ;;      :title "Send this command to the users you've invited."}
-  ;;  [:tt "ssh ii@" (or dns ip)]]]
 ;; TODO bring back the guest invites
 ;; [:hr]
 ;; [:ul {:id "users"}
