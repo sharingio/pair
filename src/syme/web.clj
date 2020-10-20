@@ -48,6 +48,13 @@
                 {:headers {"accept" "application/json"}})
       (:body)(json/decode true)))
 
+(defn get-email
+  [username token]
+  (-> (http/get (str "https://api.github.com/user/email?access_token="token)
+                {:headers {"accept" "application/json"}})
+      (:body)(json/decode true)
+      (first)))
+
 (def app
   (routes
    (GET "/" {{:keys [username]} :session}
@@ -123,7 +130,7 @@
         (if code
           (let [token (get-token code)
                 {username :login
-                 email :email
+                 email (get-email username token)
                  fullname :name} (get-user token)
                  orgs (get-orgs username token)
                  sharingio-member ((complement empty?)(filter #(= "sharingio" (:login %)) orgs))]
