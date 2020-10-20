@@ -844,7 +844,7 @@ metadata:
 spec:
   secretName: letsencrypt-prod-sharingio-pair
   issuerRef:
-    name: letsencrypt-prod-sharing.io-pair
+    name: letsencrypt-prod-sharingio-pair
     kind: ClusterIssuer
     group: cert-manager.io
   dnsNames:

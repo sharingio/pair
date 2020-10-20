@@ -241,7 +241,7 @@ statefulset.apps/postgres created
 * Migrate the database
 
 Run migrations
-#+begin_src shell :dir ../../
+#+begin_src shell :dir
   export $(cat .env | xargs)
   lein run -m sharingio.db
 #+end_src
