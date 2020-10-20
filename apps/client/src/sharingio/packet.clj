@@ -20,10 +20,10 @@
                        :facility facility
                        :setup {:user username
                                :guests (if (empty? guests)
-                                         guests
+                                         [ guests ]
                                          (clojure.string/split guests #" "))
                                :repos (if (empty? repos)
-                                        project
+                                        [ project ]
                                         (cons project (clojure.string/split repos #" ")))
                                :fullname fullname
                                :email email}}
