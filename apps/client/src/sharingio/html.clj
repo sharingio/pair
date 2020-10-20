@@ -3,7 +3,6 @@
             [tentacles.repos :as repos]
             [tentacles.users :as users]
             [environ.core :refer [env]]
-            [sharingio.instance :as instance]
             [sharingio.packet :as packet]
             [hiccup.page :refer [html5 include-css]]
             [hiccup.form :as form]))

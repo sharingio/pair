@@ -13,7 +13,6 @@
             [sharingio.packet :as packet]
             [sharingio.dns :as dns]
             [sharingio.html :as html]
-            [sharingio.instance :as instance]
             [compojure.core :refer [ANY DELETE GET POST routes]]
             [compojure.handler :refer [site]]
             [environ.core :refer [env]]))
@@ -115,18 +114,6 @@
            {:status 200
             :headers {"Content-Type" "text/plain"}
             :body "OK"}))
-   (DELETE "/project/:gh-user/:project" {{:keys [gh-user project]} :params
-                                         {:keys [username identity credential]
-                                          :as session} :session
-                                          instance :instance}
-           (do (instance/halt username {:project (str gh-user "/" project)
-                                        :identity identity
-                                        :credential credential
-                                        :region (:region instance)})
-               {:status 200
-                :headers {"Content-Type" "application/json"}
-                :body (json/encode instance)
-                :session (dissoc session :project)}))
    (GET "/oauth" {{:keys [code]} :params session :session}
         (if code
           (let [token (get-token code)
