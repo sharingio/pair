@@ -1,10 +1,10 @@
-(ns syme.html
+(ns sharingio.html
   (:require [clojure.java.io :as io]
             [tentacles.repos :as repos]
             [tentacles.users :as users]
             [environ.core :refer [env]]
-            [syme.instance :as instance]
-            [syme.packet :as packet]
+            [sharingio.instance :as instance]
+            [sharingio.packet :as packet]
             [hiccup.page :refer [html5 include-css]]
             [hiccup.form :as form]))
 
@@ -18,7 +18,7 @@
     [:meta {:charset "utf-8"}]
     (when (some? status)
       [:meta {:http-equiv "refresh" :content "20"}])
-    [:title (if project (str project " - Syme") "Syme")]
+    [:title (if project (str project " - Sharingio") "Sharingio")]
     (include-css "/stylesheets/style.css" "/stylesheets/base.css"
                  "/stylesheets/skeleton.css")
     (include-css "https://fonts.googleapis.com/css?family=Passion+One:700")]

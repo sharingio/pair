@@ -1,4 +1,4 @@
-(ns syme.packet
+(ns sharingio.packet
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [clojure.java.jdbc :as sql]
@@ -6,7 +6,7 @@
             [clojure.tools.logging :as log]
             [clj-http.client :as http]
             [environ.core :refer [env]]
-            [syme.db :as db])
+            [sharingio.db :as db])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
 (def backend-address (str "http://"(env :backend-address)))

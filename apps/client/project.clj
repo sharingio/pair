@@ -1,6 +1,6 @@
-(defproject syme "1.1.0"
-  :description "Instant collaboration on GitHub projects over tmux."
-  :url "http://syme.herokuapp.com"
+(defproject sharingio "1.1.0"
+  :description "Sharing is Pairing"
+  :url "https://sharing.io"
   :license "Eclipse Public License 1.0"
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [com.amazonaws/aws-java-sdk "1.3.33"
@@ -19,7 +19,7 @@
                  [org.clojure/tools.logging "1.1.0"]
                  [org.postgresql/postgresql "42.2.16.jre7"]
                  [org.clojure/java.jdbc "0.2.3"]]
-  :uberjar-name "syme-standalone.jar"
+  :uberjar-name "sharingio-standalone.jar"
   :target-path "target/%s/"
   :min-lein-version "2.0.0"
   :plugins [[environ/environ.lein "0.2.1"]]

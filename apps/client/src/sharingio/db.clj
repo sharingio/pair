@@ -1,4 +1,4 @@
-(ns syme.db
+(ns sharingio.db
   (:require [clojure.java.jdbc :as sql]
             [environ.core :as env]
             [tentacles.users :as users]

@@ -1,4 +1,4 @@
-(ns syme.web
+(ns sharingio.web
   (:require [cheshire.core :as json]
             [clj-http.client :as http]
             [compojure.route :as route]
@@ -9,11 +9,11 @@
             [ring.middleware.session.cookie :as cookie]
             [ring.middleware.stacktrace :as trace]
             [ring.util.response :as res]
-            [syme.db :as db]
-            [syme.packet :as packet]
-            [syme.dns :as dns]
-            [syme.html :as html]
-            [syme.instance :as instance]
+            [sharingio.db :as db]
+            [sharingio.packet :as packet]
+            [sharingio.dns :as dns]
+            [sharingio.html :as html]
+            [sharingio.instance :as instance]
             [compojure.core :refer [ANY DELETE GET POST routes]]
             [compojure.handler :refer [site]]
             [environ.core :refer [env]]))
