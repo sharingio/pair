@@ -1,4 +1,4 @@
-(ns syme.dns
+(ns sharingio.dns
   (:require [environ.core :refer [env]])
   (:import (com.amazonaws.auth BasicAWSCredentials)
            (com.amazonaws.services.route53 AmazonRoute53Client)

@@ -1,4 +1,4 @@
-(ns syme.web
+(ns sharingio.web
   (:require [cheshire.core :as json]
             [clj-http.client :as http]
             [compojure.route :as route]
@@ -9,10 +9,10 @@
             [ring.middleware.session.cookie :as cookie]
             [ring.middleware.stacktrace :as trace]
             [ring.util.response :as res]
-            [syme.db :as db]
-            [syme.dns :as dns]
-            [syme.html :as html]
-            [syme.instance :as instance]
+            [sharingio.db :as db]
+            [sharingio.packet :as packet]
+            [sharingio.dns :as dns]
+            [sharingio.html :as html]
             [compojure.core :refer [ANY DELETE GET POST routes]]
             [compojure.handler :refer [site]]
             [environ.core :refer [env]]))
@@ -26,7 +26,8 @@
                  {:form-params (merge dev-oauth
                                       {:client_id (env :oauth-client-id)
                                        :client_secret (env :oauth-client-secret)
-                                       :code code})
+                                       :code code
+                                       :scope "user read:org"})
                   :headers {"Accept" "application/json"}})
       (:body) (json/decode true) :access_token))
 
@@ -35,6 +36,25 @@
                 {:headers {"accept" "application/json"}})
       (:body) (json/decode true) :login))
 
+(defn get-user [token]
+  (-> (http/get (str "https://api.github.com/user?access_token=" token)
+                {:headers {"accept" "application/json"}})
+      (:body) (json/decode true)))
+
+(defn get-orgs
+  [username token]
+  (-> (http/get (str "https://api.github.com/user/orgs?access_token="token)
+                {:headers {"accept" "application/json"}})
+      (:body)(json/decode true)))
+
+(defn get-email
+  [username token]
+  (-> (http/get (str "https://api.github.com/user/emails?access_token="token)
+                {:headers {"accept" "application/json"}})
+      (:body)(json/decode true)
+      (first)
+      (:email)))
+
 (def app
   (routes
    (GET "/" {{:keys [username]} :session}
@@ -42,16 +62,19 @@
          :status 200
          :body (html/splash username)})
    (GET "/all" {{:keys [username]} :session}
-        (html/all username (db/find-all username)))
+        (let [instances (db/find-all username)
+              updated-instances (packet/update-instances username instances)]
+        (html/all username updated-instances)))
    (GET "/launch" {{:keys [username] :as session} :session
                    {:keys [project]} :params}
         (if-let [instance (db/find username project)]
           (res/redirect (str "/project/" project))
           (if username
+            (let [details (db/find-details username)]
             {:headers {"Content-Type" "text/html"}
              :status 200
              :body (html/launch username (or project (:project session))
-                                (:identity session) (:credential session))}
+                                (:identity session) (:credential session) details)})
             (assoc (res/redirect html/login-url)
               :session (merge session {:project project})))))
    (POST "/launch" {{:keys [username] :as session} :session
@@ -60,18 +83,29 @@
            (throw (ex-info "Must be logged in." {:status 401})))
          (when (db/find username project)
            (throw (ex-info "Already launched." {:status 409})))
-         (instance/launch username params)
+         (packet/launch username params)
          (assoc (res/redirect (str "/project/" project))
            :session (merge session (select-keys params
                                                 [:identity :credential]))))
    (GET "/project/:gh-user/:project" {{:keys [username]} :session
                                       instance :instance}
-        (html/instance username instance))
+        (let [status (packet/get-status instance)]
+        (html/instance username instance status)))
+   (GET "/project/:gh-user/:project/kubeconfig" {{:keys [username]} :session
+                                      instance :instance}
+        (let [kubeconfig (packet/get-kubeconfig instance)]
+        {:status 200
+         :header {:Content-Type "text/x-yaml"}
+         :body kubeconfig}))
    ;; for polling from JS on instance page
    (GET "/project/:gh-user/:project/status" {instance :instance}
         {:status (if (:ip instance) 200 202)
          :headers {"Content-Type" "application/json"}
          :body (json/encode instance)})
+   (GET "/project/:gh-user/:project/delete" {{:keys [username] :as session} :session
+                                      instance :instance}
+        (packet/delete-instance (:instance_id instance))
+        (res/redirect "/all"))
    (POST "/status" {{:keys [token status]} :params}
          (when-let [{:keys [id dns ip]} (db/by-token token)]
            (db/update-status id {:status status})
@@ -80,22 +114,16 @@
            {:status 200
             :headers {"Content-Type" "text/plain"}
             :body "OK"}))
-   (DELETE "/project/:gh-user/:project" {{:keys [gh-user project]} :params
-                                         {:keys [username identity credential]
-                                          :as session} :session
-                                          instance :instance}
-           (do (instance/halt username {:project (str gh-user "/" project)
-                                        :identity identity
-                                        :credential credential
-                                        :region (:region instance)})
-               {:status 200
-                :headers {"Content-Type" "application/json"}
-                :body (json/encode instance)
-                :session (dissoc session :project)}))
    (GET "/oauth" {{:keys [code]} :params session :session}
         (if code
           (let [token (get-token code)
-                username (get-username token)]
+                {username :login
+                 fullname :name} (get-user token)
+                 email (get-email username token)
+                 orgs (get-orgs username token)
+                 sharingio-member ((complement empty?)(filter #(= "sharingio" (:login %)) orgs))]
+            (when (nil? (db/find-details username))
+              (db/add-user username email fullname sharingio-member))
             (assoc (res/redirect (if (:project session) "/launch" "/"))
               :session (merge session {:token token :username username})))
           {:status 403}))
@@ -158,5 +186,5 @@
                      {:port port :join? false})))
 
 ;; For interactive development:
-;; (.stop server)
-;; (def server (-main))
+;;(.stop server)
+(def server (-main))

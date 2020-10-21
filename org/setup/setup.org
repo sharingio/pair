@@ -19,7 +19,7 @@ Declare the host to bring the site up on
 ** System
 
 Install a few system packages required for development
-#+begin_src shell
+#+begin_src shell :results silent
   sudo apt update && \
   sudo apt install -y openjdk-14-jdk rlwrap
 #+end_src
@@ -773,81 +773,20 @@ update-alternatives: using /usr/lib/jvm/java-14-openjdk-amd64/bin/jconsole to pr
 ** Extras
 
 Install lein
-#+begin_src shell
+#+begin_src shell :results silent
   curl -OL -o lein https://raw.githubusercontent.com/technomancy/leiningen/stable/bin/lein
   chmod +x lein
   sudo mv lein /usr/local/bin/lein
   lein || true
 #+end_src
 
-#+RESULTS:
-#+begin_example
-/home/ii/.lein/self-installs/leiningen-2.9.4-standalone.jar.pending: OK
-Leiningen is a tool for working with Clojure projects.
-
-Several tasks are available:
-change              Rewrite project.clj with f applied to the value at key-or-path.
-check               Check syntax and warn on reflection.
-classpath           Write the classpath of the current project to output-file.
-clean               Removes all files from paths in clean-targets for a project
-compile             Compile Clojure source into .class files.
-deploy              Deploy jar and pom to remote repository.
-deps                Download and examine dependencies.
-do                  Higher-order task to perform other tasks in succession.
-help                Display a list of tasks or help for a given task or subtask.
-install             Install jar and pom to the local repository; typically ~/.m2.
-jar                 Package up all the project's files into a jar file.
-javac               Compile Java source files.
-new                 Generate scaffolding for a new project based on a template.
-plugin              DEPRECATED. Please use the :user profile instead.
-pom                 Write a pom.xml file to disk for Maven interoperability.
-release             Perform release tasks.
-repl                Start a repl session either with the current project or standalone.
-retest              Run only the test namespaces which failed last time around.
-run                 Run the project's -main function.
-search              Search Central and Clojars for published artifacts.
-show-profiles       List all available profiles or display one if given an argument.
-test                Run the project's tests.
-trampoline          Run a task without nesting the project's JVM inside Leiningen's.
-uberjar             Package up the project files and all dependencies into a jar file.
-update-in           Perform arbitrary transformations on your project map.
-upgrade             Upgrade Leiningen to specified version or latest stable.
-vcs                 Interact with the version control system.
-version             Print version for Leiningen and the current JVM.
-with-profile        Apply the given task with the profile(s) specified.
-
-Run `lein help $TASK` for details.
-
-Global Options:
-  -o             Run a task offline.
-  -U             Run a task after forcing update of snapshots.
-  -h, --help     Print this help or help for a specific task.
-  -v, --version  Print Leiningen's version.
-
-These aliases are available:
-downgrade, expands to upgrade
-
-See also: readme, faq, tutorial, news, sample, profiles, deploying, gpg,
-mixed-source, templates, and copying.
-#+end_example
-
 Install clojure
-#+begin_src shell
+#+begin_src shell :results silent
   curl -O https://download.clojure.org/install/linux-install-1.10.1.697.sh
   chmod +x linux-install-1.10.1.697.sh
   sudo ./linux-install-1.10.1.697.sh
   rm ./linux-install-1.10.1.697.sh
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Downloading and expanding tar
-Installing libs into /usr/local/lib/clojure
-Installing clojure and clj into /usr/local/bin
-Installing man pages into /usr/local/share/man/man1
-Removing download
-Use clj -h for help.
-#+end_example
 
 * Map to Ingress in-cluster
 
@@ -884,7 +823,7 @@ spec:
         path: /
 #+end_src
 
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl apply -f sharingio-pair-service.yaml -f sharingio-pair-ingress.yaml
 #+end_src
 
@@ -905,7 +844,7 @@ metadata:
 spec:
   secretName: letsencrypt-prod-sharingio-pair
   issuerRef:
-    name: letsencrypt-prod-sharing.io-pair
+    name: letsencrypt-prod-sharingio-pair
     kind: ClusterIssuer
     group: cert-manager.io
   dnsNames:
@@ -966,15 +905,9 @@ Create an Ingress mapping
 * Build
 
 Create Java jar files out of the clojure
-#+begin_src shell :dir ../../
+#+begin_src shell :dir ../../ :results silent
   lein uberjar
 #+end_src
-
-#+RESULTS:
-#+begin_example
-Created /home/ii/pair/target/uberjar/syme-1.1.0.jar
-Created /home/ii/pair/target/uberjar/syme-standalone.jar
-#+end_example
 
 * Create a database
 
@@ -1017,26 +950,9 @@ statefulset.apps/postgres created
 
 * Config
 #+begin_src elisp :results none
-  (setenv "AWS_ACCESS_KEY" (read-from-minibuffer "AWS_ACCESS_KEY: "))
-  (setenv "AWS_SECRET_KEY" (read-from-minibuffer "AWS_SECRET_KEY: "))
-  (setenv "ZONE_ID" (read-from-minibuffer "ZONE_ID: "))
+  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:8080 if dev): "))
   (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
   (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
-#+end_src
-
-#+name: get-aws-access-key
-#+begin_src elisp :results silent
-  (getenv "AWS_ACCESS_KEY")
-#+end_src
-
-#+name: get-aws-secret-key
-#+begin_src elisp :results silent
-  (getenv "AWS_SECRET_KEY")
-#+end_src
-
-#+name: get-zone-id
-#+begin_src elisp :results silent
-  (getenv "ZONE_ID")
 #+end_src
 
 #+name: get-oauth-client-id
@@ -1049,14 +965,17 @@ statefulset.apps/postgres created
   (getenv "OAUTH_CLIENT_SECRET")
 #+end_src
 
+#+name: get-backend-address
+#+begin_src elisp :results silent
+  (getenv "BACKEND_ADDRESS")
+#+end_src
+
 #+begin_src shell :tangle ../../.env :noweb yes
   DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
   SESSION_SECRET=hahahahahahahaha
   CANONICAL_URL=<<get-pair-host()>>
   SUBDOMAIN=%s.%s.<<get-pair-host()>>
-  AWS_ACCESS_KEY=<<get-aws-access-key()>>
-  AWS_SECRET_KEY=<<get-aws-secret-key()>>
-  ZONE_ID=<<get-zone-id()>>
+  BACKEND_ADDRESS=<<get-backend-address()>>
   OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
   OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
 #+end_src
@@ -1078,8 +997,6 @@ Run migrations
 Running migration: initial-schema
 Running migration: add-instance-id
 Running migration: add-shutdown-token
-Running migration: add-dns
-Running migration: add-region
 #+end_example
 
 * Launching
@@ -1089,3 +1006,5 @@ Run this in a separate window, so it doesn't hold up the buffer:
   export $(cat .env | xargs)
   java $JVM_OPTS -cp target/uberjar/syme-standalone.jar clojure.main -m syme.web
 #+end_src
+
+

@@ -1,21 +1,49 @@
-(ns syme.db
+(ns sharingio.db
   (:require [clojure.java.jdbc :as sql]
             [environ.core :as env]
+            [tentacles.users :as users]
             [tentacles.repos :as repos])
   (:import (java.util UUID))
   (:refer-clojure :exclude [find]))
 
 (def db (env/env :database-url "postgres://localhost:5432/syme"))
 
-(defn create [owner project region]
+
+(defn create [{:keys [owner project facility type instance-id status] :as payload}]
   (let [{:keys [description]} (apply repos/specific-repo (.split project "/"))]
     (sql/with-connection db
       (sql/insert-record :instances {:project project
                                      :owner owner
-                                     :region region
-                                     :status "starting"
+                                     :facility facility
+                                     :type type
+                                     :status status
+                                     :instance_id instance-id
                                      :shutdown_token (str (UUID/randomUUID))
                                      :description description}))))
+
+
+(defn add-user
+  [username email fullname sharingio-member]
+  (sql/with-connection db
+    (sql/insert-record :user_detail {:username username
+                                     :email email
+                                     :fullname fullname
+                                     :sharingio_member sharingio-member})))
+
+(defn find-details
+  [username]
+  (sql/with-connection db
+    (sql/with-query-results details
+      ["select username, fullname, email, sharingio_member
+          from user_detail
+         where username = ?" username]
+      (first details))))
+
+(defn find-all [username]
+  (sql/with-connection db
+    (sql/with-query-results instances
+      ["SELECT * FROM instances WHERE owner = ? ORDER BY at DESC" username]
+      (doall instances))))
 
 (defn update-status [id args]
   (sql/with-connection db
@@ -72,6 +100,8 @@
                     [:id :serial "PRIMARY KEY"]
                     [:owner :varchar "NOT NULL"]
                     [:project :varchar "NOT NULL"]
+                    [:facility :text]
+                    [:type :text]
                     [:ip :varchar]
                     [:description :text]
                     [:status :varchar]
@@ -80,19 +110,19 @@
                     [:id :serial "PRIMARY KEY"]
                     [:invitee :varchar "NOT NULL"]
                     [:instance_id :integer "NOT NULL"]
-                    [:at :timestamp "NOT NULL" "DEFAULT CURRENT_TIMESTAMP"]))
+                    [:at :timestamp "NOT NULL" "DEFAULT CURRENT_TIMESTAMP"])
+  (sql/create-table "user_detail"
+                    ;; TODO: an org array for the orgs this person is a part of, or better an org table that we can link to
+                    [:username :text "NOT NULL"]
+                    [:fullname :text]
+                    [:email :text]
+                    [:sharingio_member :boolean]))
 
 (defn add-instance-id []
   (sql/do-commands "ALTER TABLE instances ADD COLUMN instance_id VARCHAR"))
 
 (defn add-shutdown-token []
   (sql/do-commands "ALTER TABLE instances ADD COLUMN shutdown_token VARCHAR"))
-
-(defn add-dns []
-  (sql/do-commands "ALTER TABLE instances ADD COLUMN dns VARCHAR"))
-
-(defn add-region []
-  (sql/do-commands "ALTER TABLE instances ADD COLUMN region VARCHAR"))
 
 ;; migrations mechanics
 
@@ -120,6 +150,4 @@
 (defn -main []
   (migrate #'initial-schema
            #'add-instance-id
-           #'add-shutdown-token
-           #'add-dns
-           #'add-region))
+           #'add-shutdown-token))

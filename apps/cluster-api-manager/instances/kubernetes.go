@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/sharingio/pair/src/cluster-api-manager/common"
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -62,345 +62,6 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 var defaultMachineOS = "ubuntu_20_04"
 var defaultKubernetesVersion = "1.19.0"
-var defaultKubernetesClusterConfig = KubernetesCluster{
-	KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
-			Labels: map[string]string{"io.sharing.pair": "instance"},
-		},
-		Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
-			Version:  defaultKubernetesVersion,
-			Replicas: Int32ToInt32Pointer(1),
-			InfrastructureTemplate: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-				Kind:       "PacketMachineTemplate",
-			},
-			KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-				InitConfiguration: &kubeadmv1beta1.InitConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						KubeletExtraArgs: map[string]string{
-							"cloud-provider": "external",
-						},
-					},
-				},
-				ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
-					APIServer: kubeadmv1beta1.APIServer{
-						ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
-							ExtraArgs: map[string]string{
-								"cloud-provider":            "external",
-								"audit-policy-file":         "/etc/kubernetes/pki/audit-policy.yaml",
-								"audit-log-path":            "-",
-								"audit-webhook-config-file": "/etc/kubernetes/pki/audit-sink.yaml",
-								"v":                         "99",
-							},
-						},
-					},
-					ControllerManager: kubeadmv1beta1.ControlPlaneComponent{
-						ExtraArgs: map[string]string{
-							"cloud-provider": "external",
-						},
-					},
-				},
-				JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-					NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-						KubeletExtraArgs: map[string]string{
-							"cloud-provider": "external",
-						},
-					},
-				},
-				PreKubeadmCommands: []string{
-					"mkdir -p /etc/kubernetes/pki",
-					`cat <<EOF > /etc/kubernetes/pki/audit-policy.yaml
-apiVersion: audit.k8s.io/v1
-kind: Policy
-rules:
-- level: RequestResponse
-EOF`,
-					`cat <<EOF > /etc/kubernetes/pki/audit-sink.yaml
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: http://10.96.96.96:9900/events
-  name: auditsink-cluster
-contexts:
-- context:
-    cluster: auditsink-cluster
-    user: ""
-  name: auditsink-context
-current-context: auditsink-context
-users: []
-preferences: {}
-EOF`,
-					"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
-					"swapoff -a",
-					"mount -a",
-					"apt-get -y update",
-					"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
-					"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
-					"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
-					"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
-					"apt-key fingerprint 0EBFCD88",
-					"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
-					"apt-get update -y",
-					"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id",
-					"systemctl daemon-reload",
-					"systemctl enable docker",
-					"systemctl start docker",
-					"chgrp users /var/run/docker.sock",
-					"ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo",
-				},
-				PostKubeadmCommands: []string{
-					`cat <<EOF >> /etc/network/interfaces
-auto lo:0
-iface lo:0 inet static
-  address {{ .controlPlaneEndpoint }}
-  netmask 255.255.255.255
-EOF
-`,
-					"systemctl restart networking",
-					"mkdir -p /root/.kube",
-					"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
-					"export KUBECONFIG=/root/.kube/config",
-					"kubectl taint node --all node-role.kubernetes.io/master-",
-					"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\"}'",
-					"kubectl taint node --all node-role.kubernetes.io/master-",
-					"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml",
-					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
-					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
-					"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
-					"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
-					"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
-					"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
-					`(
-          helm repo add nginx-ingress https://kubernetes.github.io/ingress-nginx;
-          kubectl create ns nginx-ingress;
-          helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx --set controller.service.externalTrafficPolicy=Local --version 2.16.0;
-          kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
-        )
-`,
-					"kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e \"s/strictARP: false/strictARP: true/\" | kubectl apply -f - -n kube-system",
-					`cat <<EOF > /root/metallb-system-config.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-      - name: default
-        protocol: layer2
-        addresses:
-          - {{ .controlPlaneEndpoint }}/32
-EOF`,
-					`(
-          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml;
-          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
-          kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)";
-          kubectl apply -f /root/metallb-system-config.yaml
-        )
-`,
-					`(
-          set -x
-          cd /root;
-          git clone https://github.com/cncf/apisnoop;
-          cd apisnoop;
-          kubectl create ns apisnoop;
-          helm install snoopdb -n apisnoop charts/snoopdb;
-          helm install auditlogger -n apisnoop charts/auditlogger
-        )
-`,
-					`(
-          set -x;
-          cd /root;
-          git clone https://github.com/humacs/humacs;
-          cd humacs;
-          kubectl create ns {{ $.Name }}
-          helm install "{{ $.Name }}" -n "{{ $.Name }}" \
-            --set image.repository=registry.gitlab.com/humacs/humacs/ii \
-            --set image.tag=2020.09.09 \
-            --set options.hostDockerSocket=true \
-            --set options.hostTmp=true \
-            --set options.timezone="{{ $.Setup.Timezone }}" \
-            --set options.gitName="{{ $.Setup.Fullname }}" \
-            --set options.gitEmail="{{ $.Setup.Email }}" \
-            --set options.preinitScript='(
-              for repo in $(find ~ -type d -name ".git"); do
-                if [ -x $repo/../.sharingio/init ]; then
-                  $repo/../.sharingio/init
-                fi
-              done
-              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharingio && ./.sharingio/init || true
-)' \
-            {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
-            chart/humacs
-        )
-`,
-					`(
-          mkdir -p /etc/sudoers.d
-          echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
-          cp -a /root/.ssh /etc/skel/.ssh
-          useradd -m -G users,sudo -u 1000 -s /bin/bash ii
-        )
-`,
-					`(
-          sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
-          {{ range $.Setup.Guests }}
-          sudo -iu ii ssh-import-id gh:{{ . }}
-          {{ end }}
-)`,
-				},
-			},
-		},
-	},
-	Cluster: clusterAPIv1alpha3.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
-			Labels: map[string]string{"io.sharing.pair": "instance"},
-		},
-		Spec: clusterAPIv1alpha3.ClusterSpec{
-			ClusterNetwork: &clusterAPIv1alpha3.ClusterNetwork{
-				Pods: &clusterAPIv1alpha3.NetworkRanges{
-					CIDRBlocks: []string{
-						"10.244.0.0/16",
-					},
-				},
-				Services: &clusterAPIv1alpha3.NetworkRanges{
-					CIDRBlocks: []string{
-						"10.96.0.0/12",
-					},
-				},
-			},
-			InfrastructureRef: &corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-				Kind:       "PacketCluster",
-			},
-			ControlPlaneRef: &corev1.ObjectReference{
-				APIVersion: "controlplane.cluster.x-k8s.io/v1alpha3",
-				Kind:       "KubeadmControlPlane",
-			},
-		},
-	},
-	MachineDeploymentWorker: clusterAPIv1alpha3.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "",
-			Labels: map[string]string{
-				"pool":            "worker-a",
-				"io.sharing.pair": "instance",
-			},
-		},
-		Spec: clusterAPIv1alpha3.MachineDeploymentSpec{
-			Replicas:    Int32ToInt32Pointer(0),
-			ClusterName: "",
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"pool": "worker-a",
-				},
-			},
-			Template: clusterAPIv1alpha3.MachineTemplateSpec{
-				ObjectMeta: clusterAPIv1alpha3.ObjectMeta{
-					Name: "",
-					Labels: map[string]string{
-						"io.sharing.pair": "instance",
-						"pool":            "worker-a",
-					},
-				},
-				Spec: clusterAPIv1alpha3.MachineSpec{
-					Version:     &defaultKubernetesVersion,
-					ClusterName: "",
-					Bootstrap: clusterAPIv1alpha3.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
-							Kind:       "KubeadmConfigTemplate",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-						Kind:       "PacketMachineTemplate",
-					},
-				},
-			},
-		},
-	},
-	KubeadmConfigTemplateWorker: cabpkv1.KubeadmConfigTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
-			Labels: map[string]string{"io.sharing.pair": "instance"},
-		},
-		Spec: cabpkv1.KubeadmConfigTemplateSpec{
-			Template: cabpkv1.KubeadmConfigTemplateResource{
-				Spec: cabpkv1.KubeadmConfigSpec{
-					PreKubeadmCommands: []string{
-						"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
-						"swapoff -a",
-						"mount -a",
-						"apt-get -y update",
-						"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
-						"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
-						"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
-						"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
-						"apt-key fingerprint 0EBFCD88",
-						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
-						"apt-get update -y",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl",
-						"systemctl daemon-reload",
-						"systemctl enable docker",
-						"systemctl start docker",
-						"chgrp users /var/run/docker.sock",
-					},
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
-							KubeletExtraArgs: map[string]string{
-								"cloud-provider": "external",
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-	PacketMachineTemplate: clusterAPIPacketv1alpha3.PacketMachineTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
-			Labels: map[string]string{"io.sharing.pair": "instance"},
-		},
-		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
-			Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
-				Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
-					OS:           defaultMachineOS,
-					BillingCycle: "hourly",
-					// 1 = machine type
-					MachineType: "",
-				},
-			},
-		},
-	},
-	PacketCluster: clusterAPIPacketv1alpha3.PacketCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
-			Labels: map[string]string{"io.sharing.pair": "instance"},
-		},
-		Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{},
-	},
-	PacketMachineTemplateWorker: clusterAPIPacketv1alpha3.PacketMachineTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "",
-			Labels: map[string]string{"io.sharing.pair": "instance"},
-		},
-		Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
-			Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
-				Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
-					OS:           defaultMachineOS,
-					BillingCycle: "hourly",
-					// 1 = machine type
-					MachineType: "",
-				},
-			},
-		},
-	},
-}
-
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
@@ -859,10 +520,352 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 }
 
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
+	defaultKubernetesClusterConfig := KubernetesCluster{
+		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "",
+				Labels: map[string]string{"io.sharing.pair": "instance"},
+			},
+			Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
+				Version:  defaultKubernetesVersion,
+				Replicas: Int32ToInt32Pointer(1),
+				InfrastructureTemplate: corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "PacketMachineTemplate",
+				},
+				KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+					InitConfiguration: &kubeadmv1beta1.InitConfiguration{
+						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+							KubeletExtraArgs: map[string]string{
+								"cloud-provider": "external",
+							},
+						},
+					},
+					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
+						APIServer: kubeadmv1beta1.APIServer{
+							ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+								ExtraArgs: map[string]string{
+									"cloud-provider":            "external",
+									"audit-policy-file":         "/etc/kubernetes/pki/audit-policy.yaml",
+									"audit-log-path":            "-",
+									"audit-webhook-config-file": "/etc/kubernetes/pki/audit-sink.yaml",
+									"v":                         "99",
+								},
+							},
+						},
+						ControllerManager: kubeadmv1beta1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{
+								"cloud-provider": "external",
+							},
+						},
+					},
+					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+							KubeletExtraArgs: map[string]string{
+								"cloud-provider": "external",
+							},
+						},
+					},
+					PreKubeadmCommands: []string{
+						"mkdir -p /etc/kubernetes/pki",
+						`cat <<EOF > /etc/kubernetes/pki/audit-policy.yaml
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+- level: RequestResponse
+EOF`,
+						`cat <<EOF > /etc/kubernetes/pki/audit-sink.yaml
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: http://10.96.96.96:9900/events
+  name: auditsink-cluster
+contexts:
+- context:
+    cluster: auditsink-cluster
+    user: ""
+  name: auditsink-context
+current-context: auditsink-context
+users: []
+preferences: {}
+EOF`,
+						"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
+						"swapoff -a",
+						"mount -a",
+						"apt-get -y update",
+						"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
+						"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
+						"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
+						"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+						"apt-key fingerprint 0EBFCD88",
+						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
+						"apt-get update -y",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id",
+						"systemctl daemon-reload",
+						"systemctl enable docker",
+						"systemctl start docker",
+						"chgrp users /var/run/docker.sock",
+						"ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo",
+					},
+					PostKubeadmCommands: []string{
+						`cat <<EOF >> /etc/network/interfaces
+auto lo:0
+iface lo:0 inet static
+  address {{ .controlPlaneEndpoint }}
+  netmask 255.255.255.255
+EOF
+`,
+						"systemctl restart networking",
+						"mkdir -p /root/.kube",
+						"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
+						"export KUBECONFIG=/root/.kube/config",
+						"kubectl taint node --all node-role.kubernetes.io/master-",
+						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\"}'",
+						"kubectl taint node --all node-role.kubernetes.io/master-",
+						"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml",
+						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
+						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
+						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
+						"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
+						"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
+						"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
+						`(
+          helm repo add nginx-ingress https://kubernetes.github.io/ingress-nginx;
+          kubectl create ns nginx-ingress;
+          helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx --set controller.service.externalTrafficPolicy=Local --version 2.16.0;
+          kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+        )
+`,
+						"kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e \"s/strictARP: false/strictARP: true/\" | kubectl apply -f - -n kube-system",
+						`cat <<EOF > /root/metallb-system-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+      - name: default
+        protocol: layer2
+        addresses:
+          - {{ .controlPlaneEndpoint }}/32
+EOF`,
+						`(
+          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml;
+          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
+          kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)";
+          kubectl apply -f /root/metallb-system-config.yaml
+        )
+`,
+						`(
+          set -x
+          cd /root;
+          git clone https://github.com/cncf/apisnoop;
+          cd apisnoop;
+          kubectl create ns apisnoop;
+          helm install snoopdb -n apisnoop charts/snoopdb;
+          helm install auditlogger -n apisnoop charts/auditlogger
+        )
+`,
+						`(
+          set -x;
+          cd /root;
+          git clone https://github.com/humacs/humacs;
+          cd humacs;
+          kubectl create ns {{ $.Name }}
+          # zach and caleb are very cool
+          helm install "{{ $.Name }}" -n "{{ $.Name }}" \
+            --set image.repository=registry.gitlab.com/humacs/humacs/ii \
+            --set image.tag=2020.09.09 \
+            --set options.hostDockerSocket=true \
+            --set options.hostTmp=true \
+            --set options.timezone="{{ $.Setup.Timezone }}" \
+            --set options.gitName="{{ $.Setup.Fullname }}" \
+            --set options.gitEmail="{{ $.Setup.Email }}" \
+            --set options.preinitScript='(
+              for repo in $(find ~ -type d -name ".git"); do
+                if [ -x $repo/../.sharingio/init ]; then
+                  $repo/../.sharingio/init
+                fi
+              done
+              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharingio && ./.sharingio/init || true
+)' \
+            {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
+            chart/humacs
+        )
+`,
+						`(
+          mkdir -p /etc/sudoers.d
+          echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
+          cp -a /root/.ssh /etc/skel/.ssh
+          useradd -m -G users,sudo -u 1000 -s /bin/bash ii
+        )
+`,
+						`(
+          sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
+          {{ range $.Setup.Guests }}
+          sudo -iu ii ssh-import-id gh:{{ . }}
+          {{ end }}
+)`,
+					},
+				},
+			},
+		},
+		Cluster: clusterAPIv1alpha3.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "",
+				Labels: map[string]string{"io.sharing.pair": "instance"},
+			},
+			Spec: clusterAPIv1alpha3.ClusterSpec{
+				ClusterNetwork: &clusterAPIv1alpha3.ClusterNetwork{
+					Pods: &clusterAPIv1alpha3.NetworkRanges{
+						CIDRBlocks: []string{
+							"10.244.0.0/16",
+						},
+					},
+					Services: &clusterAPIv1alpha3.NetworkRanges{
+						CIDRBlocks: []string{
+							"10.96.0.0/12",
+						},
+					},
+				},
+				InfrastructureRef: &corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+					Kind:       "PacketCluster",
+				},
+				ControlPlaneRef: &corev1.ObjectReference{
+					APIVersion: "controlplane.cluster.x-k8s.io/v1alpha3",
+					Kind:       "KubeadmControlPlane",
+				},
+			},
+		},
+		MachineDeploymentWorker: clusterAPIv1alpha3.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "",
+				Labels: map[string]string{
+					"pool":            "worker-a",
+					"io.sharing.pair": "instance",
+				},
+			},
+			Spec: clusterAPIv1alpha3.MachineDeploymentSpec{
+				Replicas:    Int32ToInt32Pointer(0),
+				ClusterName: "",
+				Selector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"pool": "worker-a",
+					},
+				},
+				Template: clusterAPIv1alpha3.MachineTemplateSpec{
+					ObjectMeta: clusterAPIv1alpha3.ObjectMeta{
+						Name: "",
+						Labels: map[string]string{
+							"io.sharing.pair": "instance",
+							"pool":            "worker-a",
+						},
+					},
+					Spec: clusterAPIv1alpha3.MachineSpec{
+						Version:     &defaultKubernetesVersion,
+						ClusterName: "",
+						Bootstrap: clusterAPIv1alpha3.Bootstrap{
+							ConfigRef: &corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+								Kind:       "KubeadmConfigTemplate",
+							},
+						},
+						InfrastructureRef: corev1.ObjectReference{
+							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+							Kind:       "PacketMachineTemplate",
+						},
+					},
+				},
+			},
+		},
+		KubeadmConfigTemplateWorker: cabpkv1.KubeadmConfigTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "",
+				Labels: map[string]string{"io.sharing.pair": "instance"},
+			},
+			Spec: cabpkv1.KubeadmConfigTemplateSpec{
+				Template: cabpkv1.KubeadmConfigTemplateResource{
+					Spec: cabpkv1.KubeadmConfigSpec{
+						PreKubeadmCommands: []string{
+							"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
+							"swapoff -a",
+							"mount -a",
+							"apt-get -y update",
+							"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
+							"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
+							"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
+							"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+							"apt-key fingerprint 0EBFCD88",
+							"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
+							"apt-get update -y",
+							"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl",
+							"systemctl daemon-reload",
+							"systemctl enable docker",
+							"systemctl start docker",
+							"chgrp users /var/run/docker.sock",
+						},
+						JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
+							NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+								KubeletExtraArgs: map[string]string{
+									"cloud-provider": "external",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		PacketMachineTemplate: clusterAPIPacketv1alpha3.PacketMachineTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "",
+				Labels: map[string]string{"io.sharing.pair": "instance"},
+			},
+			Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
+				Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
+					Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
+						OS:           defaultMachineOS,
+						BillingCycle: "hourly",
+						// 1 = machine type
+						MachineType: "",
+					},
+				},
+			},
+		},
+		PacketCluster: clusterAPIPacketv1alpha3.PacketCluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "",
+				Labels: map[string]string{"io.sharing.pair": "instance"},
+			},
+			Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{},
+		},
+		PacketMachineTemplateWorker: clusterAPIPacketv1alpha3.PacketMachineTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "",
+				Labels: map[string]string{"io.sharing.pair": "instance"},
+			},
+			Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
+				Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
+					Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
+						OS:           defaultMachineOS,
+						BillingCycle: "hourly",
+						// 1 = machine type
+						MachineType: "",
+					},
+				},
+			},
+		},
+	}
+
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
 
+	fmt.Printf("\n\ndefault: %#v\n\n", defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	newInstance = defaultKubernetesClusterConfig
+	fmt.Printf("\n\nnewInstance: %#v\n\n", newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations = map[string]string{}
@@ -876,7 +879,8 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	tmpl, err := template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%s", instance.Name, time.Now().Unix())).Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
+
+	tmpl, err := template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
@@ -894,7 +898,8 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
 
-	tmpl, err = template.New(fmt.Sprint("humacs-helm-install-%s-%s", instance.Name, time.Now().Unix())).Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
@@ -907,7 +912,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedBuffer.String()
 
-	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%s", instance.Name, time.Now().Unix())).Parse(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
+	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
@@ -919,6 +924,9 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
+
+	templatedBuffer = nil
+	tmpl = nil
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace

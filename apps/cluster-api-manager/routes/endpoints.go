@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/sharingio/pair/src/cluster-api-manager/types"
+	"github.com/sharingio/pair/apps/cluster-api-manager/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"

@@ -1,0 +1,15 @@
+#+TITLE: TODO
+
+* DONE Add Multiple Guests as Invitees
+  CLOSED: [2020-10-19 Mon 15:35]
+* DONE Add multiple Repo's
+  CLOSED: [2020-10-19 Mon 15:35]
+* DONE Show user's name and email and pass it to post instance
+  CLOSED: [2020-10-19 Mon 15:35]
+* DONE Confirm user is part of sharing.io group
+  CLOSED: [2020-10-19 Mon 15:35]
+* TODO Allow deletion of pod
+* TODO update status of user_detail when logging in a second time
+  we don't wanna add a new record, but we do want to update the existing email, fullname, sharingio_member etc.
+  so make the oauth an if block...if doesn't exist, add them, if does exist...update.
+  or even make it a part of the db function, that adds or updates appropriately.
