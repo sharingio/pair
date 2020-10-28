@@ -62,6 +62,8 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 var defaultMachineOS = "ubuntu_20_04"
 var defaultKubernetesVersion = "1.19.0"
+var defaultHumacsVersion = "2020.10.13"
+
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
@@ -668,7 +670,7 @@ EOF`,
           # zach and caleb are very cool
           helm install "{{ $.Name }}" -n "{{ $.Name }}" \
             --set image.repository=registry.gitlab.com/humacs/humacs/ii \
-            --set image.tag=2020.09.09 \
+            --set image.tag="{{ $.Setup.HumacsVersion }}" \
             --set options.hostDockerSocket=true \
             --set options.hostTmp=true \
             --set options.timezone="{{ $.Setup.Timezone }}" \
@@ -850,9 +852,9 @@ EOF`,
 			},
 		},
 	}
-
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
+	instance.Setup.HumacsVersion = defaultHumacsVersion
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace

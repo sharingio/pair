@@ -30,10 +30,11 @@ type Endpoints []struct {
 }
 
 type SetupSpec struct {
-	User     string   `json:"user"`
-	Guests   []string `json:"guests"`
-	Repos    []string `json:"repos"`
-	Timezone string   `json:"timezone"`
-	Fullname string   `json:"fullname"`
-	Email    string   `json:"email"`
+	User          string   `json:"user"`
+	Guests        []string `json:"guests"`
+	Repos         []string `json:"repos"`
+	Timezone      string   `json:"timezone"`
+	Fullname      string   `json:"fullname"`
+	Email         string   `json:"email"`
+	HumacsVersion string   `json:"-"`
 }
