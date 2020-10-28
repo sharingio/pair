@@ -42,6 +42,7 @@ func handleWebserver() {
 
 	router.HandleFunc(apiEndpointPrefix+"/{.*}", routes.APIUnknownEndpoint)
 	router.HandleFunc(apiEndpointPrefix, routes.APIroot)
+	router.HandleFunc("/", routes.APIroot)
 	router.Use(common.Logging)
 
 	c := cors.New(cors.Options{
