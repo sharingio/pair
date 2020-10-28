@@ -902,7 +902,7 @@ EOF`,
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = templatedBuffer.String()
 
-	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
+	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[21])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
@@ -913,7 +913,7 @@ EOF`,
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[21] = templatedBuffer.String()
 
 	templatedBuffer = nil
 	tmpl = nil
