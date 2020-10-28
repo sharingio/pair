@@ -687,7 +687,8 @@ EOF`,
             --set options.preinitScript='(
               for repo in $(find ~ -type d -name ".git"); do
                 if [ -x $repo/../.sharingio/init ]; then
-                  $repo/../.sharingio/init
+                  cd $repo/..
+                  ./.sharingio/init
                 fi
               done
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharingio && ./.sharingio/init || true
