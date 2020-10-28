@@ -13,6 +13,9 @@ metadata:
     {{- include "sharingio-pair.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
   annotations:
+    {{- if .Values.ingress.certmanager.enabled }}
+    cert-manager.io/cluster-issuer: {{ include "sharingio-pair.fullname" . }}-letsencrypt
+    {{- end }}
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:

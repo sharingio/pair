@@ -1,0 +1,18 @@
+{{- if .Values.ingress.enabled }}
+{{- if .Values.ingress.certmanager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-letsencrypt
+  spec:
+  secretName: {{ include "sharingio-pair.fullname" . }}-letsencrypt
+  issuerRef:
+    name: {{ include "sharingio-pair.fullname" . }}-letsencrypt
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    {{- range .Values.ingress.hosts }}
+    - {{ .host | quote }}
+    {{- end }}
+{{- end }}
+{{- end }}
