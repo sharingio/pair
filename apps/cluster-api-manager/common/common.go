@@ -21,7 +21,10 @@ import (
 )
 
 var (
-	AppVersion = "0.0.1"
+	AppBuildVersion = "0.0.0"
+	AppBuildHash    = "???"
+	AppBuildDate    = "???"
+	AppBuildMode    = "development"
 )
 
 func GetEnvOrDefault(envName string, defaultValue string) (output string) {
@@ -56,7 +59,7 @@ func JSONResponse(r *http.Request, w http.ResponseWriter, code int, output types
 	// simpilify sending a JSON response
 	output.Metadata.URL = r.RequestURI
 	output.Metadata.Timestamp = time.Now().Unix()
-	output.Metadata.Version = AppVersion
+	output.Metadata.Version = AppBuildVersion
 	response, _ := json.Marshal(output)
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")

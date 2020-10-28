@@ -64,5 +64,6 @@ func handleWebserver() {
 
 func main() {
 	// initialise the app
+	log.Printf("launching cluster-api-manager (%v, %v, %v, %v)\n", common.AppBuildVersion, common.AppBuildHash, common.AppBuildDate, common.AppBuildMode)
 	handleWebserver()
 }
