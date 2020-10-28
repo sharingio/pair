@@ -15,6 +15,7 @@ Set env to pass into Helm set commands
   (setenv "SHARINGIO_PAIR_GITHUB_OAUTH_ID" (read-from-minibuffer "SHARINGIO_PAIR_GITHUB_OAUTH_ID: "))
   (setenv "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET" (read-from-minibuffer "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET: "))
   (setenv "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID" (read-from-minibuffer "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID: "))
+  (setenv "SHARINGIO_PAIR_HOST" (read-from-minibuffer "SHARINGIO_PAIR_HOST: "))
 #+end_src
 
 #+name: get-github-oauth-id
@@ -30,6 +31,11 @@ Set env to pass into Helm set commands
 #+name: get-equinixmetal-projectid
 #+begin_src elisp :results silent
   (getenv "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID")
+#+end_src
+
+#+name: get-host
+#+begin_src elisp :results silent
+  (getenv "SHARINGIO_PAIR_HOST")
 #+end_src
 
 ** Set up Postgres
@@ -54,33 +60,56 @@ Notes:
 - this Postgres instance is not HA
 
 * Helm
+** Lint
+#+begin_src bash :dir ../.././ :noweb yes :prologue "(" :epilogue ") 2>&1\n:"
+          export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
+          export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
+          export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
+  helm lint \
+    --set databaseURL=postgres://pair:pair@postgres.sharingio-pair/pair?sslmode=disable \
+    --set sessionSecret=pairpairpairpair \
+    --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
+    --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
+    --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
+    --set ingress.enabled=true \
+    --set ingress.hosts[0].host=pair.caleb.sharing.io \
+    --set ingress.hosts[0].paths[0]='/' \
+    charts/sharingio-pair
+#+end_src
+
 ** Install
 #+begin_src bash :dir ../.././ :results silent :noweb yes
           export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
           export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
           export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
+          export SHARINGIO_PAIR_HOST=<<get-host()>>
   helm install sharingio-pair -n sharingio-pair \
-    --set databaseURL=postgres://pair:pair@postgres.pair/pair?sslmode=disable \
+    --set databaseURL=postgres://pair:pair@postgres.sharingio-pair/pair?sslmode=disable \
     --set sessionSecret=pairpairpairpair \
     --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
     --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
     --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
-    --debug \
-    --dry-run \
+    --set ingress.enabled=true \
+    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
+    --set ingress.hosts[0].paths[0]='/' \
     charts/sharingio-pair
 #+end_src
 
 ** Upgrade
-#+begin_src bash :dir ../.././ :results silent
+#+begin_src bash :dir ../.././ :results silent :noweb yes
           export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
           export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
           export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
+          export SHARINGIO_PAIR_HOST=<<get-host()>>
   helm upgrade sharingio-pair -n sharingio-pair \
-    --set databaseURL=postgres://pair:pair@postgres.pair/pair?sslmode=disable \
+    --set databaseURL=postgres://pair:pair@postgres.sharingio-pair/pair?sslmode=disable \
     --set sessionSecret=pairpairpairpair \
     --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
     --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
     --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
+    --set ingress.enabled=true \
+    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
+    --set ingress.hosts[0].paths[0]='/' \
     charts/sharingio-pair
 #+end_src
 
