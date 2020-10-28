@@ -55,12 +55,10 @@ spec:
               containerPort: {{ .Values.clusterapimanager.service.port }}
               protocol: TCP
           livenessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
           readinessProbe:
-            httpGet:
-              path: /
+            tcpSocket:
               port: http
           resources:
             {{- toYaml .Values.clusterapimanager.resources | nindent 12 }}
