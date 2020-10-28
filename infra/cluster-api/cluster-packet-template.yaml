@@ -43,7 +43,7 @@ spec:
     - kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml
     - kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/node.yaml
     - kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml
-    - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml
+    - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.3/cert-manager.yaml
     - kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16"
     - curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm
     - |
@@ -77,6 +77,7 @@ spec:
           kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)";
           kubectl apply -f /root/metallb-system-config.yaml
         )
+    - helm install -n kube-system metrics-server --version 2.11.2 --set \{--logtostderr,--kubelet-preferred-address-types=InternalIP,--kubelet-insecure-tls\} stable/metrics-server
     - |
         (
           set -x;
@@ -84,7 +85,7 @@ spec:
           git clone https://github.com/humacs/humacs;
           cd humacs;
           kubectl create ns ${CLUSTER_NAME}
-          helm install "${CLUSTER_NAME}" -n "${CLUSTER_NAME}" -f chart/humacs/values/apisnoop.yaml -f chart/humacs/values/sharingio.yaml --set options.timezone="${HUMACS_TZ}" --set options.gitName="${HUMACS_GIT_NAME}" --set options.gitEmail="${HUMACS_GIT_EMAIL}" --set options.profile="${HUMACS_PROFILE}" --set image.tag="${HUMACS_IMAGE_VERSION}" chart/humacs
+          helm install "${CLUSTER_NAME}" -n "${CLUSTER_NAME}" -f chart/humacs/values/apisnoop.yaml -f chart/humacs/values/sharingio.yaml --set options.repos=\{https://github.com/sharingio/pair\} --set options.workingFile="/home/ii/pair/org/deployment/deployment.org" --set options.timezone="${HUMACS_TZ}" --set options.gitName="${HUMACS_GIT_NAME}" --set options.gitEmail="${HUMACS_GIT_EMAIL}" --set options.profile="${HUMACS_PROFILE}" chart/humacs
         )
     - |
         (
@@ -123,8 +124,6 @@ spec:
       OS: "${NODE_OS}"
       billingCycle: hourly
       machineType: "${WORKER_NODE_TYPE}"
-      sshKeys:
-      - "${SSH_KEY}"
       tags: []
 ---
 apiVersion: cluster.x-k8s.io/v1alpha3
@@ -196,8 +195,6 @@ spec:
       OS: "${NODE_OS}"
       billingCycle: hourly
       machineType: "${WORKER_NODE_TYPE}"
-      sshKeys:
-      - "${SSH_KEY}"
       tags: []
 ---
 kind: KubeadmConfigTemplate

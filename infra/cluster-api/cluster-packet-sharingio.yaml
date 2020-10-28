@@ -1,0 +1,235 @@
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+metadata:
+  name: sharingio-control-plane
+  namespace: sharingio
+spec:
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: PacketMachineTemplate
+    name: sharingio-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: external
+      controllerManager:
+        extraArgs:
+          cloud-provider: external
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cloud-provider: external
+    postKubeadmCommands:
+    - |
+      cat <<EOF >> /etc/network/interfaces
+      auto lo:0
+      iface lo:0 inet static
+        address {{ .controlPlaneEndpoint }}
+        netmask 255.255.255.255
+      EOF
+    - systemctl restart networking
+    - mkdir -p /root/.kube;
+    - cp -i /etc/kubernetes/admin.conf /root/.kube/config
+    - export KUBECONFIG=/root/.kube/config
+    - 'kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json=''{"apiKey": "{{ .apiKey }}","projectID": "7a44b778-41d2-49fa-9c92-99148516c600", "eipTag": "cluster-api-provider-packet:cluster-id:sharingio"}'''
+    - kubectl taint node --all node-role.kubernetes.io/master-
+    - kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml
+    - kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml
+    - kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/node.yaml
+    - kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml
+    - kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.3/cert-manager.yaml
+    - kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16"
+    - curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm
+    - |
+      (
+        helm repo add nginx-ingress https://kubernetes.github.io/ingress-nginx;
+        kubectl create ns nginx-ingress;
+        helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx --set controller.service.externalTrafficPolicy=Local --version 2.16.0;
+        kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+      )
+    - |
+      kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e "s/strictARP: false/strictARP: true/" | kubectl apply -f - -n kube-system
+    - |
+      cat <<EOF > /root/metallb-system-config.yaml
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        namespace: metallb-system
+        name: config
+      data:
+        config: |
+          address-pools:
+            - name: default
+              protocol: layer2
+              addresses:
+                - {{ .controlPlaneEndpoint }}/32
+      EOF
+    - |
+      (
+        kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml;
+        kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
+        kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)";
+        kubectl apply -f /root/metallb-system-config.yaml
+      )
+    - helm install -n kube-system metrics-server --version 2.11.2 --set \{--logtostderr,--kubelet-preferred-address-types=InternalIP,--kubelet-insecure-tls\} stable/metrics-server
+    - |
+      (
+        set -x;
+        cd /root;
+        git clone https://github.com/humacs/humacs;
+        cd humacs;
+        kubectl create ns sharingio
+        helm install "sharingio" -n "sharingio" -f chart/humacs/values/apisnoop.yaml -f chart/humacs/values/sharingio.yaml --set options.repos=\{https://github.com/sharingio/pair\} --set options.workingFile="/home/ii/pair/org/deployment/deployment.org" --set options.timezone="Pacific/Auckland" --set options.gitName="Sharing IO" --set options.gitEmail="sharingio@ii.coop" --set options.profile="ii" chart/humacs
+      )
+    - |
+      (
+        mkdir -p /etc/sudoers.d
+        echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
+        cp -a /root/.ssh /etc/skel/.ssh
+        useradd -m -G users,sudo -u 1000 -s /bin/bash ii
+      )
+    - echo "Type [ENTER] [~] [.] when you see Reached target Cloud-init target"
+    preKubeadmCommands:
+    - sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
+    - swapoff -a
+    - mount -a
+    - apt-get -y update
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl kitty
+    - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+    - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+    - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    - apt-key fingerprint 0EBFCD88
+    - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+    - apt-get update -y
+    - apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl
+    - systemctl daemon-reload
+    - systemctl enable docker
+    - systemctl start docker
+    - chgrp users /var/run/docker.sock
+    - ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo
+  replicas: 1
+  version: v1.19.0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: PacketMachineTemplate
+metadata:
+  name: sharingio-control-plane
+  namespace: sharingio
+spec:
+  template:
+    spec:
+      OS: ubuntu_20_04
+      billingCycle: hourly
+      machineType: c1.small.x86
+      tags: []
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: sharingio
+  namespace: sharingio
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 10.244.0.0/16
+    services:
+      cidrBlocks:
+      - 10.96.0.0/12
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: KubeadmControlPlane
+    name: sharingio-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: PacketCluster
+    name: sharingio
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: PacketCluster
+metadata:
+  name: sharingio
+  namespace: sharingio
+spec:
+  facility: sjc1
+  projectID: 7a44b778-41d2-49fa-9c92-99148516c600
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: sharingio
+    pool: worker-a
+  name: sharingio-worker-a
+  namespace: sharingio
+spec:
+  clusterName: sharingio
+  replicas: 0
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: sharingio
+      pool: worker-a
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: sharingio
+        pool: worker-a
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+          name: sharingio-worker-a
+      clusterName: sharingio
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: PacketMachineTemplate
+        name: sharingio-worker-a
+      version: v1.19.0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: PacketMachineTemplate
+metadata:
+  name: sharingio-worker-a
+  namespace: sharingio
+spec:
+  template:
+    spec:
+      OS: ubuntu_20_04
+      billingCycle: hourly
+      machineType: c1.small.x86
+      tags: []
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+metadata:
+  name: sharingio-worker-a
+  namespace: sharingio
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cloud-provider: external
+      preKubeadmCommands:
+      - sed -ri '/\sswap\s/s/^#?/#/' /etc/fstab
+      - swapoff -a
+      - mount -a
+      - apt-get -y update
+      - DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
+      - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+      - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+      - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+      - apt-key fingerprint 0EBFCD88
+      - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      - apt-get update -y
+      - apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl
+      - systemctl daemon-reload
+      - systemctl enable docker
+      - systemctl start docker
