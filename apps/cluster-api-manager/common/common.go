@@ -17,7 +17,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/sharingio/pair/apps/cluster-api-manager/types"
+	"github.com/sharingio/pair/types"
 )
 
 var (

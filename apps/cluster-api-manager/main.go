@@ -7,9 +7,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
-	"github.com/sharingio/pair/apps/cluster-api-manager/common"
-	"github.com/sharingio/pair/apps/cluster-api-manager/kubernetes"
-	"github.com/sharingio/pair/apps/cluster-api-manager/routes"
+	"github.com/sharingio/pair/common"
+	"github.com/sharingio/pair/kubernetes"
+	"github.com/sharingio/pair/routes"
 )
 
 func handleWebserver() {

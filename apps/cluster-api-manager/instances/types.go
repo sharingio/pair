@@ -1,7 +1,7 @@
 package instances
 
 import (
-	"github.com/sharingio/pair/apps/cluster-api-manager/types"
+	"github.com/sharingio/pair/types"
 	corev1 "k8s.io/api/core/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"

@@ -13,9 +13,9 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/sharingio/pair/apps/cluster-api-manager/common"
-	"github.com/sharingio/pair/apps/cluster-api-manager/instances"
-	"github.com/sharingio/pair/apps/cluster-api-manager/types"
+	"github.com/sharingio/pair/common"
+	"github.com/sharingio/pair/instances"
+	"github.com/sharingio/pair/types"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"

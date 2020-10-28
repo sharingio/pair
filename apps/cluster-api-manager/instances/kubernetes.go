@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/sharingio/pair/apps/cluster-api-manager/common"
+	"github.com/sharingio/pair/common"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

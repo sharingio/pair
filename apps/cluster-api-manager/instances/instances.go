@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/sharingio/pair/apps/cluster-api-manager/common"
+	"github.com/sharingio/pair/common"
 	"k8s.io/client-go/dynamic"
 )
 
