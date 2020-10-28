@@ -660,16 +660,6 @@ EOF`,
         )
 `,
 						`(
-          set -x
-          cd /root;
-          git clone https://github.com/cncf/apisnoop;
-          cd apisnoop;
-          kubectl create ns apisnoop;
-          helm install snoopdb -n apisnoop charts/snoopdb;
-          helm install auditlogger -n apisnoop charts/auditlogger
-        )
-`,
-						`(
           set -x;
           cd /root;
           git clone https://github.com/humacs/humacs;
@@ -863,10 +853,7 @@ EOF`,
 
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
-
-	fmt.Printf("\n\ndefault: %#v\n\n", defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	newInstance = defaultKubernetesClusterConfig
-	fmt.Printf("\n\nnewInstance: %#v\n\n", newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations = map[string]string{}
@@ -900,7 +887,7 @@ EOF`,
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
 
 	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20])
+	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
@@ -911,7 +898,7 @@ EOF`,
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[20] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = templatedBuffer.String()
 
 	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 	if err != nil {
