@@ -1,6 +1,6 @@
 FROM golang:1.14.6-alpine3.11 AS api
 WORKDIR /app
-COPY apps/cluster-api-manager /app/apps/cluster-api-manager/
+COPY . /app/
 COPY go.* /app/
 ARG GOARCH=""
 RUN CGO_ENABLED=0 GOOS=linux GOARCH="$GOARCH" go build \
@@ -8,7 +8,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH="$GOARCH" go build \
   -installsuffix cgo \
   -ldflags "-extldflags '-static' -s -w" \
   -o cluster-api-manager \
-  apps/cluster-api-manager/main.go
+  main.go
 
 FROM alpine:3.11 as extras
 RUN apk add tzdata ca-certificates
