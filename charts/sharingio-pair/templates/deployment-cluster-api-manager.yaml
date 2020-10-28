@@ -6,6 +6,8 @@ metadata:
     app: clusterapimanager
     app.kubernetes.io/part-of: sharingio-pair
     {{- include "sharingio-pair.labels" . | nindent 4 }}
+  annotations:
+    checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
 spec:
 {{- if not .Values.clusterapimanager.autoscaling.enabled }}
   replicas: {{ .Values.clusterapimanager.replicaCount }}

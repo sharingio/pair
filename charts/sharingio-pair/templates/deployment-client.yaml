@@ -6,6 +6,8 @@ metadata:
     app: client
     app.kubernetes.io/part-of: sharingio-pair
     {{- include "sharingio-pair.labels" . | nindent 4 }}
+  annotations:
+    checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
 spec:
 {{- if not .Values.client.autoscaling.enabled }}
   replicas: {{ .Values.client.replicaCount }}
