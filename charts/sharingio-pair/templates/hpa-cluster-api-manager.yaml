@@ -1,0 +1,30 @@
+{{- if .Values.clusterapimanager.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}
+  labels:
+    app: clusterapimanager
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "sharingio-pair.fullname" . }}
+  minReplicas: {{ .Values.clusterapimanager.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.clusterapimanager.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.clusterapimanager.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.clusterapimanager.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.clusterapimanager.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.clusterapimanager.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
+{{- end }}

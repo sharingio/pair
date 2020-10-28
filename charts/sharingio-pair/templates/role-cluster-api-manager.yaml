@@ -1,0 +1,67 @@
+{{- if .Values.clusterapimanager.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-clusterapimanager
+  labels:
+    app: clusterapimanager
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - "controlplane.cluster.x-k8s.io"
+    resources:
+      - kubeadmcontrolplanes
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - "infrastructure.cluster.x-k8s.io"
+    resources:
+      - packetmachinetemplates
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - "infrastructure.cluster.x-k8s.io"
+    resources:
+      - packetclusters
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - "infrastructure.cluster.x-k8s.io"
+    resources:
+      - packetmachinetemplates
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - "cluster.x-k8s.io"
+    resources:
+      - clusters
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - "cluster.x-k8s.io"
+    resources:
+      - machinedeployments
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - "bootstrap.cluster.x-k8s.io"
+    resources:
+      - kubeadmconfigtemplates
+    verbs:
+      - get
+      - list
+      - delete
+{{- end }}

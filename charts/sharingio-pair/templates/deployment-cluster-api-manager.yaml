@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-clusterapimanager
+  labels:
+    app: clusterapimanager
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.clusterapimanager.autoscaling.enabled }}
+  replicas: {{ .Values.clusterapimanager.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: clusterapimanager
+      app.kubernetes.io/part-of: sharingio-pair
+      {{- include "sharingio-pair.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.clusterapimanager.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        app: clusterapimanager
+        app.kubernetes.io/part-of: sharingio-pair
+        {{- include "sharingio-pair.selectorLabels" . | nindent 8 }}
+    spec:
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      serviceAccountName: {{ include "sharingio-pair.fullname" . }}-clusterapimanager
+      securityContext:
+        {{- toYaml .Values.clusterapimanager.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-clusterapimanager
+          securityContext:
+            {{- toYaml .Values.clusterapimanager.securityContext | nindent 12 }}
+          image: "{{ .Values.clusterapimanager.image.repository }}:{{ .Values.clusterapimanager.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.clusterapimanager.image.pullPolicy }}
+          env:
+          {{- if .Values.equinixMetal.projectID }}
+            - name: APP_PACKET_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sharingio-pair.fullname" . }}
+                  key: equinixMetalProjectID
+          {{- end }}
+            - name: APP_PORT
+              value: {{ printf ":%v" .Values.clusterapimanager.service.port | toString | quote | default "8080" }}
+            {{- if .Values.clusterapimanager.extraEnv }}
+            {{- toYaml .Values.clusterapimanager.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.clusterapimanager.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.clusterapimanager.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

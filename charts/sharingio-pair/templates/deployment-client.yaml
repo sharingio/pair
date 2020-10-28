@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-client
+  labels:
+    app: client
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.client.autoscaling.enabled }}
+  replicas: {{ .Values.client.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: client
+      app.kubernetes.io/part-of: sharingio-pair
+      {{- include "sharingio-pair.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.client.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        app: client
+        app.kubernetes.io/part-of: sharingio-pair
+        {{- include "sharingio-pair.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.client.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-client
+          securityContext:
+            {{- toYaml .Values.client.securityContext | nindent 12 }}
+          image: "{{ .Values.client.image.repository }}:{{ .Values.client.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.client.image.pullPolicy }}
+          env:
+            {{- if .Values.databaseURL }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sharingio-pair.fullname" . }}
+                  key: databaseURL
+            {{- else if .Values.databaseURLRef }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.databaseURLRef.secretName }}
+                  key: {{ .Values.databaseURLRef.secretKey }}
+            {{- end }}
+            {{- if .Values.sessionSecret }}
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sharingio-pair.fullname" . }}
+                  key: sessionSecret
+            {{- end }}
+            {{- if .Values.githubOAuth.id }}
+            - name: OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sharingio-pair.fullname" . }}
+                  key: githubOAuthID
+            {{- end }}
+            {{- if .Values.githubOAuth.secret }}
+            - name: OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "sharingio-pair.fullname" . }}
+                  key: githubOAuthSecret
+            {{- end }}
+            - name: BACKEND_ADDRESS
+              value: "{{ include "sharingio-pair.fullname" . }}-clusterapimanager:{{ .Values.clusterapimanager.service.port }}"
+            - name: CANONICAL_URL
+              value: {{ (first .Values.ingress.hosts).host }}
+            - name: SUBDOMAIN
+              value: "%s.%s.{{ (first .Values.ingress.hosts).host }}"
+            {{- if .Values.client.extraEnv }}
+            {{- toYaml .Values.client.extraEnv | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.client.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.client.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-client
+  labels:
+    app: client
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.client.service.type }}
+  ports:
+    - port: {{ .Values.client.service.port }}
+      targetPort: {{ .Values.client.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app: client
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.selectorLabels" . | nindent 4 }}

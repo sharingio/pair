@@ -1,0 +1,90 @@
+#+TITLE: Deployment
+
+* Preparation
+
+** Lifecycle
+Create a namespace:
+#+begin_src bash :dir ../.././ :results silent
+  kubectl create ns sharingio-pair
+#+end_src
+
+** Values
+
+Set env to pass into Helm set commands
+#+begin_src elisp :results none
+  (setenv "SHARINGIO_PAIR_GITHUB_OAUTH_ID" (read-from-minibuffer "SHARINGIO_PAIR_GITHUB_OAUTH_ID: "))
+  (setenv "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET" (read-from-minibuffer "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET: "))
+  (setenv "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID" (read-from-minibuffer "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID: "))
+#+end_src
+
+#+name: get-github-oauth-id
+#+begin_src elisp :results silent
+  (getenv "SHARINGIO_PAIR_GITHUB_OAUTH_ID")
+#+end_src
+
+#+name: get-github-oauth-secret
+#+begin_src elisp :results silent
+  (getenv "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET")
+#+end_src
+
+#+name: get-equinixmetal-projectid
+#+begin_src elisp :results silent
+  (getenv "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID")
+#+end_src
+
+** Set up Postgres
+Create the database secrets:
+#+begin_src shell :results silent
+  kubectl -n sharingio-pair create secret generic postgres-configuration \
+    --from-literal=POSTGRES_DB=pair \
+    --from-literal=POSTGRES_USER=pair \
+    --from-literal=POSTGRES_PASSWORD=pair \
+    --from-literal=PGUSER=pair \
+    --from-literal=PGPASSWORD=pair \
+    --from-literal=PGDATABASE=pair
+#+end_src
+
+Create the Postgres instance:
+#+begin_src shell :results silent
+  kubectl -n sharingio-pair apply -f postgres.yaml
+#+end_src
+
+Notes:
+- this Postgres instance does not have persistence
+- this Postgres instance is not HA
+
+* Helm
+** Install
+#+begin_src bash :dir ../.././ :results silent :noweb yes
+          export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
+          export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
+          export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
+  helm install sharingio-pair -n sharingio-pair \
+    --set databaseURL=postgres://pair:pair@postgres.pair/pair?sslmode=disable \
+    --set sessionSecret=pairpairpairpair \
+    --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
+    --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
+    --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
+    --debug \
+    --dry-run \
+    charts/sharingio-pair
+#+end_src
+
+** Upgrade
+#+begin_src bash :dir ../.././ :results silent
+          export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
+          export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
+          export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
+  helm upgrade sharingio-pair -n sharingio-pair \
+    --set databaseURL=postgres://pair:pair@postgres.pair/pair?sslmode=disable \
+    --set sessionSecret=pairpairpairpair \
+    --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
+    --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
+    --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
+    charts/sharingio-pair
+#+end_src
+
+** Uninstall
+#+begin_src bash :dir ../.././ :results silent
+  helm uninstall sharingio-pair -n sharingio-pair
+#+end_src

@@ -1,0 +1,36 @@
+1. Get the application URL by running these commands:
+{{- if .Values.ingress.enabled }}
+{{- range $host := .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ . }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- if contains "NodePort" .Values.client.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "sharingio-pair.fullname" . }}-client)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo client: http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.client.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "sharingio-pair.fullname" . }}-client'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "sharingio-pair.fullname" . }}-client --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo client: http://$SERVICE_IP:{{ .Values.client.service.port }}
+{{- else if contains "ClusterIP" .Values.client.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "sharingio-pair.name" . }}-client,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:{{ .Values.client.service.port }} to use the client"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME {{ .Values.client.service.port }}:{{ .Values.client.service.port }}
+{{- end }}
+{{- if contains "NodePort" .Values.clusterapimanager.service.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "sharingio-pair.fullname" . }}-clusterapimanager)
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo clusterapimanager: http://$NODE_IP:$NODE_PORT
+{{- else if contains "LoadBalancer" .Values.clusterapimanager.service.type }}
+     NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "sharingio-pair.fullname" . }}-clusterapimanager'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "sharingio-pair.fullname" . }}-clusterapimanager --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo clusterapimanager: http://$SERVICE_IP:{{ .Values.service.port }}
+{{- else if contains "ClusterIP" .Values.clusterapimanager.service.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "sharingio-pair.name" . }}-clusterapimanager,app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  echo "Visit http://127.0.0.1:{{ .Values.clusterapimanager.service.port }} to use your application"
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME {{ .Values.clusterapimanager.service.port }}:{{ .Values.clusterapimanager.service.port }}
+{{- end }}
