@@ -19,7 +19,14 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.tls }}
+  {{- if .Values.ingress.certmanager }}
+  tls:
+    - hosts:
+    {{- range .Values.ingress.hosts }}
+        - {{ .host | quote }}
+    {{- end }}
+      secretName: {{ include "sharingio-pair.fullname" . }}-letsencrypt
+  {{- else if .Values.ingress.tls }}
   tls:
     {{- range .Values.ingress.tls }}
     - hosts:
