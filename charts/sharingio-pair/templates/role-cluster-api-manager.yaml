@@ -29,6 +29,12 @@ rules:
       - list
       - delete
   - apiGroups:
+      - "infrastructure.cluster.x-k8s.io"
+    resources:
+      - packetmachine
+    verbs:
+      - deletecollection
+  - apiGroups:
       - "cluster.x-k8s.io"
     resources:
       - clusters
@@ -47,4 +53,10 @@ rules:
       - get
       - list
       - delete
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
 {{- end }}
