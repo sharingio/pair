@@ -13,6 +13,7 @@ rules:
     resources:
       - kubeadmcontrolplanes
     verbs:
+      - create
       - get
       - list
       - delete
@@ -20,23 +21,10 @@ rules:
       - "infrastructure.cluster.x-k8s.io"
     resources:
       - packetmachinetemplates
-    verbs:
-      - get
-      - list
-      - delete
-  - apiGroups:
-      - "infrastructure.cluster.x-k8s.io"
-    resources:
       - packetclusters
-    verbs:
-      - get
-      - list
-      - delete
-  - apiGroups:
-      - "infrastructure.cluster.x-k8s.io"
-    resources:
       - packetmachinetemplates
     verbs:
+      - create
       - get
       - list
       - delete
@@ -44,15 +32,9 @@ rules:
       - "cluster.x-k8s.io"
     resources:
       - clusters
-    verbs:
-      - get
-      - list
-      - delete
-  - apiGroups:
-      - "cluster.x-k8s.io"
-    resources:
       - machinedeployments
     verbs:
+      - create
       - get
       - list
       - delete
@@ -61,6 +43,7 @@ rules:
     resources:
       - kubeadmconfigtemplates
     verbs:
+      - create
       - get
       - list
       - delete

@@ -49,6 +49,8 @@ spec:
           {{- end }}
             - name: APP_PORT
               value: {{ printf ":%v" .Values.clusterapimanager.service.port | toString | quote | default "8080" }}
+            - name: APP_TARGET_NAMESPACE
+              value: {{ .Values.targetNamespace | default .Release.Namespace }}
             {{- if .Values.clusterapimanager.extraEnv }}
             {{- toYaml .Values.clusterapimanager.extraEnv | nindent 12 }}
             {{- end }}

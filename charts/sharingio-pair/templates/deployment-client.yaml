@@ -76,7 +76,7 @@ spec:
                   key: githubOAuthSecret
             {{- end }}
             - name: BACKEND_ADDRESS
-              value: "{{ include "sharingio-pair.fullname" . }}-clusterapimanager:{{ .Values.clusterapimanager.service.port }}"
+              value: "{{ include "sharingio-pair.fullname" . }}-clusterapimanager.{{ .Release.Namespace }}:{{ .Values.clusterapimanager.service.port }}"
             - name: CANONICAL_URL
               value: {{ (first .Values.ingress.hosts).host }}
             - name: SUBDOMAIN
