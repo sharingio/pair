@@ -4,7 +4,10 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ include "sharingio-pair.fullname" . }}-letsencrypt
-  spec:
+  labels:
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+spec:
   secretName: {{ include "sharingio-pair.fullname" . }}-letsencrypt
   issuerRef:
     name: {{ include "sharingio-pair.fullname" . }}-letsencrypt
