@@ -1,0 +1,97 @@
+stages:
+  - lint
+  - build
+  - zip
+
+variables:
+  APP_BUILD_VERSION: 0.0.0
+  APP_BUILD_MODE: development
+
+.kaniko-build-pre-script: &kaniko-build-pre-script |
+  set -x
+  mkdir -p /kaniko/.docker
+  echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+
+.kaniko-build-taggable-name: &kaniko-build-taggable-name |
+  set -x
+  COMMIT_HASH="???"
+  BUILD_DATE="$(date -u +%Y-%m-%d_%I:%M:%S%p)"
+  if [[ -z "$CI_COMMIT_TAG" ]]; then
+    COMMIT_HASH="$CI_COMMIT_SHORT_SHA"
+    PRINTABLE_COMMIT_HASH="-$COMMIT_HASH"
+  fi
+  if [[ ! "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]] && [[ -z "$CI_COMMIT_TAG" ]]; then
+    BRANCH_NAME="-$CI_COMMIT_BRANCH"
+  fi
+
+.kaniko-pre-build-release-version: &kaniko-pre-build-release-version |
+  if [[ ! -z "$CI_COMMIT_TAG" ]]; then
+    export APP_BUILD_VERSION="$CI_COMMIT_TAG"
+    export APP_BUILD_MODE=production
+    export KANIKO_EXTRA_DESTINATION="--destination $CI_REGISTRY_IMAGE/$APP:$APP_BUILD_VERSION"
+  fi
+
+build-cluster-api-manager-container:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug-v1.0.0
+    entrypoint: [""]
+  retry: 2
+  variables:
+    APP: clusterapimanager
+    APP_PATH_NAME: cluster-api-manager
+  before_script:
+    - *kaniko-build-pre-script
+    - *kaniko-build-taggable-name
+    - *kaniko-pre-build-release-version
+  script:
+    - |
+        /kaniko/executor \
+        --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
+        --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
+        --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
+        $KANIKO_EXTRA_DESTINATION \
+        --build-arg APP_BUILD_VERSION="$APP_BUILD_VERSION" \
+        --build-arg APP_BUILD_DATE="$BUILD_DATE" \
+        --build-arg APP_BUILD_HASH="$COMMIT_HASH" \
+        --build-arg APP_BUILD_MODE="$APP_BUILD_MODE"
+
+build-client-container:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug-v1.0.0
+    entrypoint: [""]
+  retry: 2
+  variables:
+    APP: client
+    APP_PATH_NAME: client
+  before_script:
+    - *kaniko-build-pre-script
+    - *kaniko-build-taggable-name
+    - *kaniko-pre-build-release-version
+  script:
+    - |
+        /kaniko/executor \
+        --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
+        --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
+        --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
+        $KANIKO_EXTRA_DESTINATION
+
+spell_check:
+  stage: lint
+  image: golang:1.13.10-alpine3.11
+  allow_failure: true
+  before_script:
+    - go get -u github.com/client9/misspell/cmd/misspell
+  script:
+    - misspell -error apps charts infra org README*
+
+lint_cluster-api-manager:
+  stage: lint
+  image: golang:1.13.10-alpine3.11
+  allow_failure: true
+  before_script:
+    - apk add git gcc
+    - go get -u golang.org/x/lint/golint
+  script:
+    - golint -set_exit_status ./apps/cluster-api-manager/...
