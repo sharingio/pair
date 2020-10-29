@@ -2,6 +2,7 @@ package instances
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/sharingio/pair/common"
@@ -64,6 +65,7 @@ func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err e
 		return err, instanceCreated
 	}
 	instance.Name = GenerateName(instance)
+	instance.Setup.UserLowercase = strings.ToLower(instance.Setup.UserLowercase)
 	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
 	switch instance.Type {
 	case InstanceTypeKubernetes:

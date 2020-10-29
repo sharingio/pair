@@ -31,6 +31,7 @@ type Endpoints []struct {
 
 type SetupSpec struct {
 	User          string   `json:"user"`
+	UserLowercase string   `json:"userLowercase"`
 	Guests        []string `json:"guests"`
 	Repos         []string `json:"repos"`
 	Timezone      string   `json:"timezone"`

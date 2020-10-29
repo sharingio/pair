@@ -666,9 +666,9 @@ EOF`,
           cd /root;
           git clone https://github.com/humacs/humacs;
           cd humacs;
-          kubectl create ns {{ $.Name }}
-          # zach and caleb are very cool
-          helm install "{{ $.Name }}" -n "{{ $.Name }}" \
+	    kubectl create ns "{{ $.Setup.UserLowercase }}"
+	    # zach and caleb are very cool
+	    helm install "{{ $.Setup.UserLowercase }}" -n "{{ $.Setup.UserLowercase }}" \
             --set image.repository=registry.gitlab.com/humacs/humacs/ii \
             --set image.tag="{{ $.Setup.HumacsVersion }}" \
             --set options.hostDockerSocket=true \
@@ -676,11 +676,13 @@ EOF`,
             --set options.timezone="{{ $.Setup.Timezone }}" \
             --set options.gitName="{{ $.Setup.Fullname }}" \
             --set options.gitEmail="{{ $.Setup.Email }}" \
+            --set extraEnvVars[0].name="SHARINGIO_PAIR_NAME" \
+            --set extraEnvVars[0].value="{{ $.Name }}" \
             --set options.preinitScript='(
               for repo in $(find ~ -type d -name ".git"); do
-                if [ -x $repo/../.sharingio/init ]; then
+                if [ -x $repo/../.sharing.io/init ]; then
                   cd $repo/..
-                  ./.sharingio/init
+                  ./.sharing.io/init
                 fi
               done
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharingio && ./.sharingio/init || true
