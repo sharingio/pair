@@ -681,7 +681,9 @@ EOF`,
             --set extraEnvVars[1].name="SHARINGIO_PAIR_USER" \
             --set extraEnvVars[1].value="{{ $.Setup.User }}" \
             --set options.preinitScript='(
-              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io && ./.sharing.io/init || true
+              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
+                git clone --depth=1 git://github.com/sharingio/.sharing.io
+              ./.sharing.io/init || true
               for repo in $(find ~ -type d -name ".git"); do
                 repoName=$(basename $(dirname $repo))
                 if [ -x $HOME/.sharing.io/$repoName/init ]; then
