@@ -678,14 +678,22 @@ EOF`,
             --set options.gitEmail="{{ $.Setup.Email }}" \
             --set extraEnvVars[0].name="SHARINGIO_PAIR_NAME" \
             --set extraEnvVars[0].value="{{ $.Name }}" \
+            --set extraEnvVars[1].name="SHARINGIO_PAIR_USER" \
+            --set extraEnvVars[1].value="{{ $.Setup.User }}" \
             --set options.preinitScript='(
+              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io && ./.sharing.io/init || true
               for repo in $(find ~ -type d -name ".git"); do
+                repoName=$(basename $(dirname $repo))
+                if [ -x $HOME/.sharing.io/$repoName/init ]; then
+                  cd $repo/..
+                  $HOME/.sharing.io/$repoName/init
+                  continue
+                fi
                 if [ -x $repo/../.sharing.io/init ]; then
                   cd $repo/..
                   ./.sharing.io/init
                 fi
               done
-              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharingio && ./.sharingio/init || true
 )' \
             {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
             chart/humacs
