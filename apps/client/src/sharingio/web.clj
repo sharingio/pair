@@ -1,6 +1,7 @@
 (ns sharingio.web
   (:require [cheshire.core :as json]
             [clj-http.client :as http]
+            [clojure.tools.logging :as log]
             [compojure.route :as route]
             [noir.util.middleware :as noir]
             [ring.adapter.jetty :as jetty]
@@ -15,42 +16,58 @@
             [sharingio.html :as html]
             [compojure.core :refer [ANY DELETE GET POST routes]]
             [compojure.handler :refer [site]]
-            [environ.core :refer [env]]))
-
-;; pre-registered for http://localhost:5000
-(def dev-oauth {:client_id "49f1d4f840b69779374c"
-                :client_secret "67b9a9fcaffd0c5c47b5dec85223a357ddf3fc46"})
+            [environ.core :refer [env]])
+  (:use [slingshot.slingshot :only [throw+ try+]]))
 
 (defn get-token [code]
   (-> (http/post "https://github.com/login/oauth/access_token"
-                 {:form-params (merge dev-oauth
-                                      {:client_id (env :oauth-client-id)
+                 {:form-params {:client_id (env :oauth-client-id)
                                        :client_secret (env :oauth-client-secret)
                                        :code code
-                                       :scope "user read:org"})
+                                       :scope "user read:org"}
                   :headers {"Accept" "application/json"}})
       (:body) (json/decode true) :access_token))
-
-(defn get-username [token]
-  (-> (http/get (str "https://api.github.com/user?access_token=" token)
-                {:headers {"accept" "application/json"}})
-      (:body) (json/decode true) :login))
-
 (defn get-user [token]
-  (-> (http/get (str "https://api.github.com/user?access_token=" token)
-                {:headers {"accept" "application/json"}})
-      (:body) (json/decode true)))
+  (println "TOKEN!!" token)
+  (->
+   (try+
+   (http/get (str "https://api.github.com/user?access_token=" token)
+                {:headers {"accept" "application/json"
+                           "Authorization" (str "token " token)}})
+   (catch [:status 400] {:keys [request-time headers body]}
+     (log/warn "EEEEEERRRROROROROR 400" request-time headers body))
+   (catch Object _
+     (log/error (:throwable &throw-context) "unexpected error")
+     (throw+)))
+   (:body)
+   (json/decode true)))
 
 (defn get-orgs
   [username token]
-  (-> (http/get (str "https://api.github.com/user/orgs?access_token="token)
-                {:headers {"accept" "application/json"}})
+  (->
+      (try+
+       (http/get (str "https://api.github.com/user/orgs?access_token=" token)
+                 {:headers {"accept" "application/json"
+                            "Authorization" (str "token " token)}})
+       (catch [:status 400] {:keys [request-time headers body]}
+         (log/warn "EEEEEERRRROROROROR 400" request-time headers body))
+       (catch Object _
+         (log/error (:throwable &throw-context) "unexpected error")
+         (throw+)))
       (:body)(json/decode true)))
 
 (defn get-email
   [username token]
-  (-> (http/get (str "https://api.github.com/user/emails?access_token="token)
-                {:headers {"accept" "application/json"}})
+  (->
+      (try+
+       (http/get (str "https://api.github.com/user/emails?access_token=" token)
+                 {:headers {"accept" "application/json"
+                            "Authorization" (str "token " token)}})
+       (catch [:status 400] {:keys [request-time headers body]}
+         (log/warn "EEEEEERRRROROROROR 400" request-time headers body))
+       (catch Object _
+         (log/error (:throwable &throw-context) "unexpected error")
+         (throw+)))
       (:body)(json/decode true)
       (first)
       (:email)))
@@ -115,6 +132,7 @@
             :headers {"Content-Type" "text/plain"}
             :body "OK"}))
    (GET "/oauth" {{:keys [code]} :params session :session}
+        (println "CODEEEEE" code "\nSESSION" session)
         (if code
           (let [token (get-token code)
                 {username :login
@@ -186,5 +204,5 @@
                      {:port port :join? false})))
 
 ;; For interactive development:
-;;(.stop server)
-;;(def server (-main))
+(.stop server)
+(def server (-main))

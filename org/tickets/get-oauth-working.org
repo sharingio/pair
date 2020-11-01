@@ -39,5 +39,23 @@ If i wanted to really confirm it, I could make a new app that isn't sharingio th
    We know it works, as it is up with caleb's app.   So what makes it different than all others?  and why just for this app?
 *** Remove dummy client id and secret
     there is a dev oauth client artifact from syme...where it gave you a localhost github app to authenticate with.  let's try removing that, just to ensure that the only client id and secret we are using is the one provided by our new app
-*** Set the redirect to a different route from oauth, and try to simplify its function
-    this could help us better understand how exactly the authentication is working, what it's expecting and what is being passed.
+*** Throw catches on http errors
+    I looked at the error logs again and saw that it was tbeing thrown around the ~get-user~ function.  So I wanted to do some logging to see what was being passed in that function.
+
+    We pass along the token given to us by github upon successful authentication.  If we didn't successfully authenticate, then that token should be nil.
+
+    When I logged the token passed, it was a hash, meaning our ~get-token~ function works and that we are authenticated.
+    I used this token to access the github api using curl, e.g:
+
+    : curl -H "Authorization: token $THETOKEN" api.github.com/user
+
+    I got all my user details back.  So the authetnication works and the token works, but our request does not.
+
+    I looked at the [[https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps][github docs]] again, and i saw that the token is expected to be passed as a header, which is why the curl commands works.  Our get-user function is passing it as a param.  This could be the issue.
+
+    I rewrote the ~get-user~, ~get-emails~, and ~get-orgs~ functions to pass along the token as a header with
+    : {:headers {"Authorization" (str "token " token)}}
+
+    And tried again.  I was able to log in successfully!
+
+** Push changes and try again with a new dns, to confirm it works
