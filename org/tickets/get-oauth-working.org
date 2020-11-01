@@ -1,0 +1,43 @@
+#+TITLE: Get Oauth Working!
+
+* Ticket
+  Currently, only a single oauth app works for sharing.io, one that caleb created.  This makes developing hard, as we only have one working instance of sharing at a time.
+
+  Investigate why oauth is not working, and see if it is an issue with the app code, our dns, or github's services itself.
+
+* Steps
+** Isolate the root of the problem
+*** github's oauth
+    If it was an issue with the github oauth you would expect that making a new app with oauth authentication would also not work.
+    To try, this I:
+- deleted all my current oauth apps, starting from absolute scratch.
+- found an example oauth app on glitch.com, so i would not have to botther with dns stuff.
+  - the apps [[https://glitch.com/~gamy-steep-stingray][project page]]
+  - the [[https://gamy-steep-stingray.glitch.me][app itself]]
+- setup a new oauth app pointing to this glitch url
+- tried it out.
+
+There was no problem with this app, it all works as expected.  As this app was random, and older, and that I used github to login to glitch itself, I don't think it's an issue with github.
+*** our dns
+    It could be that the code is fine but there is some issue with our dns record or some crossed paths with a cached dns record...since we've been reusing the pair.sharing.io name for a few things.  I can't quite say what this problem woudl be, which makes me feel like it isn't a problem, but just to rule it out, we can create sharing.io but using a different url.
+    For this I:
+    - started up a new version of sharing.io with the canonical url pair.verycool.fun
+      - this domain is one I own, and has not been used for any work stuff, and is not associated with any existing oauth apps
+    - I created a new oauth app pointing to pair.verycool.fun
+    - I started up the site and visited it, confirming that the app and the dns were configured correctly.
+    - I tried to log in
+
+I got the same ~http 400~ error as we get when tryign to point something to pair.sharing.io.
+
+There could still be an issue with dns maybe...i had to use http for example as the cert was not working...but this just doesn't feel like the right path.
+
+If i wanted to really confirm it, I could make a new app that isn't sharingio that uses pair.verycool.fun and has authentication...but this would require getting a server up and nginx configured and it just feels like a bit of a rabbit hole.
+*** our code
+    As github isn't causing errors, and we get the same issue on another dns record, I sense it is something to do with our code.  I'll debug this specifically next.
+
+** Make changes to code and see how it is affected
+   We know it works, as it is up with caleb's app.   So what makes it different than all others?  and why just for this app?
+*** Remove dummy client id and secret
+    there is a dev oauth client artifact from syme...where it gave you a localhost github app to authenticate with.  let's try removing that, just to ensure that the only client id and secret we are using is the one provided by our new app
+*** Set the redirect to a different route from oauth, and try to simplify its function
+    this could help us better understand how exactly the authentication is working, what it's expecting and what is being passed.
