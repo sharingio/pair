@@ -146,8 +146,9 @@ username project status))
    [:div [:h3 "All Instances"]
     (if instances
       [:ul
-      (for [instance instances]
-        [:li [:strong (str (:project instance)": ")] (:status instance)])])]
+      (for [{:keys [project status]} instances]
+        [:li [:a {:href (str "project/" project)}
+              [:strong (str project": ")]] status])])]
    username "Status"))
 
 ;; TODO bring back the guest invites
