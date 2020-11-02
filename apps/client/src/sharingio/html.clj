@@ -50,7 +50,6 @@
               :style "width: 48%; height: 14px; font-weight: bold;"
               :placeholder "user/project"}]]
     [:p {:style "margin-bottom: 700px;"} "&nbsp;"]
-    [:p "Hello!"]
     ] username))
 
 (defn faq [username]
