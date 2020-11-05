@@ -62,7 +62,7 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 var defaultMachineOS = "ubuntu_20_04"
 var defaultKubernetesVersion = "1.19.0"
-var defaultHumacsVersion = "2020.10.13"
+var defaultHumacsVersion = "2020.11.05"
 
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
@@ -675,9 +675,47 @@ EOF`,
           cd /root;
           git clone https://github.com/humacs/humacs;
           cd humacs;
-	    kubectl create ns "{{ $.Setup.UserLowercase }}"
+          kubectl create ns "{{ $.Setup.UserLowercase }}";
+          mkdir -p /var/local/humacs-home-ii;
+          chown 1000:1000 -R /var/local/humacs-home-ii;
+          kubectl -n "{{ $.Setup.UserLowercase }}" apply -f - <<EOF
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: humacs-home-ii
+spec:
+  capacity:
+    storage: 500Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: local-storage
+  local:
+    path: /var/local/humacs-home-ii
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/os
+          operator: In
+          values:
+          - linux
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: humacs-home-ii
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: local-storage
+EOF
 	    # zach and caleb are very cool
-	    helm install "{{ $.Setup.UserLowercase }}" -n "{{ $.Setup.UserLowercase }}" \
+	  helm install "{{ $.Setup.UserLowercase }}" -n "{{ $.Setup.UserLowercase }}" \
             --set image.repository=registry.gitlab.com/humacs/humacs/ii \
             --set image.tag="{{ $.Setup.HumacsVersion }}" \
             --set options.hostDockerSocket=true \
@@ -689,6 +727,10 @@ EOF`,
             --set extraEnvVars[0].value="{{ $.Name }}" \
             --set extraEnvVars[1].name="SHARINGIO_PAIR_USER" \
             --set extraEnvVars[1].value="{{ $.Setup.User }}" \
+            --set extraEnvVars[2].name="DEBUG" \
+            --set-string extraEnvVars[2].value="true" \
+            --set extraEnvVars[3].name="REINIT_HOME_FOLDER" \
+            --set-string extraEnvVars[3].value="true" \
             --set options.preinitScript='(
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
@@ -707,6 +749,10 @@ EOF`,
               done
 )' \
             {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
+            --set extraVolumes[0].name=home-ii \
+            --set extraVolumes[0].persistentVolumeClaim.claimName=humacs-home-ii \
+            --set extraVolumeMounts[0].name=home-ii \
+            --set extraVolumeMounts[0].mountPath="/home/ii" \
             chart/humacs
         )
 `,
