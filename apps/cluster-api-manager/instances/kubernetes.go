@@ -604,6 +604,15 @@ EOF`,
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
 						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id",
+						`cat <<EOF > /etc/docker/daemon.json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "500m",
+    "max-file": "3"
+  }
+}
+EOF`,
 						"systemctl daemon-reload",
 						"systemctl enable docker",
 						"systemctl start docker",
