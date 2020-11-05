@@ -130,6 +130,9 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		}
 	}
 
+	instance.Spec.Setup.User = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
+	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+
 	err, kubeconfigBytes := KubernetesDynamicGetKubeconfigBytes(name, kubernetesClientset)
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -140,7 +143,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	}
 	deadline := time.Now().Add(time.Second * 2)
 	ctx, _ := context.WithDeadline(context.TODO(), deadline)
-	humacsPod, err := instanceClientset.CoreV1().Pods(name).Get(ctx, fmt.Sprintf("%s-humacs-0", name), metav1.GetOptions{})
+	humacsPod, err := instanceClientset.CoreV1().Pods(instance.Spec.Setup.UserLowercase).Get(ctx, fmt.Sprintf("%s-humacs-0", instance.Spec.Setup.UserLowercase), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
 	}
@@ -156,7 +159,6 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
 	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
 	instance.Spec.Facility = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
-	instance.Spec.Setup.User = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
 	instance.Spec.Setup.Guests = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
 	instance.Spec.Setup.Repos = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
 	instance.Spec.Setup.Timezone = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
@@ -1174,8 +1176,8 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 	// https://github.com/kubernetes/kubectl/blob/e65caf964573fbf671c4648032da4b7df7c7eaf0/pkg/cmd/exec/exec.go#L357
 }
 
-func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (err error, output string) {
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(name, clientset)
+func KubernetesGetTmateSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err, output
 	}
@@ -1197,8 +1199,8 @@ func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (er
 			"-p",
 			"#{tmate_ssh}",
 		},
-		Namespace:          name,
-		PodName:            fmt.Sprintf("%s-humacs-0", name),
+		Namespace:          userName,
+		PodName:            userName,
 		ContainerName:      "humacs",
 		CaptureStderr:      true,
 		CaptureStdout:      true,

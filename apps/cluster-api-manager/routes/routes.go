@@ -292,7 +292,7 @@ func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest
 		}
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
-		err, session := instances.KubernetesGetTmateSession(clientset, instance.Spec.Setup.UserLowercase)
+		err, session := instances.KubernetesGetTmateSession(clientset, name, instance.Spec.Setup.UserLowercase)
 		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
 			strings.Contains(err.Error(), "not found"))
 		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" && err == nil || notFound {
