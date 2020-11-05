@@ -50,10 +50,10 @@ build-cluster-api-manager-container:
         --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
         --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
         $KANIKO_EXTRA_DESTINATION \
-        --build-arg APP_BUILD_VERSION="$APP_BUILD_VERSION" \
-        --build-arg APP_BUILD_DATE="$BUILD_DATE" \
-        --build-arg APP_BUILD_HASH="$COMMIT_HASH" \
-        --build-arg APP_BUILD_MODE="$APP_BUILD_MODE"
+        --build-arg AppBuildVersion="$APP_BUILD_VERSION" \
+        --build-arg AppBuildDate="$BUILD_DATE" \
+        --build-arg AppBuildHash="$COMMIT_HASH" \
+        --build-arg AppBuildMode="$APP_BUILD_MODE"
 
 build-client-container:
   stage: build
