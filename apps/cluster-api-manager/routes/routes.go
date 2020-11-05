@@ -269,7 +269,7 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 	}
 }
 
-func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest.Config) http.HandlerFunc {
+func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest.Config, dynamicClientSet dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Fetched Tmate session for instance"
 		responseCode := http.StatusInternalServerError
@@ -277,7 +277,22 @@ func GetKubernetesTmateSession(clientset *kubernetes.Clientset, restConfig *rest
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, session := instances.KubernetesGetTmateSession(clientset, name)
+		err, instance := instances.KubernetesGet(name, dynamicClientSet)
+		if instance.Spec.Name == "" && err == nil {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+		err, session := instances.KubernetesGetTmateSession(clientset, instance.Spec.Setup.UserLowercase)
 		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
 			strings.Contains(err.Error(), "not found"))
 		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" && err == nil || notFound {

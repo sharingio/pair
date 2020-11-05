@@ -1198,7 +1198,7 @@ func KubernetesGetTmateSession(clientset *kubernetes.Clientset, name string) (er
 			"#{tmate_ssh}",
 		},
 		Namespace:          name,
-		PodName:            name,
+		PodName:            fmt.Sprintf("%s-humacs-0", name),
 		ContainerName:      "humacs",
 		CaptureStderr:      true,
 		CaptureStdout:      true,
