@@ -39,6 +39,7 @@ rules:
     resources:
       - clusters
       - machinedeployments
+      - machines
     verbs:
       - create
       - get

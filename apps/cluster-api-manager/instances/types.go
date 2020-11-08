@@ -27,6 +27,7 @@ type InstanceResourceStatus struct {
 	Cluster             clusterAPIv1alpha3.ClusterStatus
 	PacketCluster       clusterAPIPacketv1alpha3.PacketClusterStatus
 	HumacsPod           corev1.PodStatus
+	MachineStatus       clusterAPIv1alpha3.MachineStatus
 }
 
 type InstanceStatus struct {

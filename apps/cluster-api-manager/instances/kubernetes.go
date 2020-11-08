@@ -109,6 +109,23 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		}
 	}
 
+	//   - newInstance.Machine
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name="+name})
+	if err != nil {
+		log.Printf("%#v\n", err)
+	} else {
+		item = &items.Items[0]
+		var itemRestructuredM clusterAPIv1alpha3.Machine
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredM)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructuredM), Instance{}
+		}
+		instance.Status.Resources.MachineStatus = itemRestructuredM.Status
+	}
+
 	//   - newInstance.Cluster
 	var itemRestructuredC clusterAPIv1alpha3.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
