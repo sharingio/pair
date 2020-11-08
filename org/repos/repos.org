@@ -1,0 +1,23 @@
+#+TITLE: Repos
+
+Using an ~init~ file, in your repository: pair.sharing.io can bring your project up after the cloning process.
+An ~init~ file should be located in ~.sharing.io/init~ of a repository.
+
+* Example
+
+#+begin_src shell
+  #!/bin/bash -x
+
+  if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
+    # kubernetes instance type
+    kubectl create ns myproject
+
+    echo "Installing MyProject"
+    kubectl -n myproject apply -f deployments/myproject
+  else
+    # plain instance type
+    sudo apt update -y
+    sudo apt install myproject
+    systemctl enable --now myproject.service
+  fi
+#+end_src
