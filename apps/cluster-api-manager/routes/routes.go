@@ -111,7 +111,12 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 		body, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(body, &instance)
 
-		err, instanceCreated := instances.Create(instance, kubernetesClientset)
+		dryRunFormValue := r.FormValue("dryRun")
+		options := instances.InstanceCreateOptions{
+			DryRun: dryRunFormValue == "true",
+		}
+
+		err, instanceCreated := instances.Create(instance, kubernetesClientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{

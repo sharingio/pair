@@ -59,7 +59,7 @@ func List(kubernetesClientset dynamic.Interface, options InstanceListOptions) (e
 	return err, instances
 }
 
-func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error, instanceCreated InstanceSpec) {
+func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	err = ValidateInstance(instance)
 	if err != nil {
 		return err, instanceCreated
@@ -69,7 +69,7 @@ func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err e
 	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
 	switch instance.Type {
 	case InstanceTypeKubernetes:
-		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset)
+		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset, options)
 		break
 
 	case InstanceTypePlain:

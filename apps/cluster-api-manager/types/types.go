@@ -38,4 +38,5 @@ type SetupSpec struct {
 	Fullname      string   `json:"fullname"`
 	Email         string   `json:"email"`
 	HumacsVersion string   `json:"-"`
+	BaseDNSName   string   `json:"baseDNSName"`
 }

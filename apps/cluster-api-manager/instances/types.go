@@ -63,3 +63,7 @@ type InstanceAccess struct {
 	Kubeconfig  clientcmdapi.Config `json:"kubeconfig"`
 	TmateString string              `json:"tmateString"`
 }
+
+type InstanceCreateOptions struct {
+	DryRun bool
+}

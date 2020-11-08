@@ -304,7 +304,7 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	return err, instances
 }
 
-func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error, instanceCreated InstanceSpec) {
+func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 	err, newInstance := KubernetesTemplateResources(instance, targetNamespace)
@@ -312,6 +312,13 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		return err, instanceCreated
 	}
 	instanceCreated.Name = instance.Name
+
+	log.Printf("%#v\n", newInstance)
+
+	if options.DryRun == true {
+		log.Println("Exiting before create due to dry run")
+		return err, instanceCreated
+	}
 
 	// manifests
 	//   - newInstance.KubeadmControlPlane
