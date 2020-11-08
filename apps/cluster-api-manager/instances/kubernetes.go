@@ -768,6 +768,8 @@ EOF
             --set-string extraEnvVars[2].value="true" \
             --set extraEnvVars[3].name="REINIT_HOME_FOLDER" \
             --set-string extraEnvVars[3].value="true" \
+            --set extraEnvVars[4].name="SHARINGIO_BASE_DNS_NAME" \
+            --set-string extraEnvVars[4].value="{{ $.Setup.BaseDNSName }}" \
             --set options.preinitScript='(
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
