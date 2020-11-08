@@ -650,6 +650,20 @@ EOF
 						"mkdir -p /root/.kube",
 						"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
 						"export KUBECONFIG=/root/.kube/config",
+						`(
+          mkdir -p /etc/sudoers.d
+          echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
+          cp -a /root/.ssh /etc/skel/.ssh
+          useradd -m -G users,sudo -u 1000 -s /bin/bash ii
+        )
+`,
+						`(
+          sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
+          {{ range $.Setup.Guests }}
+          sudo -iu ii ssh-import-id gh:{{ . }}
+          {{ end }}
+)`,
+						"kubectl -n default get configmap sharingio-pair-init-complete && exit 0",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
 						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\"}'",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
@@ -775,19 +789,7 @@ EOF
             chart/humacs
         )
 `,
-						`(
-          mkdir -p /etc/sudoers.d
-          echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
-          cp -a /root/.ssh /etc/skel/.ssh
-          useradd -m -G users,sudo -u 1000 -s /bin/bash ii
-        )
-`,
-						`(
-          sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
-          {{ range $.Setup.Guests }}
-          sudo -iu ii ssh-import-id gh:{{ . }}
-          {{ end }}
-)`,
+						"kubectl -n default create configmap sharingio-pair-init-complete",
 					},
 				},
 			},
@@ -956,12 +958,25 @@ EOF
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
 
-	tmpl, err := template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
+	tmpl, err := template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
+	}
+	templatedBuffer := new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
+
+	tmpl, err = template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[9])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
 	}
-	templatedBuffer := new(bytes.Buffer)
+	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
 		"PacketProjectID": common.GetPacketProjectID(),
 		"InstanceName":    instance.Name,
@@ -972,10 +987,10 @@ EOF
 		log.Printf("%#v\n", err.Error())
 		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[9] = templatedBuffer.String()
 
 	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19])
+	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
@@ -986,20 +1001,7 @@ EOF
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[19] = templatedBuffer.String()
-
-	tmpl, err = template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[21])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
-	}
-	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[21] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
 
 	templatedBuffer = nil
 	tmpl = nil
