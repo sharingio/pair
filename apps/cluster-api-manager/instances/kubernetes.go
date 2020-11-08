@@ -793,6 +793,7 @@ EOF
                   ./.sharing.io/init
                 fi
               done
+              echo "{{ $.Setup.GitHubOAuthToken }}" > /home/ii/.githubOAuthToken
 )' \
             {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
             --set extraVolumes[0].name=home-ii \
