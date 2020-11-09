@@ -1,0 +1,10 @@
+#+TITLE: DNS Update Job
+
+Uses octodns, based off of [[https://github.com/eyenx/docker-octodns][eyenx/docker-octodns]]
+
+* Build
+
+#+begin_src shell
+  docker build -t registry.gitlab.com/sharingio/pair/dns-update-job .
+#+end_src
+
