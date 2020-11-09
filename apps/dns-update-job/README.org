@@ -8,3 +8,16 @@ Uses octodns, based off of [[https://github.com/eyenx/docker-octodns][eyenx/dock
   docker build -t registry.gitlab.com/sharingio/pair/dns-update-job .
 #+end_src
 
+* Running locally
+
+#+begin_src shell
+docker run \
+  -it --rm \
+  -e DOMAIN=pair.sharing.io \
+  -e SUBDOMAIN=bobymcbobs \
+  -e ADDRESS=139.178.68.219 \
+  -e DRYRUN=true \
+  --env-file .env \
+  registry.gitlab.com/sharingio/pair/dns-update-job \
+    /bin/sh -x /app/bin/run-job.sh
+#+end_src

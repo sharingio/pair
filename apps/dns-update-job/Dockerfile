@@ -26,4 +26,4 @@ COPY --from=builder /app /app/
 COPY run-job.sh /app/bin/run-job.sh
 USER user
 ENV PATH /app/bin:$PATH
-CMD ["octodns-sync"]
+CMD ["/app/bin/run-job.sh"]
