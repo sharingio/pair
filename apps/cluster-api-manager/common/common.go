@@ -47,6 +47,14 @@ func GetTargetNamespace() (namespace string) {
 	return GetEnvOrDefault("APP_TARGET_NAMESPACE", "sharingio-pair-instances")
 }
 
+func GetInstanceSubdomain() (namespace string) {
+	return GetEnvOrDefault("APP_INSTANCE_SUBDOMAIN", "")
+}
+
+func GetKubernetesSecretName() (namespace string) {
+	return GetEnvOrDefault("APP_KUBERNETES_SECRET_NAME", "")
+}
+
 func Logging(next http.Handler) http.Handler {
 	// log all requests
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

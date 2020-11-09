@@ -15,6 +15,10 @@ githubOAuth:
 equinixMetal:
   projectID: ""
 
+aws:
+  accessKeyID: ""
+  secretAccessKey: ""
+
 targetNamespace: ""
 
 timezone: Pacific/Auckland

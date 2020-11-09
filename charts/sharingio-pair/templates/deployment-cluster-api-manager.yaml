@@ -51,6 +51,10 @@ spec:
               value: {{ printf ":%v" .Values.clusterapimanager.service.port | toString | quote | default "8080" }}
             - name: APP_TARGET_NAMESPACE
               value: {{ .Values.targetNamespace | default .Release.Namespace }}
+            - name: APP_INSTANCE_SUBDOMAIN
+              value: "{{ (first .Values.ingress.hosts).host }}"
+            - name: APP_KUBERNETES_SECRET_NAME
+              value: {{ include "sharingio-pair.fullname" . }}
             - name: TZ
               value: {{ .Values.timezone }}
             {{- if .Values.clusterapimanager.extraEnv }}
