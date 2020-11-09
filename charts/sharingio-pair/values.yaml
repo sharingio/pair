@@ -17,6 +17,8 @@ equinixMetal:
 
 targetNamespace: ""
 
+timezone: Pacific/Auckland
+
 imagePullSecrets: []
 
 ingress:

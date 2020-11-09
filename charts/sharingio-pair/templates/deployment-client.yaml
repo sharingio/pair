@@ -81,6 +81,8 @@ spec:
               value: {{ (first .Values.ingress.hosts).host }}
             - name: SUBDOMAIN
               value: "%s.%s.{{ (first .Values.ingress.hosts).host }}"
+            - name: TZ
+              value: {{ .Values.timezone }}
             {{- if .Values.client.extraEnv }}
             {{- toYaml .Values.client.extraEnv | nindent 12 }}
             {{- end }}
