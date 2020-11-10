@@ -47,11 +47,15 @@ func GetTargetNamespace() (namespace string) {
 	return GetEnvOrDefault("APP_TARGET_NAMESPACE", "sharingio-pair-instances")
 }
 
-func GetInstanceSubdomain() (namespace string) {
+func GetInstanceSubdomain() (subdomain string) {
 	return GetEnvOrDefault("APP_INSTANCE_SUBDOMAIN", "")
 }
 
-func GetKubernetesSecretName() (namespace string) {
+func GetBaseHost() (host string) {
+	return GetEnvOrDefault("APP_BASE_HOST", "")
+}
+
+func GetKubernetesSecretName() (secretName string) {
 	return GetEnvOrDefault("APP_KUBERNETES_SECRET_NAME", "")
 }
 
@@ -98,4 +102,12 @@ func AddRepoGitHubPrefix(repos []string) (reposModified []string) {
 		reposModified = append(reposModified, repo)
 	}
 	return reposModified
+}
+
+func ReverseStringArray(input []string) []string {
+	output := make([]string, 0, len(input))
+	for i := len(input)-1; i >= 0; i-- {
+		output = append(output, input[i])
+	}
+	return output
 }

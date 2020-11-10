@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/sharingio/pair/common"
+	"github.com/sharingio/pair/dns"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -1254,4 +1255,44 @@ func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, 
 	}
 	clientset, err = kubernetes.NewForConfig(restConfig)
 	return err, clientset
+}
+
+func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, username string) (err error) {
+	targetNamespace := common.GetTargetNamespace()
+	var ipAddress string
+	groupVersion := clusterAPIv1alpha3.GroupVersion
+	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
+	log.Printf("%#v\n", groupVersionResource)
+	watcher, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Watch(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name="+name})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return err
+	}
+	defer watcher.Stop()
+	watchChan := <-watcher.ResultChan()
+	for event := range watchChan {
+		machine, ok := event.Object.(*clusterAPIv1alpha3.Machine)
+		if ok != true {
+			fmt.Println("unable to convert event.Object type")
+			return
+		}
+		if len(machine.Status.Addresses) < 1 {
+			return
+		}
+		if machine.Status.Addresses[1].Address == "" {
+			return
+		}
+		ipAddress = machine.Status.Addresses[1].Address
+		break
+	}
+	entry := dns.Entry{
+		Address: "*."+username,
+		Values: []string{
+			ipAddress,
+		},
+	}
+	err = dns.UpsertDNSEndpoint(dynamicClient, entry)
+	log.Printf("%#v\n", err)
+
+	return err
 }

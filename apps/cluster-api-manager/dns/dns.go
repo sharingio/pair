@@ -2,83 +2,78 @@ package dns
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-	batchv1 "k8s.io/api/batch/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	externaldnsendpoint "sigs.k8s.io/external-dns/endpoint"
 
 	"github.com/sharingio/pair/common"
 )
 
 type Entry struct {
 	Subdomain string   `json:"subdomain"`
-	Value     string `json:"values"`
+	Values    []string `json:"values"`
 }
 
-var defaultContainerImage = "registry.gitlab.com/sharingio/pair/dns-update-job:latest"
+func ReverseDomain(name string) (output string) {
+	nameSplit := strings.Split(name, ".")
+	reverseDomainSplit := common.ReverseStringArray(nameSplit)
+	reverseDomain := strings.Join(reverseDomainSplit, ".")
+	return reverseDomain
+}
 
-func ScheduleDNSUpdateJob(clientset *kubernetes.Clientset, entry Entry) {
+func FormatAsName(name string) (output string) {
+	nameSplit := strings.Split(name, ".")
+	reverseDomain := strings.Join(nameSplit, "-")
+	return reverseDomain
+}
+
+func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 
-	dnsUpdateJob := batch.Job{
+	baseHost := common.GetBaseHost()
+	baseHostReverse := ReverseDomain(baseHost)
+	name := FormatAsName(baseHostReverse + "." + entry.Subdomain)
+	dnsName := entry.Subdomain + "." + baseHost
+	log.Println(name, dnsName)
+	return err
+
+	endpoint := externaldnsendpoint.DNSEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "dns-update-"+entry.Subdomain,
-			Labels: map[string]string{
-				"io.sharing.pair": "job",
-			},
+			Name:   name,
+			Labels: map[string]string{},
 		},
-		Spec: batch.JobSpec{
-			Selector: &metav1.LabelSelector{
-				"io.sharing.pair-subdomain": entry.Subdomain,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"io.sharing.pair": "job",
-						"io.sharing.pair-job-name": entry.Subdomain,
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Name: "dns-update",
-						Image: defaultContainerImage,
-						Env: []corev1.EnvVar{
-							{
-								Name: "DOMAIN",
-								Value: common.GetInstanceSubdomain(),
-							},
-							{
-								Name: "SUBDOMAIN",
-								Value: entry.Subdomain,
-							},
-							{
-								Name: "ADDRESS",
-								Value: entry.Value,
-							},
-							{
-								Name: "AWS_ACCESS_KEY_ID",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										Name: common.GetKubernetesSecretName(),
-										Key: "awsAccessKeyID",
-									},
-								},
-							},
-							{
-								Name: "AWS_SECRET_ACCESS_KEY",
-								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: &corev1.SecretKeySelector{
-										Name: common.GetKubernetesSecretName(),
-										Key: "awsSecretAccessKey",
-									},
-								},
-							},
-						},
-					}},
+		Spec: externaldnsendpoint.DNSEndpointSpec{
+			Endpoints: []*externaldnsendpoint.Endpoint{
+				{
+					DNSName:    dnsName,
+					Targets:    entry.Values,
+					RecordTTL:  60,
+					RecordType: "A",
 				},
 			},
 		},
 	}
-	clientset.BatchV1().Job(targetNamespace).Create(context.TODO(), &dnsUpdateJob, metav1.CreateOptions{})
+	groupVersionResource := schema.GroupVersionResource{Version: "alphav1", Group: "externaldns.k8s.io", Resource: "dnsendpoints"}
+	log.Printf("%#v\n", groupVersionResource)
+	err, asUnstructured := common.ObjectToUnstructured(endpoint)
+	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "DNSEndpoint"})
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to unstructure DNSEndpoint, %#v", err)
+	}
+	_, err = dynamicClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	if err != nil && apierrors.IsAlreadyExists(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to create DNSEndpoint, %#v", err)
+	}
+	if apierrors.IsAlreadyExists(err) {
+		_, err = dynamicClientset.Resource(groupVersionResource).Namespace(targetNamespace).Update(context.TODO(), asUnstructured, metav1.UpdateOptions{})
+	}
+	return err
 }
