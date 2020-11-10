@@ -1,23 +1,10 @@
 #+TITLE: External DNS
 
 #+begin_src elisp :results none
-  (setenv "AWS_ACCOUNT_ID" (read-from-minibuffer "AWS_ACCOUNT_ID"))
-  (setenv "AWS_IAM_SERVICE_ROLE_NAME" (read-from-minibuffer "AWS_IAM_SERVICE_ROLE_NAME"))
-  (setenv "AWS_DOMAIN_FILTER" (read-from-minibuffer "AWS_DOMAIN_FILTER"))
-  (setenv "AWS_TXT_ORDERED_ID" (read-from-minibuffer "AWS_TXT_ORDERED_ID"))
-  (setenv "AWS_ACCESS_KEY_ID" (read-from-minibuffer "AWS_ACCESS_KEY_ID"))
-  (setenv "AWS_SECRET_TOKEN_KEY" (read-from-minibuffer "AWS_SECRET_TOKEN_KEY"))
-  (setenv "AWS_SESSION_TOKEN" (read-from-minibuffer "AWS_SESSION_TOKEN"))
-#+end_src
-
-#+name: get-aws-account-id
-#+begin_src elisp :results silent
-  (getenv "AWS_ACCOUNT_ID")
-#+end_src
-
-#+name: get-aws-iam-service-role-name
-#+begin_src elisp :results silent
-  (getenv "AWS_IAM_SERVICE_ROLE_NAME")
+  (setenv "AWS_DOMAIN_FILTER" (read-from-minibuffer "AWS_DOMAIN_FILTER: "))
+  (setenv "AWS_TXT_ORDERED_ID" (read-from-minibuffer "AWS_TXT_ORDERED_ID: "))
+  (setenv "AWS_ACCESS_KEY_ID" (read-from-minibuffer "AWS_ACCESS_KEY_ID: "))
+  (setenv "AWS_SECRET_ACCESS_KEY" (read-from-minibuffer "AWS_SECRET_ACCESS_KEY: "))
 #+end_src
 
 #+name: get-aws-domain-filter
@@ -35,41 +22,65 @@
   (getenv "AWS_ACCESS_KEY_ID")
 #+end_src
 
-#+name: get-aws-secret-token-key
+#+name: get-aws-secret-access-key
 #+begin_src elisp :results silent
-  (getenv "AWS_SECRET_TOKEN_KEY")
+  (getenv "AWS_SECRET_ACCESS_KEY")
 #+end_src
 
-#+name: get-aws-session-token
-#+begin_src elisp :results silent
-  (getenv "AWS_SESSION_TOKEN")
-#+end_src
-
-#+begin_src yaml :noweb yes
+#+begin_src yaml :noweb yes :tangle ./external-dns.yaml
   apiVersion: v1
   kind: ServiceAccount
   metadata:
     name: external-dns
-    # If you're using Amazon EKS with IAM Roles for Service Accounts, specify the following annotation.
-    # Otherwise, you may safely omit it.
-    annotations:
-      # Substitute your account ID and IAM service role name below.
-      eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT-ID:role/IAM-SERVICE-ROLE-NAME
   ---
   apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
     name: external-dns
   rules:
-  - apiGroups: [""]
-    resources: ["services","endpoints","pods"]
-    verbs: ["get","watch","list"]
-  - apiGroups: ["extensions","networking.k8s.io"]
-    resources: ["ingresses"]
-    verbs: ["get","watch","list"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["list","watch"]
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - externaldns.k8s.io
+    resources:
+      - dnsendpoints
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - externaldns.k8s.io
+    resources:
+      - dnsendpoints/status
+    verbs:
+    - get
+    - update
+    - patch
+    - delete
   ---
   apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
@@ -82,7 +93,7 @@
   subjects:
   - kind: ServiceAccount
     name: external-dns
-    namespace: default
+    namespace: external-dns
   ---
   apiVersion: apps/v1
   kind: Deployment
@@ -98,18 +109,15 @@
       metadata:
         labels:
           app: external-dns
-        # If you're using kiam or kube2iam, specify the following annotation.
-        # Otherwise, you may safely omit it.
-        annotations:
-          iam.amazonaws.com/role: arn:aws:iam::ACCOUNT-ID:role/IAM-SERVICE-ROLE-NAME
       spec:
         serviceAccountName: external-dns
         containers:
         - name: external-dns
-          image: k8s.gcr.io/external-dns/external-dns:v0.7.3
+          image: k8s.gcr.io/external-dns/external-dns:v0.7.4
           args:
-          - --source=service
-          - --source=ingress
+          - --source=crd
+          - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
+          - --crd-source-kind=DNSEndpoint
           - --provider=aws
           - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
           - --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
@@ -135,11 +143,6 @@
                 secretKeyRef:
                   name: external-dns-aws
                   key: aws-secret-access-key
-            - name: AWS_SESSION_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: external-dns-aws
-                  key: aws-session-token
         securityContext:
           fsGroup: 65534 # For ExternalDNS to be able to read Kubernetes and AWS token files
 #+end_src
@@ -147,16 +150,57 @@
 * Installation
 
 Create the namespace:
-#+begin_src shell
+#+begin_src shell :results silent
   kubectl create ns external-dns
 #+end_src
 
 Create the AWS secret:
-#+begin_src shell :noweb yes
+#+begin_src shell :noweb yes :results silent
   kubectl -n external-dns create secret generic external-dns-aws \
-    --from-literal=domain-filter= \
-    --from-literal=txt-owner-id= \
-    --from-literal=aws-access-key-id= \
-    --from-literal=aws-secret-access-key= \
-    --from-literal=aws-session-token=
+    --from-literal=domain-filter=<<get-aws-domain-filter()>> \
+    --from-literal=txt-owner-id=<<get-aws-txt-ordered-id()>> \
+    --from-literal=aws-access-key-id=<<get-aws-access-key-id()>> \
+    --from-literal=aws-secret-access-key=<<get-aws-secret-access-key()>> \
+#+end_src
+
+Install the CRD:
+#+begin_src shell :results silent
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/docs/contributing/crd-source/crd-manifest.yaml
+#+end_src
+
+Install external-dns:
+#+begin_src shell :results silent
+  kubectl -n external-dns apply -f ./external-dns.yaml
+#+end_src
+
+* Clean up
+
+Delete the AWS secret:
+#+begin_src shell :noweb yes :results silent
+  kubectl -n external-dns delete secret external-dns-aws
+#+end_src
+
+Remove the external-dns:
+#+begin_src shell :results silent
+  kubectl -n external-dns delete -f ./external-dns.yaml
+#+end_src
+
+* Test
+#+begin_src yaml :tangle ./dns-record-test.yaml
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: testhost-pair-sharing-io
+spec:
+  endpoints:
+  - dnsName: testhost1.pair.sharing.io
+    recordTTL: 60
+    recordType: A
+    targets:
+    - 127.0.0.1
+#+end_src
+
+Install external-dns:
+#+begin_src shell :results silent
+  kubectl -n sharingio-pair apply -f ./dns-record-test.yaml
 #+end_src
