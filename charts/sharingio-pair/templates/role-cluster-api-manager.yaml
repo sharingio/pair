@@ -45,6 +45,8 @@ rules:
       - get
       - list
       - delete
+      - deletecollection
+      - watch
   - apiGroups:
       - "bootstrap.cluster.x-k8s.io"
     resources:
@@ -61,11 +63,11 @@ rules:
     verbs:
       - get
   - apiGroups:
-      - "batch"
+      - externaldns.k8s.io
     resources:
-      - jobs
+      - dnsendpoints
     verbs:
       - get
-      - list
       - create
+      - update
 {{- end }}
