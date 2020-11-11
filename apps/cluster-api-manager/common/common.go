@@ -7,15 +7,14 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-	// corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	// "k8s.io/apimachinery/pkg/runtime"
-	"github.com/asaskevich/govalidator"
-	// "k8s.io/kubectl/pkg/scheme"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/asaskevich/govalidator"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/sharingio/pair/types"
 )
@@ -25,6 +24,7 @@ var (
 	AppBuildHash    = "???"
 	AppBuildDate    = "???"
 	AppBuildMode    = "development"
+	letters         = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 )
 
 func GetEnvOrDefault(envName string, defaultValue string) (output string) {
@@ -102,8 +102,16 @@ func AddRepoGitHubPrefix(repos []string) (reposModified []string) {
 
 func ReverseStringArray(input []string) []string {
 	output := make([]string, 0, len(input))
-	for i := len(input)-1; i >= 0; i-- {
+	for i := len(input) - 1; i >= 0; i-- {
 		output = append(output, input[i])
 	}
 	return output
+}
+
+func RandomSequence(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

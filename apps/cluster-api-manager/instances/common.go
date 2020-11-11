@@ -2,8 +2,11 @@ package instances
 
 import (
 	"fmt"
-	"crypto/md5"
 	"strings"
+	"math/rand"
+	"time"
+
+	"github.com/sharingio/pair/common"
 )
 
 const (
@@ -15,19 +18,9 @@ func GetInstanceDefaultNodeSize() (string) {
 }
 
 func GenerateName(instance InstanceSpec) (name string) {
-	name = fmt.Sprintf("%s", instance.Setup.User)
-	portionOne := instance.Setup.Fullname + " " + instance.Setup.Email
-	for _, guest := range instance.Setup.Guests {
-		portionOne = fmt.Sprintf("%s", guest)
-	}
-	hashedString := md5.Sum([]byte(portionOne))
-	name = fmt.Sprintf("%s-%x", name, hashedString[0:5])
-	portionTwo := ""
-	for _, repo := range instance.Setup.Repos {
-		portionTwo = fmt.Sprintf("%s", repo)
-	}
-	hashedString = md5.Sum([]byte(portionTwo))
-	name = fmt.Sprintf("%s-%x", name, hashedString[0:5])
+	rand.Seed(time.Now().UnixNano())
+	randomString := common.RandomSequence(4)
+	name = fmt.Sprintf("%s-%s", instance.Setup.User, randomString)
 	name = strings.ToLower(name)
 
 	return name
