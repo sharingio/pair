@@ -1269,7 +1269,7 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, u
 		return err
 	}
 	defer watcher.Stop()
-	watchChan := <-watcher.ResultChan()
+	watchChan := watcher.ResultChan()
 	for event := range watchChan {
 		machine, ok := event.Object.(*clusterAPIv1alpha3.Machine)
 		if ok != true {
@@ -1286,7 +1286,7 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, u
 		break
 	}
 	entry := dns.Entry{
-		Address: "*."+username,
+		Subdomain: "*."+username,
 		Values: []string{
 			ipAddress,
 		},
