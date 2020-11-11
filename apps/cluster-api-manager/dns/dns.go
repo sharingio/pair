@@ -33,20 +33,21 @@ func FormatAsName(name string) (output string) {
 	return reverseDomain
 }
 
-func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry) (err error) {
+func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instanceName string) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 
 	baseHost := common.GetBaseHost()
-	baseHostReverse := ReverseDomain(baseHost)
-	name := FormatAsName(baseHostReverse + "." + entry.Subdomain)
 	dnsName := entry.Subdomain + "." + baseHost
-	log.Println(name, dnsName)
-	return err
+	hostReverse := ReverseDomain(dnsName)
+	name := strings.Replace("sharingio-pair-" + FormatAsName(hostReverse), "*", "wildcard", -1)
+	log.Println("names:", name, dnsName)
 
 	endpoint := externaldnsendpoint.DNSEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{},
+			Labels: map[string]string{
+				"io.sharing.pair-spec-name": instanceName,
+			},
 		},
 		Spec: externaldnsendpoint.DNSEndpointSpec{
 			Endpoints: []*externaldnsendpoint.Endpoint{
@@ -59,7 +60,7 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry) (err err
 			},
 		},
 	}
-	groupVersionResource := schema.GroupVersionResource{Version: "alphav1", Group: "externaldns.k8s.io", Resource: "dnsendpoints"}
+	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha1", Group: "externaldns.k8s.io", Resource: "dnsendpoints"}
 	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured := common.ObjectToUnstructured(endpoint)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "DNSEndpoint"})
@@ -73,7 +74,18 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry) (err err
 		return fmt.Errorf("Failed to create DNSEndpoint, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
+		err = nil
+		dnsendpoint, err := dynamicClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
+		if err != nil {
+			log.Println("%#v\n", err)
+			return fmt.Errorf("Failed to get DNSEndpoint (for metadata.resourceVersion), %#v", err)
+		}
+		asUnstructured.SetResourceVersion(dnsendpoint.GetResourceVersion())
 		_, err = dynamicClientset.Resource(groupVersionResource).Namespace(targetNamespace).Update(context.TODO(), asUnstructured, metav1.UpdateOptions{})
+		if err != nil {
+			log.Println("%#v\n", err)
+			return fmt.Errorf("Failed to update DNSEndpoint, %#v", err)
+		}
 	}
 	return err
 }

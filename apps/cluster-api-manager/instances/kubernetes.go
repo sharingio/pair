@@ -3,6 +3,7 @@ package instances
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"github.com/sharingio/pair/common"
 	"github.com/sharingio/pair/dns"
 
+	"github.com/asaskevich/govalidator"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,7 +116,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
 	log.Printf("%#v\n", groupVersionResource)
-	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name="+name})
+	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
 	} else {
@@ -449,6 +451,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
 	}
+	go KubernetesAddMachineIPToDNS(kubernetesClientset, instance.Name, instance.Setup.UserLowercase)
 
 	err = nil
 
@@ -495,9 +498,9 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err)
 	}
 
-	//   - newInstance.PacketMachine
+	//   - newInstance.Machine
 	groupVersion = clusterAPIv1alpha3.GroupVersion
-	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachine"}
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
 	log.Printf("%#v\n", groupVersionResource)
 	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil && apierrors.IsNotFound(err) != true {
@@ -776,7 +779,7 @@ EOF
             --set-string extraEnvVars[2].value="true" \
             --set extraEnvVars[3].name="REINIT_HOME_FOLDER" \
             --set-string extraEnvVars[3].value="true" \
-            --set extraEnvVars[4].name="SHARINGIO_BASE_DNS_NAME" \
+            --set extraEnvVars[4].name="SHARINGIO_PAIR_BASE_DNS_NAME" \
             --set-string extraEnvVars[4].value="{{ $.Setup.BaseDNSName }}" \
             --set options.preinitScript='(
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
@@ -958,6 +961,7 @@ EOF
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
 	instance.Setup.HumacsVersion = defaultHumacsVersion
+	instance.Setup.BaseDNSName = instance.Setup.UserLowercase + "." + common.GetBaseHost()
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
@@ -1263,36 +1267,47 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, u
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
 	log.Printf("%#v\n", groupVersionResource)
-	watcher, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Watch(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name="+name})
+	watcher, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Watch(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return err
 	}
 	defer watcher.Stop()
 	watchChan := watcher.ResultChan()
+machineWatchChannel:
 	for event := range watchChan {
-		machine, ok := event.Object.(*clusterAPIv1alpha3.Machine)
-		if ok != true {
-			fmt.Println("unable to convert event.Object type")
-			return
-		}
+		eventObjectBytes, _ := json.Marshal(event.Object)
+		var machine clusterAPIv1alpha3.Machine
+		json.Unmarshal(eventObjectBytes, &machine)
+		fmt.Printf("%#v\n", machine)
 		if len(machine.Status.Addresses) < 1 {
-			return
+			log.Println("error: machine has no IP addresses")
+			continue
 		}
 		if machine.Status.Addresses[1].Address == "" {
-			return
+			log.Println("error: machine address is empty")
+			continue
 		}
+		if govalidator.IsIPv4(machine.Status.Addresses[1].Address) == false {
+			log.Printf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[1].Address)
+			continue
+		}
+
+		// NOTE first IP doesn't work, as it's used for the cluster's API; instead we will use the second, which works
 		ipAddress = machine.Status.Addresses[1].Address
-		break
+		fmt.Println("machine IP available:", ipAddress)
+		break machineWatchChannel
 	}
 	entry := dns.Entry{
-		Subdomain: "*."+username,
+		Subdomain: "*." + username,
 		Values: []string{
 			ipAddress,
 		},
 	}
-	err = dns.UpsertDNSEndpoint(dynamicClient, entry)
-	log.Printf("%#v\n", err)
+	err = dns.UpsertDNSEndpoint(dynamicClient, entry, name)
+	if err != nil {
+		log.Printf("%#v\n", err)
+	}
 
 	return err
 }
