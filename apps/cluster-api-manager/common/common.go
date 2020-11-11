@@ -47,10 +47,6 @@ func GetTargetNamespace() (namespace string) {
 	return GetEnvOrDefault("APP_TARGET_NAMESPACE", "sharingio-pair-instances")
 }
 
-func GetInstanceSubdomain() (subdomain string) {
-	return GetEnvOrDefault("APP_INSTANCE_SUBDOMAIN", "")
-}
-
 func GetBaseHost() (host string) {
 	return GetEnvOrDefault("APP_BASE_HOST", "")
 }
