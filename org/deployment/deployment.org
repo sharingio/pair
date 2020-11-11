@@ -120,3 +120,17 @@ Notes:
 #+begin_src bash :dir ../.././ :results silent
   helm uninstall sharingio-pair -n sharingio-pair
 #+end_src
+
+** Frontend REPL
+#+begin_src bash :results silent
+  kubectl -n sharingio-pair apply -f frontend-repl-service.yaml
+#+end_src
+
+#+begin_src bash :results silent
+  kubectl -n sharingio-pair patch ingress sharingio-pair \
+    -p $"$(cat frontend-repl-ingress.yaml)"
+#+end_src
+
+#+RESULTS:
+#+begin_src bash
+#+end_src

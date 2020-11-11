@@ -1,0 +1,7 @@
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              serviceName: humacs
+              servicePort: 5000
