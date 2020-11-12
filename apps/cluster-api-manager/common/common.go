@@ -24,7 +24,7 @@ var (
 	AppBuildHash    = "???"
 	AppBuildDate    = "???"
 	AppBuildMode    = "development"
-	letters         = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	letters         = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 )
 
 func GetEnvOrDefault(envName string, defaultValue string) (output string) {
