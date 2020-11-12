@@ -1,0 +1,66 @@
+#+TITLE: PowerDNS
+
+#+begin_src shell
+  sudo apt update
+  sudo apt install -y mariadb-client
+#+end_src
+
+#+begin_src shell :results silent
+  kubectl create ns powerdns
+#+end_src
+
+#+begin_src shell :results silent
+  helm repo add aecharts https://raw.githubusercontent.com/aescanero/helm-charts/master/
+  helm repo update
+#+end_src
+
+#+begin_src shell :results silent
+  helm install powerdns -n powerdns \
+    --set domain=bobymcbobs.pair.sharing.io \
+    --set default_soa_name=bobymcbobs.pair.sharing.io \
+    --set apikey=pairingissharing \
+    --set powerdns.domain=bobymcbobs.pair.sharing.io \
+    --set powerdns.default_soa_name=bobymcbobs.pair.sharing.io \
+    --set powerdns.mysql_host=powerdns-service-db \
+    --set mariadb.mysql_pass=pairingissharing \
+    --set mariadb.mysql_rootpass=pairingissharing \
+    --set admin.service.type=ClusterIP \
+    --set admin.powerdns_host=powerdns-service-api \
+    --set admin.ingress.enabled=true \
+    --set admin.ingress.class=nginx \
+    --set admin.ingress.hostname=powerdns \
+    --set admin.secret=pairingissharing \
+    aecharts/powerdns
+#+end_src
+
+#+begin_src shell :results silent
+  LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+  kubectl -n powerdns patch svc powerdns-service-dns-udp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
+#+end_src
+
+#+begin_src shell :results silent
+  helm upgrade powerdns -n powerdns \
+    --set domain=bobymcbobs.pair.sharing.io \
+    --set default_soa_name=bobymcbobs.pair.sharing.io \
+    --set apikey=pairingissharing \
+    --set powerdns.domain=bobymcbobs.pair.sharing.io \
+    --set powerdns.default_soa_name=bobymcbobs.pair.sharing.io \
+    --set powerdns.mysql_host=powerdns-service-db \
+    --set mariadb.mysql_pass=pairingissharing \
+    --set mariadb.mysql_rootpass=pairingissharing \
+    --set admin.service.type=ClusterIP \
+    --set admin.powerdns_host=powerdns-service-api \
+    --set admin.ingress.enabled=true \
+    --set admin.ingress.class=nginx \
+    --set admin.ingress.hostname=powerdns \
+    --set admin.secret=pairingissharing \
+    aecharts/powerdns
+#+end_src
+
+#+begin_src shell
+  mysql -upowerdns -Dpowerdns -pchangeme -hpowerdns-service-db.powerdns < schema.sql
+#+end_src
+
+#+begin_src shell :results silent
+  helm uninstall powerdns -n powerdns
+#+end_src

@@ -1,0 +1,187 @@
+#+TITLE: External DNS PowerDNS
+
+#+begin_src elisp :results none
+  (setenv "DOMAIN_FILTER" (read-from-minibuffer "DOMAIN_FILTER: "))
+  (setenv "TXT_OWNER_ID" (read-from-minibuffer "TXT_OWNER_ID: "))
+#+end_src
+
+#+name: get-domain-filter
+#+begin_src elisp :results silent
+  (getenv "DOMAIN_FILTER")
+#+end_src
+
+#+name: get-txt-owner-id
+#+begin_src elisp :results silent
+  (getenv "TXT_OWNER_ID")
+#+end_src
+
+#+begin_src yaml :noweb yes :tangle ./external-dns.yaml
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: external-dns
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: external-dns
+  rules:
+  - apiGroups:
+      - ""
+    resources:
+      - services
+      - endpoints
+      - pods
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - extensions
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - externaldns.k8s.io
+    resources:
+      - dnsendpoints
+    verbs:
+      - get
+      - watch
+      - list
+  - apiGroups:
+      - externaldns.k8s.io
+    resources:
+      - dnsendpoints/status
+    verbs:
+    - get
+    - update
+    - patch
+    - delete
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: external-dns-viewer
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: external-dns
+  subjects:
+  - kind: ServiceAccount
+    name: external-dns
+    namespace: external-dns
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: external-dns
+  spec:
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        app: external-dns
+    template:
+      metadata:
+        labels:
+          app: external-dns
+      spec:
+        serviceAccountName: external-dns
+        containers:
+        - name: external-dns
+          image: k8s.gcr.io/external-dns/external-dns:v0.7.4
+          args:
+          - --source=crd
+          - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
+          - --crd-source-kind=DNSEndpoint
+          - --provider=pdns
+          - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+          - --registry=txt
+          - --interval=30s
+          env:
+            - name: EXTERNAL_DNS_DOMAIN_FILTER
+              valueFrom:
+                secretKeyRef:
+                  name: external-dns-pdns
+                  key: domain-filter
+            - name: EXTERNAL_DNS_TXT_OWNER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: external-dns-pdns
+                  key: txt-owner-id
+            - name: EXTERNAL_DNS_PDNS_SERVER
+              valueFrom:
+                secretKeyRef:
+                  name: external-dns-pdns
+                  key: pdns-server
+            - name: EXTERNAL_DNS_PDNS_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: external-dns-pdns
+                  key: pdns-api-key
+            - name: EXTERNAL_DNS_PDNS_TLS_ENABLED
+              value: "0"
+#+end_src
+
+* Installation
+
+Create the namespace:
+#+begin_src shell :results silent
+  kubectl create ns external-dns
+#+end_src
+
+Create the pdns secret:
+#+begin_src shell :noweb yes :results silent
+  kubectl -n external-dns create secret generic external-dns-pdns \
+    --from-literal=domain-filter=<<get-domain-filter()>> \
+    --from-literal=txt-owner-id=<<get-txt-owner-id()>> \
+    --from-literal=pdns-server=http://powerdns-service-api.powerdns:8081 \
+    --from-literal=pdns-api-key=pairingissharing
+#+end_src
+
+Install the CRD:
+#+begin_src shell :results silent
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/docs/contributing/crd-source/crd-manifest.yaml
+#+end_src
+
+Install external-dns:
+#+begin_src shell :results silent
+  kubectl -n external-dns apply -f ./external-dns.yaml
+#+end_src
+
+* Clean up
+
+Delete the pdns secret:
+#+begin_src shell :noweb yes :results silent
+  kubectl -n external-dns delete secret external-dns-pdns
+#+end_src
+
+Remove the external-dns:
+#+begin_src shell :results silent
+  kubectl -n external-dns delete -f ./external-dns.yaml
+#+end_src
+
+* Test
+#+begin_src yaml :tangle ./dns-record-test.yaml
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: testhost2-pair-sharing-io
+spec:
+  endpoints:
+  - dnsName: testhost2.bobymcbobs.pair.sharing.io
+    recordTTL: 60
+    recordType: A
+    targets:
+    - 127.0.0.1
+#+end_src
+
+Install external-dns:
+#+begin_src shell :results silent
+  kubectl apply -f ./dns-record-test.yaml
+#+end_src
