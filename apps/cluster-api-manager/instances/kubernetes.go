@@ -631,7 +631,7 @@ iface lo:0 inet static
   netmask 255.255.255.255
 EOF
 `,
-						"systemctl restart networking",
+						"",
 						"mkdir -p /root/.kube",
 						"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
 						"export KUBECONFIG=/root/.kube/config",
@@ -691,6 +691,209 @@ EOF`,
 						`(
                                                    helm repo add helm-stable https://kubernetes-charts.storage.googleapis.com
                                                    helm install -n kube-system metrics-server --version 2.11.2 --set args=\{--logtostderr,--kubelet-preferred-address-types=InternalIP,--kubelet-insecure-tls\} helm-stable/metrics-server
+)`,
+						`(
+  kubectl create ns external-dns
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/docs/contributing/crd-source/crd-manifest.yaml
+  kubectl -n external-dns create secret generic external-dns-pdns \
+    --from-literal=domain-filter={{ $.Setup.BaseDNSName }} \
+    --from-literal=txt-owner-id={{ $.Setup.User }} \
+    --from-literal=pdns-server=http://powerdns-service-api.powerdns:8081 \
+    --from-literal=pdns-api-key=pairingissharing
+
+  kubectl -n external-dns apply -f - << EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: external-dns
+rules:
+- apiGroups:
+    - ""
+  resources:
+    - services
+    - endpoints
+    - pods
+  verbs:
+    - get
+    - watch
+    - list
+- apiGroups:
+    - extensions
+    - networking.k8s.io
+  resources:
+    - ingresses
+  verbs:
+    - get
+    - watch
+    - list
+- apiGroups:
+    - externaldns.k8s.io
+  resources:
+    - dnsendpoints
+  verbs:
+    - get
+    - watch
+    - list
+- apiGroups:
+    - externaldns.k8s.io
+  resources:
+    - dnsendpoints/status
+  verbs:
+  - get
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: external-dns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: k8s.gcr.io/external-dns/external-dns:v0.7.4
+        args:
+        - --source=crd
+        - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
+        - --crd-source-kind=DNSEndpoint
+        - --provider=pdns
+        - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+        - --registry=txt
+        - --interval=10s
+        env:
+          - name: EXTERNAL_DNS_DOMAIN_FILTER
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-pdns
+                key: domain-filter
+          - name: EXTERNAL_DNS_TXT_OWNER_ID
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-pdns
+                key: txt-owner-id
+          - name: EXTERNAL_DNS_PDNS_SERVER
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-pdns
+                key: pdns-server
+          - name: EXTERNAL_DNS_PDNS_API_KEY
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-pdns
+                key: pdns-api-key
+          - name: EXTERNAL_DNS_PDNS_TLS_ENABLED
+            value: "0"
+EOF
+)`,
+						`(
+  kubectl create ns powerdns
+  helm repo add aecharts https://raw.githubusercontent.com/aescanero/helm-charts/master/
+  helm repo update
+  helm install powerdns -n powerdns \
+    --set domain={{ $.Setup.BaseDNSName }} \
+    --set default_soa_name={{ $.Setup.BaseDNSName }} \
+    --set apikey=pairingissharing \
+    --set powerdns.domain={{ $.Setup.BaseDNSName }} \
+    --set powerdns.default_soa_name={{ $.Setup.BaseDNSName }} \
+    --set powerdns.mysql_host=powerdns-service-db \
+    --set powerdns.mysql_user=powerdns \
+    --set mariadb.mysql_pass=pairingissharing \
+    --set mariadb.mysql_rootpass=pairingissharing \
+    --set admin.service.type=ClusterIP \
+    --set admin.mysql_user=powerdns \
+    --set admin.mysql_pass=pairingissharing \
+    --set admin.mysql_host=powerdns-service-db \
+    --set admin.powerdns_host=powerdns-service-api \
+    --set admin.ingress.enabled=true \
+    --set admin.ingress.class=nginx \
+    --set admin.ingress.hostname=powerdns \
+    --set admin.secret=pairingissharing \
+    aecharts/powerdns
+
+  kubectl -n powerdns apply -f - << EOF
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    meta.helm.sh/release-name: powerdns
+    meta.helm.sh/release-namespace: powerdns
+  labels:
+    app.kubernetes.io/instance: powerdns
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: powerdns
+    app.kubernetes.io/version: 4.3.4
+    helm.sh/chart: powerdns-0.1.11
+  name: powerdns-service-dns-tcp
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - name: dns-tcp
+    port: 53
+    protocol: TCP
+    targetPort: dns-tcp
+  selector:
+    app.kubernetes.io/instance: powerdns
+    app.kubernetes.io/name: powerdns
+    powerdns.com/role: api
+  sessionAffinity: None
+  type: LoadBalancer
+EOF
+  export LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+  kubectl -n powerdns patch svc powerdns-service-dns-udp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
+  kubectl -n powerdns patch svc powerdns-service-dns-tcp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
+
+  kubectl -n powerdns apply -f - << EOF
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: '{{ $.Setup.BaseDNSName }}-pair-sharing-io'
+spec:
+  endpoints:
+  - dnsName: '{{ $.Setup.BaseDNSName }}'
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+  - dnsName: '*.{{ $.Setup.BaseDNSName }}'
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+  - dnsName: '{{ $.Setup.BaseDNSName }}'
+    recordTTL: 60
+    recordType: SOA
+    targets:
+    - 'ns1.{{ $.Setup.BaseDNSName }}. hostmaster.{{ $.Setup.BaseDNSName }}. 5 60 60 60 60'
+EOF
 )`,
 						`(
           cd /root;
@@ -981,8 +1184,36 @@ EOF
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[10] = templatedBuffer.String()
 
+	fmt.Printf("\n\n\nTemplate name: external-dns-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("external-dns-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24])
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating External DNS install command: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating External DNS install command: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24] = templatedBuffer.String()
+
+	fmt.Printf("\n\n\nTemplate name: powerdns%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("powerdns-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25])
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25] = templatedBuffer.String()
+
 	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24])
+	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
@@ -993,7 +1224,7 @@ EOF
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26] = templatedBuffer.String()
 
 	templatedBuffer = nil
 	tmpl = nil
@@ -1312,7 +1543,7 @@ machineWatchChannel:
 		break machineWatchChannel
 	}
 	entry := dns.Entry{
-		Subdomain: "*." + username,
+		Subdomain: username,
 		Values: []string{
 			ipAddress,
 		},

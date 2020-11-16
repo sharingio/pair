@@ -38,8 +38,9 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instance
 
 	baseHost := common.GetBaseHost()
 	dnsName := entry.Subdomain + "." + baseHost
+	dnsNameNS := "ns1." + dnsName
 	hostReverse := ReverseDomain(dnsName)
-	name := strings.Replace("sharingio-pair-" + FormatAsName(hostReverse), "*", "wildcard", -1)
+	name := strings.Replace(FormatAsName(hostReverse), "*", "wildcard", -1)
 	log.Println("names:", name, dnsName)
 
 	endpoint := externaldnsendpoint.DNSEndpoint{
@@ -52,10 +53,16 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instance
 		Spec: externaldnsendpoint.DNSEndpointSpec{
 			Endpoints: []*externaldnsendpoint.Endpoint{
 				{
-					DNSName:    dnsName,
+					DNSName:    dnsNameNS,
 					Targets:    entry.Values,
 					RecordTTL:  60,
 					RecordType: "A",
+				},
+				{
+					DNSName:    dnsName,
+					Targets:    []string{dnsNameNS},
+					RecordTTL:  60,
+					RecordType: "NS",
 				},
 			},
 		},
