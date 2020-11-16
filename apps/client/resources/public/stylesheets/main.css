@@ -1,0 +1,48 @@
+:root{
+    --color_bg: hsl(100, 98.0%, 99.0%);
+    --color_text: hsl(0, 1.2%, 3.4%);
+    --font_body: 'Manrope', 'Helvetica', sans-serif;
+    --font-base: 20px;
+}
+
+body , html {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--color_bg);
+    color: var(--color_text);
+    font-family: var(--font_body);
+    font-size: var(--font-base);
+}
+
+p, a, ul, li, h1, h2, h3, h4 {
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+}
+
+header a {
+    text-decoration: none;
+    color: unset;
+}
+
+header a.home {
+    font-size: 2.5rem;
+    font-weight: 200;
+}
+
+main#splash {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}

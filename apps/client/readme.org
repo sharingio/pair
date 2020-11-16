@@ -188,7 +188,6 @@ Create the database secrets
 
 #+RESULTS:
 #+begin_example
-secret/postgres-configuration created
 #+end_example
 
 Create the Postgres instance
