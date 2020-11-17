@@ -1,6 +1,8 @@
 (ns client.views
   (:require [hiccup.page :refer [html5 include-css]]
+            [hiccup.form :as form]
             [client.db :as db]
+            [client.github :as gh]
             [environ.core :refer [env]]))
 
 (def login-url (str "https://github.com/login/oauth/authorize?"
@@ -55,6 +57,42 @@
 
 (defn launch
   [username project]
+  (let [{:keys [html_url description]} (gh/get-repo project)
+        {:keys [full_name email permitted_org_member]} (db/find-user username)]
   (layout
    [:main#launch
-    [:h3 "launching"]] username))
+    [:h3 "Let's Collaborate on " project]
+    [:p description]
+    [:hr]
+    (if permitted_org_member
+         [:div
+       [:h3 "Deploy to Packet"]
+       [:form {:action "/launch" :method :post}
+        [:label {:for "type"} "Type"]
+        (form/drop-down "type" '("Kubernetes")
+                        "kubernetes")
+        [:input {:type :hidden
+                 :name "project"
+                 :value project}]
+        [:input {:type :hidden
+                 :name "facility"
+                 :value "sjc1"}]
+        [:input {:type :hidden
+                 :name "fullname"
+                 :value full_name}]
+        [:input {:type :hidden
+                 :name "email"
+                 :value email}]
+        [:label {:for "guests"} "guests"]
+        [:input {:type :text
+                 :name "guests"
+                 :id "guests"
+                 :placeholder "users to invite (space separated)"}]
+        [:label {:for "repos"} "Additional Repos"]
+        [:input {:type :text
+                 :name "repos"
+                 :id "repos"
+                 :placeholder "additional repos to add (space separated)"}]
+        [:input {:type :submit :value "launch"}]]]
+         [:div "you aren't allowed"])]
+     username)))
