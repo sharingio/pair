@@ -1,0 +1,11 @@
+#+TITLE: Debugging
+
+* Finding labels
+#+begin_src shell :wrap "SRC yaml"
+kubectl -n powerdns get pods -o=jsonpath='{.items[].metadata.labels}' | yq -y .
+#+end_src
+
+* Get logs
+#+begin_src shell
+kubectl -n powerdns logs -l app.kubernetes.io/name=powerdns -f --tail=200
+#+end_src
