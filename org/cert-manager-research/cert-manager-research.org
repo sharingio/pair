@@ -1,0 +1,175 @@
+#+TITLE: Cert-Manager Research
+
+* Goal
+Integrate Cert-Manager with PowerDNS in order to provide a wild TLS cert to the whole cluster.
+
+* Requirements
+- [X] PowerDNS instance
+- [ ] PowerDNS TSIG enabled
+- [ ] TSIG key + loaded into DB
+- [ ] TSIG key loaded into K8s Secret
+
+* Steps
+** Patch cert-manager DNSConfig
+#+begin_src shell :results silent
+  kubectl -n cert-manager patch deployment cert-manager -p '{"spec":{"template":{"spec":{"dnsConfig":{"nameservers":["8.8.8.8","1.1.1.1"]}}}}}'
+#+end_src
+
+** PowerDNS configuration
+#+begin_src
+  --set powerdns.extraEnv[0].name="PDNS_dnsupdate" \
+  --set powerdns.extraEnv[0].value="yes" \
+  --set powerdns.extraEnv[1].name="PDNS_allow_dnsupdate_from"  \
+  --set-string powerdns.extraEnv[1].value="192.168.0.0/24" \
+  --set service.dns.tcp.enabled=true \
+  --set service.dns.tcp.externalIPs[0]=$LOAD_BALANCER_IP \
+  --set service.dns.udp.externalIPs[0]=$LOAD_BALANCER_IP
+#+end_src
+
+** Generate TSIG
+#+begin_src shell :results silent
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
+#+end_src
+
+** Activate TSIG key
+#+begin_src shell :results silent
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil activate-tsig-key hh.pair.sharing.io pair master
+#+end_src
+
+** Retrieve TSIG key
+#+begin_src shell :results silent
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}'
+#+end_src
+
+** Get the metadata for keys
+#+begin_src shell
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil get-meta hh.pair.sharing.io
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Metadata for 'hh.pair.sharing.io'
+TSIG-ALLOW-AXFR = pair
+TSIG-ALLOW-DNSUPDATE = pair
+#+end_example
+
+** Set metadata for key
+#+begin_src shell
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil set-meta hh.pair.sharing.io TSIG-ALLOW-DNSUPDATE pair
+#+end_src
+
+#+RESULTS:
+#+begin_example
+Set 'hh.pair.sharing.io' meta TSIG-ALLOW-DNSUPDATE = pair
+#+end_example
+
+** Create the TSIG key as a Kubernetes Secret
+#+begin_src shell :results silent
+  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
+#+end_src
+
+* Resources
+** Cluster-Issuer
+#+begin_src yaml :tangle ./cluster-issuer.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: dns@ii.coop
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - dns01:
+        rfc2136:
+          tsigKeyName: pair
+          tsigAlgorithm: HMACMD5
+          tsigSecretSecretRef:
+            name: tsig-powerdns
+            key: powerdns
+          nameserver: 139.178.68.188
+      selector:
+        dnsNames:
+          - "*.hh.pair.sharing.io"
+          - "hh.pair.sharing.io"
+#+end_src
+
+** Certificate
+#+begin_src yaml :tangle ./cert.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: letsencrypt-prod
+spec:
+  secretName: letsencrypt-prod
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: "*.hh.pair.sharing.io"
+  dnsNames:
+    - hh.pair.sharing.io
+    - "*.hh.pair.sharing.io"
+#+end_src
+
+** Apply the certs
+#+begin_src shell :results silent
+  kubectl apply -f cluster-issuer.yaml -f cert.yaml
+#+end_src
+
+** Cert-Manager debug
+*** Logs
+#+begin_src shell
+  kubectl -n cert-manager logs -l app=cert-manager
+#+end_src
+
+#+RESULTS:
+#+begin_example
+I1117 02:38:08.326167       1 round_trippers.go:431]     Authorization: Bearer <masked>
+I1117 02:38:08.331879       1 round_trippers.go:446] Response Status: 200 OK in 5 milliseconds
+I1117 02:38:08.331916       1 round_trippers.go:449] Response Headers:
+I1117 02:38:08.331929       1 round_trippers.go:452]     Content-Length: 823
+I1117 02:38:08.331939       1 round_trippers.go:452]     Date: Tue, 17 Nov 2020 02:38:08 GMT
+I1117 02:38:08.331949       1 round_trippers.go:452]     Audit-Id: 3184acff-ea40-477b-ac82-250c65f2d2ce
+I1117 02:38:08.331959       1 round_trippers.go:452]     Cache-Control: no-cache, private
+I1117 02:38:08.331968       1 round_trippers.go:452]     Content-Type: application/json
+I1117 02:38:08.332024       1 request.go:1097] Response Body: {"kind":"ConfigMap","apiVersion":"v1","metadata":{"name":"cert-manager-controller","namespace":"kube-system","selfLink":"/api/v1/namespaces/kube-system/configmaps/cert-manager-controller","uid":"5e1cce43-333e-4dba-acb4-bba7539b6cad","resourceVersion":"310274","creationTimestamp":"2020-11-16T01:18:45Z","annotations":{"control-plane.alpha.kubernetes.io/leader":"{\"holderIdentity\":\"cert-manager-86cff98cd8-wc522-external-cert-manager-controller\",\"leaseDurationSeconds\":60,\"acquireTime\":\"2020-11-17T02:27:22Z\",\"renewTime\":\"2020-11-17T02:38:08Z\",\"leaderTransitions\":2}"},"managedFields":[{"manager":"controller","operation":"Update","apiVersion":"v1","time":"2020-11-17T02:38:08Z","fieldsType":"FieldsV1","fieldsV1":{"f:metadata":{"f:annotations":{".":{},"f:control-plane.alpha.kubernetes.io/leader":{}}}}}]}}
+I1117 02:38:08.332334       1 leaderelection.go:273] successfully renewed lease kube-system/cert-manager-controller
+#+end_example
+
+*** Resources
+#+begin_src shell
+  kubectl get clusterissuer,certs,orders,challenges -A
+#+end_src
+
+#+RESULTS:
+#+begin_example
+NAME                                             READY   AGE
+clusterissuer.cert-manager.io/letsencrypt-prod   True    21h
+
+NAMESPACE   NAME                                           READY   SECRET             AGE
+hh          certificate.cert-manager.io/letsencrypt-prod   False   letsencrypt-prod   21h
+
+NAMESPACE   NAME                                                           STATE     AGE
+hh          order.acme.cert-manager.io/letsencrypt-prod-tpdjj-1901030475   pending   21h
+
+NAMESPACE   NAME                                                                          STATE     DOMAIN               AGE
+hh          challenge.acme.cert-manager.io/letsencrypt-prod-tpdjj-1901030475-1375332513   pending   hh.pair.sharing.io   2m19s
+hh          challenge.acme.cert-manager.io/letsencrypt-prod-tpdjj-1901030475-4140240461             hh.pair.sharing.io   2m19s
+#+end_example
+
+* Footnotes
+** sometime later, kubernetes-tramp
+#+begin_src shell :prologue :dir (concat "/kubectl:" (shell-command-to-string "kubectl get pod -n powerdns -l app.kubernetes.io/name=powerdns -o=jsonpath='{.items[0].metadata.name}'") ":")
+  pwd
+#+end_src
+
+#+begin_src emacs-lisp
+(concat "/kubectl:" (shell-command-to-string "kubectl get pod -n powerdns -l app.kubernetes.io/name=powerdns -o=jsonpath='{.items[0].metadata.name}'") ":")
+#+end_src
+
+** Exec into PowerDNS DB
+#+begin_src tmate :window powerdns-db-mysql
+  mysql -upowerdns -Dpowerdns -ppairingissharing -hpowerdns-service-db.powerdns
+#+end_src

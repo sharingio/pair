@@ -5,7 +5,24 @@
 kubectl -n powerdns get pods -o=jsonpath='{.items[].metadata.labels}' | yq -y .
 #+end_src
 
+#+RESULTS:
+#+begin_SRC yaml
+app.kubernetes.io/instance: powerdns
+app.kubernetes.io/managed-by: Helm
+app.kubernetes.io/name: powerdns
+app.kubernetes.io/version: 4.3.4
+helm.sh/chart: powerdns-0.1.11
+pod-template-hash: 55c94fddd
+powerdns.com/role: api
+#+end_SRC
+
 * Get logs
-#+begin_src shell
-kubectl -n powerdns logs -l app.kubernetes.io/name=powerdns -f --tail=200
+** PowerDNS
+#+begin_src tmate :window powerdns-logs
+  kubectl -n powerdns logs -l app.kubernetes.io/name=powerdns -f --tail=200
+#+end_src
+
+** External-DNS
+#+begin_src tmate :window external-dns-logs
+  kubectl -n external-dns logs -l app=external-dns -f --tail=200
 #+end_src
