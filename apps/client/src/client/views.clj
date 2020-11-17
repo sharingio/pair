@@ -1,5 +1,6 @@
 (ns client.views
   (:require [hiccup.page :refer [html5 include-css]]
+            [client.db :as db]
             [environ.core :refer [env]]))
 
 (def login-url (str "https://github.com/login/oauth/authorize?"
@@ -8,10 +9,16 @@
 
 (defn header
   [username]
+  (if username
+    (let [{:keys [full_name avatar_url]} (db/find-user username)]
+    [:header
+     [:a.home {:href "/"} "sharing.io"]
+     [:nav
+      [:p [:img {:src avatar_url}] [:a {:href "/logout"} "logout"]]]])
   [:header
    [:a.home {:href "/"} "sharing.io"]
    [:nav
-    [:a {:href login-url} (if username username "login with github")]]])
+    [:a {:href login-url} (if username username "login with github")]]]))
 
 (defn layout
   [body username]
@@ -34,5 +41,14 @@
   (layout
    [:main#splash
     [:section#cta
-     [:p.tagline "Sharing is pairing!"]]]
+     [:p.tagline "Sharing is pairing!"]
+     [:form {:action "/launch"
+             :method :get
+             :id "git-started"}
+      [:label {:for "project"} "Enter a github repository"]
+      [:input {:type "text"
+               :name "project"
+               :placeholder "user/repo"}]
+      [:input {:type "submit"
+               :value "Get Started!"}]]]]
    username))

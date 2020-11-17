@@ -39,6 +39,14 @@ header a.home {
     font-size: 2.5rem;
     font-weight: 200;
 }
+header nav p {
+    display: flex;
+    align-items: center;
+}
+
+header nav img {
+    max-width: 2rem;
+}
 
 main#splash {
     height: 100vh;

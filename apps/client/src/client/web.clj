@@ -39,7 +39,10 @@
 
 (defroutes app-routes
   (GET "/" {session :session}
-       (views/splash (:name (:username session))))
+       (views/splash (:username session)))
+
+  (GET "/logout" []
+       (assoc (res/redirect "/") :session nil))
 
   (GET "/oauth"[code :as {session :session}]
        (if code
@@ -59,7 +62,9 @@
              (db/update-user user)
              (db/add-user user))
            (assoc (res/redirect (if (:project session) "/launch" "/"))
-                  :session (merge session {:token token :user username})))))
+                  :session (merge session {:token token :username username})))))
+
+
   (route/not-found "Not Found"))
 
 (def app

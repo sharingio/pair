@@ -17,7 +17,7 @@
   "Returns info for existing user from db or nil"
   [username]
   (jdbc/execute-one! ds
-   ["select username, full_name, email, permitted_org_member
+   ["select username, full_name, email, permitted_org_member, avatar_url
        from public.user
       where username = ?" username]
    {:return-keys true :builder-fn rs/as-unqualified-lower-maps}))
