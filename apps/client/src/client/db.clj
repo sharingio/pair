@@ -13,6 +13,13 @@
 
 (def ds (jdbc/get-datasource db))
 
+(defn add-user
+  [{:keys [username fullname avatar email permitted-org-member]}]
+  (jdbc/execute! db ["
+insert into public.user
+(username, full_name, avatar_url, email, permitted_org_member)
+values(?,?,?,?,?)" username fullname avatar email permitted-org-member]))
+
 (defn find-user
   "Returns info for existing user from db or nil"
   [username]
@@ -21,6 +28,23 @@
        from public.user
       where username = ?" username]
    {:return-keys true :builder-fn rs/as-unqualified-lower-maps}))
+
+(defn update-user
+  [{:keys [username fullname avatar email permitted-org-member]}]
+(jdbc/execute! db ["
+update public.user
+   set (full_name, avatar_url, email, permitted_org_member)=(?, ?,?,?)
+where username = ?" fullname avatar email permitted-org-member username]))
+
+(defn find-instance
+  "Returns info for existing instance from db or nil"
+  [username project]
+  (jdbc/execute-one! ds ["
+select id, owner, project, facility, type, description,  status, at
+       from public.instance
+      where owner = ?
+        and project = ?
+" username project]{:return-keys true :builder-fn rs/as-unqualified-lower-maps}))
 
 (defn create-user-table
   [ds]
@@ -34,20 +58,6 @@ create table public.user
   email text,
   data jsonb
 )"]))
-
-(defn add-user
-  [{:keys [username fullname avatar email permitted-org-member]}]
-  (jdbc/execute! db ["
-insert into public.user
-(username, full_name, avatar_url, email, permitted_org_member)
-values(?,?,?,?,?)" username fullname avatar email permitted-org-member]))
-
-(defn update-user
-  [{:keys [username fullname avatar email permitted-org-member]}]
-(jdbc/execute! db ["
-update public.user
-   set (full_name, avatar_url, email, permitted_org_member)=(?, ?,?,?)
-where username = ?" fullname avatar email permitted-org-member username]))
 
 (defn create-instance-table
   [ds]

@@ -41,6 +41,15 @@
   (GET "/" {session :session}
        (views/splash (:username session)))
 
+  (GET "/launch" {{:keys [username] :as session} :session
+                  {:keys [project]} :params}
+       (if-let [instance (db/find-instance username project)]
+         (res/redirect (str "/project/" project))
+         (if username
+           (views/launch username project)
+           (assoc (res/redirect views/login-url)
+                  :session (merge session {:project project})))))
+
   (GET "/logout" []
        (assoc (res/redirect "/") :session nil))
 

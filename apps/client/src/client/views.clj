@@ -52,3 +52,9 @@
       [:input {:type "submit"
                :value "Get Started!"}]]]]
    username))
+
+(defn launch
+  [username project]
+  (layout
+   [:main#launch
+    [:h3 "launching"]] username))
