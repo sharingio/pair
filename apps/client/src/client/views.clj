@@ -88,5 +88,5 @@
   [username project]
   (layout
    [:main#project
-    [:h3 "you made it to the project page for "project]]
+    [:h3 "you made it to the project page for " project]]
    username))

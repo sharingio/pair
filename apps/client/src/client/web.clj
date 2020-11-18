@@ -9,33 +9,9 @@
             [compojure.handler :refer [site]]
             [client.views :as views]
             [client.db :as db]
+            [client.github :as gh]
+            [client.packet :as packet]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
-
-(defn get-token [code]
-  (-> (http/post "https://github.com/login/oauth/access_token"
-                 {:form-params {:client_id (env :oauth-client-id)
-                                :client_secret (env :oauth-client-secret)
-                                :code code}
-                  :headers {"Accept" "application/json"}})
-      :body (json/decode true) :access_token))
-
-(defn github-get
-  [endpoint token]
-  (-> (http/get (str "https://api.github.com/" endpoint)
-                {:headers {"accept" "application/json"
-                           "Authorization" (str "token " token)}})
-      :body (json/decode true)))
-
-(defn get-primary-email
-  [token]
-  (let [emails (github-get "user/emails" token)]
-    (:email (first (filter #(= (:primary %)true) emails)))))
-
-(defn in-permitted-org?
-  [token]
-  (let [user-orgs (set (map :login (github-get "user/orgs" token)))
-        permitted-orgs (set '(sharingio cncf kubernetes))]
-    (empty? (clojure.set/intersection user-orgs permitted-orgs))))
 
 (defroutes app-routes
   (GET "/" {session :session}
@@ -51,12 +27,12 @@
                   :session (merge session {:project project})))))
 
   (POST "/launch" {{:keys [username] :as session} :session
-                   {:keys [project] :as params} :project}
-        (println "PROJECT" project)
+                   {:keys [project] :as params} :params}
         (when-not username
           (throw (ex-info "must be logged in" {:status 400})))
         (when (db/find-instance username project)
           (throw (ex-info "already launched" {:status 403})))
+        (db/new-instance (packet/launch username params))
         (assoc (res/redirect (str "project/"project)) :session (merge session {:project project})))
 
 
@@ -65,13 +41,13 @@
 
   (GET "/oauth"[code :as {session :session}]
        (if code
-         (let [token (get-token code)
+         (let [token (gh/get-token code)
                {username :login
                 fullname :name
                 avatar :avatar_url
-                :as user}(github-get "user" token)
-               email (get-primary-email token)
-               permitted-org-member (in-permitted-org? token)
+                :as user}(gh/github-get "user" token)
+               email (gh/get-primary-email token)
+               permitted-org-member (gh/in-permitted-org? token)
                user {:username username
                      :fullname fullname
                      :avatar avatar
@@ -90,11 +66,29 @@
 
   (route/not-found "Not Found"))
 
-
 (defn wrap-find-instance
-  [req]
-  false)
+  [handler]
+  (fn [req]
+    (handler (if-let [project (second (re-find #"/project/([^/]+/[^/]+)"
+                                               (:uri req)))]
+               (if-let [inst (db/find-instance (:username (:session req)) project)]
+                 (assoc req :instance inst)
+                 (throw (ex-info "Instance not found." {:status 404})))
+               req))))
+
+;; (println request-method uri protocol headers remote-addr))
+(defn wrap-logging
+  [handler]
+  (fn [req]
+    (let [{req :request-method
+           proto :protocol
+           headers :headers} req]
+      (println "\n req:"req"\n protocol: "proto "\n headers: " headers))
+    (handler req)))
 
 (def app
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
-    (wrap-defaults app-routes (assoc site-defaults :session {:store store}))))
+    (-> app-routes
+        (wrap-find-instance)
+        (wrap-logging)
+        (wrap-defaults (assoc site-defaults :session {:store store})))))

@@ -31,7 +31,7 @@ values(?,?,?,?,?)" username fullname avatar email permitted-org-member]))
 
 (defn update-user
   [{:keys [username fullname avatar email permitted-org-member]}]
-(jdbc/execute! db ["
+(jdbc/execute! ds ["
 update public.user
    set (full_name, avatar_url, email, permitted_org_member)=(?, ?,?,?)
 where username = ?" fullname avatar email permitted-org-member username]))
@@ -45,6 +45,20 @@ select id, owner, project, facility, type, description,  status, at
       where owner = ?
         and project = ?
 " username project]{:return-keys true :builder-fn rs/as-unqualified-lower-maps}))
+
+(defn add-instance
+  "Add minimal info for a new instance"
+  [{:keys [owner project facility type instance-id status]}]
+  (jdbc/execute! ds ["
+insert into public.instance
+(owner, project, facility, type, instance_id, status)
+values(?,?,?,?,?,?)
+" owner project facility type instance-id status]))
+
+(defn new-instance
+  "receive payload from packet, add entries to instance table and guest table"
+  [payload]
+  (println payload))
 
 (defn create-user-table
   [ds]
@@ -68,6 +82,7 @@ create table public.instance
   owner  text references public.user(username),
   project text not null,
   facility text,
+  instance_id text,
   type  text,
   description text,
   status text,
@@ -86,4 +101,3 @@ create table public.instance
   []
   (migrate ds)
   (println "migrations applied"))
-
