@@ -42,13 +42,23 @@
        (views/splash (:username session)))
 
   (GET "/launch" {{:keys [username] :as session} :session
-                  {:keys [project]} :params}
+                  {:keys [project] :as params} :params}
        (if-let [instance (db/find-instance username project)]
-         (res/redirect (str "/project/" project))
+         (res/redirect (str "project/"project))
          (if username
            (views/launch username project)
            (assoc (res/redirect views/login-url)
                   :session (merge session {:project project})))))
+
+  (POST "/launch" {{:keys [username] :as session} :session
+                   {:keys [project] :as params} :project}
+        (println "PROJECT" project)
+        (when-not username
+          (throw (ex-info "must be logged in" {:status 400})))
+        (when (db/find-instance username project)
+          (throw (ex-info "already launched" {:status 403})))
+        (assoc (res/redirect (str "project/"project)) :session (merge session {:project project})))
+
 
   (GET "/logout" []
        (assoc (res/redirect "/") :session nil))
@@ -73,8 +83,17 @@
            (assoc (res/redirect (if (:project session) "/launch" "/"))
                   :session (merge session {:token token :username username})))))
 
+  (GET "/project/:gh-user/:project" {{:keys [username]} :session
+                                     instance :instance}
+       (views/project username instance))
+
 
   (route/not-found "Not Found"))
+
+
+(defn wrap-find-instance
+  [req]
+  false)
 
 (def app
   (let [store (cookie/cookie-store {:key (env :session-secret)})]

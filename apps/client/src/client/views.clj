@@ -1,6 +1,7 @@
 (ns client.views
   (:require [hiccup.page :refer [html5 include-css]]
             [hiccup.form :as form]
+            [ring.util.anti-forgery :as util]
             [client.db :as db]
             [client.github :as gh]
             [environ.core :refer [env]]))
@@ -38,22 +39,6 @@
     (header username)
     body]))
 
-(defn splash
-  [username]
-  (layout
-   [:main#splash
-    [:section#cta
-     [:p.tagline "Sharing is pairing!"]
-     [:form {:action "/launch"
-             :method :get
-             :id "git-started"}
-      [:label {:for "project"} "Enter a github repository"]
-      [:input {:type "text"
-               :name "project"
-               :placeholder "user/repo"}]
-      [:input {:type "submit"
-               :value "Get Started!"}]]]]
-   username))
 
 (defn launch
   [username project]
@@ -67,7 +52,9 @@
     (if permitted_org_member
          [:div
        [:h3 "Deploy to Packet"]
-       [:form {:action "/launch" :method :post}
+          (form/form-to
+           [:post "/launch"]
+           (util/anti-forgery-field)
         [:label {:for "type"} "Type"]
         (form/drop-down "type" '("Kubernetes")
                         "kubernetes")
@@ -93,6 +80,13 @@
                  :name "repos"
                  :id "repos"
                  :placeholder "additional repos to add (space separated)"}]
-        [:input {:type :submit :value "launch"}]]]
+        [:input {:type :submit :value "launch"}])]
          [:div "you aren't allowed"])]
      username)))
+
+(defn project
+  [username project]
+  (layout
+   [:main#project
+    [:h3 "you made it to the project page for "project]]
+   username))
