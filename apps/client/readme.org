@@ -188,6 +188,7 @@ Create the database secrets
 
 #+RESULTS:
 #+begin_example
+secret/postgres-configuration created
 #+end_example
 
 Create the Postgres instance
@@ -223,7 +224,7 @@ statefulset.apps/postgres created
   (getenv "BACKEND_ADDRESS")
 #+end_src
 
-#+begin_src shell :tangle ../../.env :noweb yes
+#+begin_src shell :tangle ./.env :noweb yes
   DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
   SESSION_SECRET=hahahahahahahaha
   CANONICAL_URL=<<get-pair-host()>>
