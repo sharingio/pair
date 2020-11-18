@@ -4,7 +4,7 @@
 
 Install clusterctl
 #+begin_src shell
-  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.8/clusterctl-linux-amd64 -o clusterctl
+  curl -L https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.10/clusterctl-linux-amd64 -o clusterctl
   chmod +x ./clusterctl
   sudo mv ./clusterctl /usr/local/bin/clusterctl
 #+end_src
@@ -41,13 +41,17 @@ Initialise ClusterAPI on your cluster, with the Packet infrastructure provider
 
 Create namespace for instances
 #+begin_src shell :results silent
-  kubectl create ns sharingio-pair-instances
+  kubectl create ns sharingio-pair
 #+end_src
 
 Select all resources from a deployment
 #+begin_src shell
-  kubectl -n sharingio-pair-instances get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines,packetmachines
+  kubectl -n sharingio-pair get kubeadmcontrolplanes,packetmachinetemplates,clusters,packetclusters,machinedeployments,packetmachinetemplates,kubeadmconfigtemplates,machines,packetmachines
 #+end_src
+
+#+RESULTS:
+#+begin_example
+#+end_example
 
 #+begin_src shell :dir ./ :noweb yes
       export APP_PACKET_PROJECT_ID=<<get-packet-project-id()>>
