@@ -58,7 +58,7 @@ values(?,?,?,?,?,?)
 (defn new-instance
   "receive payload from packet, add entries to instance table and guest table"
   [payload]
-  (println payload))
+  (add-instance payload))
 
 (defn create-user-table
   [ds]
