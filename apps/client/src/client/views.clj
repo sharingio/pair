@@ -39,6 +39,22 @@
     (header username)
     body]))
 
+(defn splash
+  [username]
+  (layout
+   [:main#splash
+    [:section#cta
+     [:p.tagline "Sharing is pairing!"]
+     [:form {:action "/launch"
+             :method :get
+             :id "git-started"}
+      [:label {:for "project"} "Enter a github repository"]
+      [:input {:type "text"
+               :name "project"
+               :placeholder "user/repo"}]
+      [:input {:type "submit"
+               :value "Get Started!"}]]]]
+   username))
 
 (defn launch
   [username project]
