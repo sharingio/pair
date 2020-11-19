@@ -838,9 +838,10 @@ EOF
     --set mariadb.mysql_pass=pairingissharing \
     --set mariadb.mysql_rootpass=pairingissharing \
     --set admin.service.type=ClusterIP \
-    --set admin.mysql_user=powerdns \
+    --set admin.mysql_user=root \
     --set admin.mysql_pass=pairingissharing \
     --set admin.mysql_host=powerdns-service-db \
+    --set admin.mysql_database=powerdns-admin \
     --set admin.powerdns_host=powerdns-service-api \
     --set admin.ingress.enabled=true \
     --set admin.ingress.class=nginx \
@@ -854,9 +855,6 @@ EOF
     --set service.dns.udp.externalIPs[0]=$LOAD_BALANCER_IP \
     --set admin.secret=pairingissharing \
     sharingio/powerdns
-
-  kubectl -n powerdns patch svc powerdns-service-dns-udp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
-  kubectl -n powerdns patch svc powerdns-service-dns-tcp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
 
   kubectl -n powerdns apply -f - << EOF
 apiVersion: externaldns.k8s.io/v1alpha1
@@ -969,6 +967,54 @@ EOF
             --set extraVolumeMounts[0].mountPath="/home/ii" \
             chart/humacs
         )
+`,
+						`
+  kubectl -n powerdns wait pod --for=condition=Ready --selector=app.kubernetes.io/name=powerdns --timeout=90s
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil activate-tsig-key {{ $.Setup.BaseDNSName }} pair master
+  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} TSIG-ALLOW-DNSUPDATE pair
+  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
+
+  export LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+  kubectl -n powerdns apply -f - << EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: {{ $.Setup.Email }}
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    solvers:
+    - dns01:
+        rfc2136:
+          tsigKeyName: pair
+          tsigAlgorithm: HMACMD5
+          tsigSecretSecretRef:
+            name: tsig-powerdns
+            key: powerdns
+          nameserver: ${LOAD_BALANCER_IP}
+      selector:
+        dnsNames:
+          - "*.{{ $.Setup.BaseDNSName }}"
+          - "{{ $.Setup.BaseDNSName }}"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: letsencrypt-prod
+spec:
+  secretName: letsencrypt-prod
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+  commonName: "*.{{ $.Setup.BaseDNSName }}"
+  dnsNames:
+    - "*.{{ $.Setup.BaseDNSName }}"
+    - "{{ $.Setup.BaseDNSName }}"
+EOF
 `,
 						"kubectl -n default create configmap sharingio-pair-init-complete",
 					},
@@ -1212,6 +1258,20 @@ EOF
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26] = templatedBuffer.String()
+
+	fmt.Printf("\n\n\nTemplate name: certs-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("certs-%v-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[27])
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating certs command: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating certs command: %#v", err), newInstance
+	}
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[27] = templatedBuffer.String()
 
 	templatedBuffer = nil
 	tmpl = nil
