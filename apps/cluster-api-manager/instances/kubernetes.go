@@ -815,8 +815,17 @@ spec:
 EOF
 )`,
 						`(
+  echo "waiting for nginx-ingress Service to have an IP address"
+  while true; do
+    if [ "$(kubectl -n nginx-ingress get service nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[].ip}')" ]; then
+      echo "nginx-ingress doesn't not have an IP address yet"
+      break
+    fi
+    sleep 1s
+  done
+  export LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
   kubectl create ns powerdns
-  helm repo add aecharts https://raw.githubusercontent.com/aescanero/helm-charts/master/
+  helm repo add sharingio https://raw.githubusercontent.com/sharingio/helm-charts/gh-pages/
   helm repo update
   helm install powerdns -n powerdns \
     --set domain={{ $.Setup.BaseDNSName }} \
@@ -836,38 +845,16 @@ EOF
     --set admin.ingress.enabled=true \
     --set admin.ingress.class=nginx \
     --set admin.ingress.hostname=powerdns \
+    --set powerdns.extraEnv[0].name="PDNS_dnsupdate" \
+    --set powerdns.extraEnv[0].value="yes" \
+    --set powerdns.extraEnv[1].name="PDNS_allow_dnsupdate_from" \
+    --set-string powerdns.extraEnv[1].value="192.168.0.0/24" \
+    --set service.dns.tcp.enabled=true \
+    --set service.dns.tcp.externalIPs[0]=$LOAD_BALANCER_IP \
+    --set service.dns.udp.externalIPs[0]=$LOAD_BALANCER_IP \
     --set admin.secret=pairingissharing \
-    aecharts/powerdns
+    sharingio/powerdns
 
-  kubectl -n powerdns apply -f - << EOF
-apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    meta.helm.sh/release-name: powerdns
-    meta.helm.sh/release-namespace: powerdns
-  labels:
-    app.kubernetes.io/instance: powerdns
-    app.kubernetes.io/managed-by: Helm
-    app.kubernetes.io/name: powerdns
-    app.kubernetes.io/version: 4.3.4
-    helm.sh/chart: powerdns-0.1.11
-  name: powerdns-service-dns-tcp
-spec:
-  externalTrafficPolicy: Cluster
-  ports:
-  - name: dns-tcp
-    port: 53
-    protocol: TCP
-    targetPort: dns-tcp
-  selector:
-    app.kubernetes.io/instance: powerdns
-    app.kubernetes.io/name: powerdns
-    powerdns.com/role: api
-  sessionAffinity: None
-  type: LoadBalancer
-EOF
-  export LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
   kubectl -n powerdns patch svc powerdns-service-dns-udp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
   kubectl -n powerdns patch svc powerdns-service-dns-tcp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
 
