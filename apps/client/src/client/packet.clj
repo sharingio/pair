@@ -49,6 +49,35 @@
     {:instance-id instance-id
      :phase phase}))
 
+(defn get-phase
+  [instance-id]
+  (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id))
+            :body
+            (json/decode true) :status :phase)
+        (catch Object _ ;; The first time it is pinged we sometimes get an HTTPNoResponse
+          (log/error "no http response for instance " instance-id)
+          "Not Ready")))
+
+(defn get-kubeconfig
+  [{:keys [phase instance_id]}]
+  (if (= "Provisioning" phase) nil
+    (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance_id"/kubeconfig"))
+              :body (json/decode true)
+              :spec json/generate-string)
+          (catch Object _
+            (log/error "tried to get kubeconfig, no luck for " instance_id)
+            nil))))
+
+(defn get-tmate
+  [{:keys [kubeconfig instance_id]}]
+  (if (nil? kubeconfig) "Not ready to fetch tmate session"
+      (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance_id"/tmate"))
+                :body (json/decode true) :spec)
+            (catch Object _
+              (log/error "tried to get tmate, no luck for " instance_id)
+              "No Tmate session yet"))))
+
+
 ;; #+RESULTS: get all names of Kubernetes instances
 ;; #+begin_example
 ;; zachmandeville-kv74
@@ -75,11 +104,9 @@
 ;; curl -X GET http://localhost:8080/api/instance/kubernetes | jq .
 ;; #+end_src
 
-backend-address
+(-> (http/get (str backend-address"/api/instance/kubernetes/zachmandeville-1i0q/tmate/web"))
 
+          :body (json/decode true) :spec)
 
-
-(try+ (http/get (str backend-address "/api/instance/kubernetes/zachmandeville-kv76"))
-      (catch Object _
-        {:phase "Not Ready"
-         :instance-id "instnace"}))
+(-> (http/get (str backend-address"/api/instance/kubernetes/zachmandeville-1i0q/tmate/ssh"))
+    :body (json/decode true) :spec)

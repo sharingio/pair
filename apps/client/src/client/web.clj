@@ -63,17 +63,30 @@
                                      instance :instance}
        (views/project username instance))
 
-
   (route/not-found "Not Found"))
+
 (defn wrap-find-instance
   [handler]
   (fn [req]
     (handler (if-let [project (second (re-find #"/project/([^/]+/[^/]+)"
                                                (:uri req)))]
                (if-let [{:keys [instance_id] :as inst}(db/find-instance (:username (:session req)) project)]
-                 (do
-                   (db/update-instance-phase (packet/instance-phase instance_id))
-                   (assoc req :instance inst))
+                   (assoc req :instance inst)
+                 (throw (ex-info "Instance not found." {:status 404})))
+               req))))
+
+(defn wrap-update-instance
+  [handler]
+  (fn [req]
+    (handler (if-let [project (second (re-find #"/project/([^/]+/[^/]+)"
+                                               (:uri req)))]
+               (if-let [{:keys [instance_id] :as inst}(db/find-instance (:username (:session req)) project)]
+                 (let [instance (db/update-instance
+                                {:instance-id instance_id
+                                 :phase (packet/get-phase instance_id)
+                                 :kubeconfig (packet/get-kubeconfig inst)
+                                 :tmate (packet/get-tmate inst)})]
+                      (assoc req :instance instance))
                  (throw (ex-info "Instance not found." {:status 404})))
                req))))
 
@@ -90,5 +103,6 @@
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
     (-> app-routes
         (wrap-find-instance)
-        ;; (wrap-logging)
+        (wrap-update-instance)
+        (wrap-logging)
         (wrap-defaults (assoc site-defaults :session {:store store})))))

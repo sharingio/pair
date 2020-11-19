@@ -24,10 +24,11 @@
     [:a {:href login-url} (if username username "login with github")]]]))
 
 (defn layout
-  [body username]
+  [body username &[refresh?]]
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
+    (when refresh? [:meta {:http-equiv "refresh" :content "20"}])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
     [:link {:rel "stylesheet"
@@ -102,9 +103,16 @@
 
 (defn project
   [username {:keys [project status]}]
-  (let [{:keys [phase]} (db/find-instance username project)]
+  (let [{:keys [phase kubeconfig tmate]} (db/find-instance username project)]
   (layout
    [:main#project
     [:h3 "Pairing Box for " project]
-    [:p phase]]
-   username)))
+    [:p phase]
+    (when kubeconfig
+      [:details
+       [:summary "Your Kubeconfig"]
+       [:pre kubeconfig]])
+    (when tmate
+      [:p tmate])
+    ]
+   username true)))
