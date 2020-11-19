@@ -65,7 +65,7 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 var defaultMachineOS = "ubuntu_20_04"
 var defaultKubernetesVersion = "1.19.0"
-var defaultHumacsVersion = "2020.11.05"
+var defaultHumacsVersion = "2020.11.18-1"
 
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
