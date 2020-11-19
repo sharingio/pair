@@ -101,8 +101,10 @@
      username)))
 
 (defn project
-  [username project]
+  [username {:keys [project status]}]
+  (let [{:keys [phase]} (db/find-instance username project)]
   (layout
    [:main#project
-    [:h3 "you made it to the project page for " project]]
-   username))
+    [:h3 "Pairing Box for " project]
+    [:p phase]]
+   username)))

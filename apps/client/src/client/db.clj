@@ -40,7 +40,7 @@ where username = ?" fullname avatar email permitted-org-member username]))
   "Returns info for existing instance from db or nil"
   [username project]
   (jdbc/execute-one! ds ["
-select id, owner, project, facility, type, description,  status, at
+select id, owner, instance_id, project, facility, type, description,  status, phase, at
        from public.instance
       where owner = ?
         and project = ?
@@ -59,6 +59,14 @@ values(?,?,?,?,?,?)
   "receive payload from packet, add entries to instance table and guest table"
   [payload]
   (add-instance payload))
+
+(defn update-instance-phase
+  [{:keys [phase instance-id]}]
+  (jdbc/execute! ds ["
+update instance
+   set phase = ?
+ where instance_id = ?
+" phase instance-id]))
 
 (defn create-user-table
   [ds]
@@ -86,6 +94,9 @@ create table public.instance
   type  text,
   description text,
   status text,
+  tmate text,
+  ip text,
+  kubeconfig text,
   at timestamp not null default current_timestamp
 )"]))
 

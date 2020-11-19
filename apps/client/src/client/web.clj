@@ -65,18 +65,18 @@
 
 
   (route/not-found "Not Found"))
-
 (defn wrap-find-instance
   [handler]
   (fn [req]
     (handler (if-let [project (second (re-find #"/project/([^/]+/[^/]+)"
                                                (:uri req)))]
-               (if-let [inst (db/find-instance (:username (:session req)) project)]
-                 (assoc req :instance inst)
+               (if-let [{:keys [instance_id] :as inst}(db/find-instance (:username (:session req)) project)]
+                 (do
+                   (db/update-instance-phase (packet/instance-phase instance_id))
+                   (assoc req :instance inst))
                  (throw (ex-info "Instance not found." {:status 404})))
                req))))
 
-;; (println request-method uri protocol headers remote-addr))
 (defn wrap-logging
   [handler]
   (fn [req]
@@ -90,5 +90,5 @@
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
     (-> app-routes
         (wrap-find-instance)
-        (wrap-logging)
+        ;; (wrap-logging)
         (wrap-defaults (assoc site-defaults :session {:store store})))))
