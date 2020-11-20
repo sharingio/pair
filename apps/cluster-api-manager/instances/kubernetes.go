@@ -65,7 +65,7 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 var defaultMachineOS = "ubuntu_20_04"
 var defaultKubernetesVersion = "1.19.0"
-var defaultHumacsVersion = "2020.11.18-1"
+var defaultHumacsVersion = "2020.11.20"
 
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
@@ -662,7 +662,10 @@ EOF
 						`(
           helm repo add nginx-ingress https://kubernetes.github.io/ingress-nginx;
           kubectl create ns nginx-ingress;
-          helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx --set controller.service.externalTrafficPolicy=Local --version 2.16.0;
+          helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx \
+            --set controller.service.externalTrafficPolicy=Local \
+            --set controller.service.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
+            --version 2.16.0
           kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
         )
 `,
@@ -814,8 +817,7 @@ spec:
             value: "0"
 EOF
 )`,
-						`(
-  echo "waiting for nginx-ingress Service to have an IP address"
+						`echo "waiting for nginx-ingress Service to have an IP address"
   while true; do
     if [ "$(kubectl -n nginx-ingress get service nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[].ip}')" ]; then
       echo "nginx-ingress doesn't not have an IP address yet"
@@ -830,6 +832,8 @@ EOF
   helm install powerdns -n powerdns \
     --set domain={{ $.Setup.BaseDNSName }} \
     --set default_soa_name={{ $.Setup.BaseDNSName }} \
+    --set powerdns.default_ttl=60 \
+    --set powerdns.soa_minimum_ttl=60 \
     --set apikey=pairingissharing \
     --set powerdns.domain={{ $.Setup.BaseDNSName }} \
     --set powerdns.default_soa_name={{ $.Setup.BaseDNSName }} \
@@ -838,10 +842,9 @@ EOF
     --set mariadb.mysql_pass=pairingissharing \
     --set mariadb.mysql_rootpass=pairingissharing \
     --set admin.service.type=ClusterIP \
-    --set admin.mysql_user=root \
+    --set admin.mysql_user=powerdns \
     --set admin.mysql_pass=pairingissharing \
     --set admin.mysql_host=powerdns-service-db \
-    --set admin.mysql_database=powerdns-admin \
     --set admin.powerdns_host=powerdns-service-api \
     --set admin.ingress.enabled=true \
     --set admin.ingress.class=nginx \
@@ -852,9 +855,14 @@ EOF
     --set-string powerdns.extraEnv[1].value="192.168.0.0/24" \
     --set service.dns.tcp.enabled=true \
     --set service.dns.tcp.externalIPs[0]=$LOAD_BALANCER_IP \
+    --set service.dns.tcp.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
     --set service.dns.udp.externalIPs[0]=$LOAD_BALANCER_IP \
+    --set service.dns.udp.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
     --set admin.secret=pairingissharing \
     sharingio/powerdns
+
+  kubectl -n powerdns patch svc powerdns-service-dns-udp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
+  kubectl -n powerdns patch svc powerdns-service-dns-tcp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
 
   kubectl -n powerdns apply -f - << EOF
 apiVersion: externaldns.k8s.io/v1alpha1
@@ -879,7 +887,7 @@ spec:
     targets:
     - 'ns1.{{ $.Setup.BaseDNSName }}. hostmaster.{{ $.Setup.BaseDNSName }}. 5 60 60 60 60'
 EOF
-)`,
+`,
 						`(
           cd /root;
           git clone https://github.com/humacs/humacs;
@@ -966,16 +974,43 @@ EOF
             --set extraVolumeMounts[0].name=home-ii \
             --set extraVolumeMounts[0].mountPath="/home/ii" \
             chart/humacs
+
+kubectl -n "{{ $.Setup.UserLowercase }}" apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: humacs-tilt
+spec:
+  ports:
+    - name: http
+      port: 10350
+      targetPort: 10350
+  selector:
+    app.kubernetes.io/name: humacs
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: humacs-tilt
+spec:
+  rules:
+  - host: "tilt.{{ $.Setup.BaseDNSName }}"
+    http:
+      paths:
+      - backend:
+          serviceName: humacs-tilt
+          servicePort: 10350
+        path: /
+EOF
+
         )
 `,
 						`
-  kubectl -n powerdns wait pod --for=condition=Ready --selector=app.kubernetes.io/name=powerdns --timeout=90s
-  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
-  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil activate-tsig-key {{ $.Setup.BaseDNSName }} pair master
-  kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} TSIG-ALLOW-DNSUPDATE pair
-  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec -it deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
-
-  export LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+  kubectl -n powerdns wait pod --for=condition=Ready --selector=app.kubernetes.io/name=powerdns --timeout=200s
+  kubectl -n powerdns exec deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
+  kubectl -n powerdns exec deployment/powerdns -- pdnsutil activate-tsig-key {{ $.Setup.BaseDNSName }} pair master
+  kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} TSIG-ALLOW-DNSUPDATE pair
+  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
   kubectl -n powerdns apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
