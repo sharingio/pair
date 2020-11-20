@@ -6,6 +6,7 @@
                  [org.clojure/test.check "1.1.0"]
                  [cheshire "5.10.0"]
                  [compojure "1.6.1"]
+                 [io.forward/yaml "1.0.10"]
                  [hiccup "1.0.5"]
                  [environ "1.2.0"]
                  [clj-http "3.10.3"]
