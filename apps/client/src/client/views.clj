@@ -120,14 +120,6 @@
     ]
    username true)))
 
-(defn new
-  [user]
-  (layout
-   [:main
-   [:header
-    [:h2 "Create a new Pairing Box"]]
-    (new-box-form user)]
-   (:username user)))
 
 (defn new-box-form
   [{:keys [fullname email username]}]
@@ -160,10 +152,49 @@
             :placeholder "users to invite (space separated)"}]]
    [:input {:type :submit :value "launch"}]))
 
+(defn new
+  [user]
+  (layout
+   [:main
+    [:header
+     [:h2 "Create a new Pairing Box"]]
+    (new-box-form user)]
+   (:username user)))
+
+(defn kubeconfig-box
+  [kubeconfig]
+  (if kubeconfig
+  [:details
+   [:summary "Kubeconfig is ready"]
+   [:pre kubeconfig]]
+  [:p.status "Kubeconfig not yet available"]))
+
+(defn tmate
+  [{:keys [tmate-ssh tmate-web]}]
+  (when (and tmate-ssh tmate-web)
+    [:section#tmate
+     [:h3 "Pairing Session Ready"]
+     [:a.tmate {:href tmate-web} "Join Pair in Browser"]
+     [:p "Alternately, copy this into a terminal"]
+     [:pre tmate-ssh]]))
+
 (defn instance
   [instance username]
   (layout
    [:main
    [:header
-    [:h2 "you made it to " (:instance-id instance)]]]
+    [:h2 "Status for "(:instance-id instance)]]
+    (tmate instance)
+    (kubeconfig-box (:kubeconfig instance))]
+   username))
+
+(defn all-instances
+  [instances {:keys [username]}]
+  (layout
+   [:main
+    [:header
+     [:h2 "you seeing all instances"]]
+     (for [instance instances]
+       [:p (:instance-id instance)])
+     ]
    username))

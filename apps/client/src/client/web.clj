@@ -45,10 +45,13 @@
         (when-not (:username user)
           (throw (ex-info "must be logged in" {:status 400})))
         (let [{:keys [instance-id] :as instance} (packet/zaunch user params)]
-          (assoc (res/redirect (str "instance/"instance-id))
+          (assoc (res/redirect (str "instances/id/"instance-id))
                  :session (merge session {:instance instance}))))
 
-  (GET "/instance/:id" {{:keys [user instance]} :session}
+  (GET "/instances/all" {{:keys [user instances]} :session}
+       (views/all-instances instances user))
+
+  (GET "/instances/id/:id" {{:keys [user instance]} :session}
        (views/instance instance (:username user)))
 
 
@@ -81,30 +84,28 @@
 
   (route/not-found "Not Found"))
 
-(defn wrap-find-instance
+(defn wrap-get-all-instances
   [handler]
   (fn [req]
-    (handler (if-let [project (second (re-find #"/project/([^/]+/[^/]+)"
-                                               (:uri req)))]
-               (if-let [{:keys [instance_id] :as inst}(db/find-instance (:username (:session req)) project)]
-                   (assoc req :instance inst)
-                 (throw (ex-info "Instance not found." {:status 404})))
-               req))))
+    (handler
+     (if (= "/instances/all" (:uri req))
+       (assoc-in req [:session :instances] (packet/get-all-instances (-> req :session :user :username)))
+       req))))
 
 (defn wrap-update-instance
   [handler]
   (fn [req]
-    (handler (if-let [project (second (re-find #"/project/([^/]+/[^/]+)"
+    (handler (if-let [instance-id (second (re-find #"/instances/id/(.*)"
                                                (:uri req)))]
-               (if-let [{:keys [instance_id] :as inst}(db/find-instance (:username (:session req)) project)]
-                 (let [instance (db/update-instance
-                                {:instance-id instance_id
-                                 :phase (packet/get-phase instance_id)
-                                 :kubeconfig (packet/get-kubeconfig inst)
-                                 :tmate (packet/get-tmate inst)})]
-                      (assoc req :instance instance))
-                 (throw (ex-info "Instance not found." {:status 404})))
-               req))))
+               (let [phase (packet/get-phase instance-id)
+                     kubeconfig (packet/get-kubeconfig phase instance-id)
+                     tmate-ssh (packet/get-tmate-ssh kubeconfig instance-id)
+                     tmate-web (packet/get-tmate-web kubeconfig instance-id)
+                     status {:phase phase :kubeconfig kubeconfig :tmate-ssh tmate-ssh
+                             :tmate-web tmate-web}]
+               (assoc-in req [:session :instance] (merge (-> req :session :instance) status)))
+               (do (println "NO INSTANCE!" (second (re-find #"/instances/id/(.*)" (:uri req))))
+                  req )))))
 
 (defn wrap-logging
   [handler]
@@ -118,7 +119,7 @@
 (def app
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
     (-> app-routes
-        ;; (wrap-find-instance)
-        ;; (wrap-update-instance)
-        ;; (wrap-logging)
+        (wrap-get-all-instances)
+        (wrap-update-instance)
+        (wrap-logging)
         (wrap-defaults (assoc site-defaults :session {:store store})))))
