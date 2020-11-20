@@ -22,7 +22,7 @@
        (if-let [instance (db/find-instance username project)]
          (res/redirect (str "project/"project))
          (if username
-           (views/launch username project)
+           (views/launch username (or project(:project session)))
            (assoc (res/redirect views/login-url)
                   :session (merge session {:project project})))))
 
@@ -34,6 +34,22 @@
           (throw (ex-info "already launched" {:status 403})))
         (db/new-instance (packet/launch username params))
         (assoc (res/redirect (str "project/"project)) :session (merge session {:project project})))
+
+  (GET "/new" {{:keys [username user] :as session} :session}
+       (if username
+         (views/new user)
+         (res/redirect views/login-url)))
+
+  (POST "/new" {{:keys [user] :as session} :session
+                {:keys [project] :as params} :params}
+        (when-not (:username user)
+          (throw (ex-info "must be logged in" {:status 400})))
+        (let [{:keys [instance-id] :as instance} (packet/zaunch user params)]
+          (assoc (res/redirect (str "instance/"instance-id))
+                 :session (merge session {:instance instance}))))
+
+  (GET "/instance/:id" {{:keys [user instance]} :session}
+       (views/instance instance (:username user)))
 
 
   (GET "/logout" []
@@ -57,7 +73,7 @@
              (db/update-user user)
              (db/add-user user))
            (assoc (res/redirect (if (:project session) "/launch" "/"))
-                  :session (merge session {:token token :username username})))))
+                  :session (merge session {:token token :username username :user user})))))
 
   (GET "/project/:gh-user/:project" {{:keys [username]} :session
                                      instance :instance}
@@ -102,7 +118,7 @@
 (def app
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
     (-> app-routes
-        (wrap-find-instance)
-        (wrap-update-instance)
-        (wrap-logging)
+        ;; (wrap-find-instance)
+        ;; (wrap-update-instance)
+        ;; (wrap-logging)
         (wrap-defaults (assoc site-defaults :session {:store store})))))

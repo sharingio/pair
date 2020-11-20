@@ -1,13 +1,18 @@
 :root{
     --color_bg: hsl(100, 98.0%, 99.0%);
     --color_text: hsl(0, 1.2%, 3.4%);
+    --color_outline: hsl(0, 1.2%, 60%);
+    --color_action: dodgerblue;
     --font_body: 'Manrope', 'Helvetica', sans-serif;
     --font-base: 20px;
+    --section-spacing: 3rem;
 }
 
 body , html {
     margin: 0;
     padding: 0;
+}
+* {
     box-sizing: border-box;
 }
 
@@ -53,4 +58,65 @@ main#splash {
     width: 100%;
     display: flex;
     justify-content: center;
+}
+
+#cta p.tagline {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--section-spacing);
+}
+
+
+form input {
+    font-size: 1.25rem;
+    border-radius: 3px;
+    border: 1px solid var(--color_outline);
+    padding: 0.22rem;
+}
+
+form#git-started input[type=submit] {
+    background: var(--color_action);
+    margin-left: 0.25rem;
+    drop-shadow: 1px 1px black;
+    font-weight: 200;
+    border-radius: 3px;
+}
+
+main header  {
+    padding: 1rem;
+    border-top: 1px solid var(--color_text);
+    border-bottom: 1px solid var(--color_text);
+}
+
+main header h2 {
+    font-size: 2.5rem;
+}
+
+form#new-box {
+    margin: 3rem;
+    max-width: 30rem;
+}
+
+div.form-group {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-flow: column;
+}
+
+
+form input[type=submit] {
+    background: var(--color_action);
+    drop-shadow: 1px 1px black;
+    font-weight: 200;
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    color: var(--color_bg);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+form input[type=submit]:hover {
+    filter: hue-rotate(60deg);
 }

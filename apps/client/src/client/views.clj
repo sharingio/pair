@@ -52,6 +52,9 @@
       [:label {:for "project"} "Enter a github repository"]
       [:input {:type "text"
                :name "project"
+               :required "true"
+               :pattern ".*\\/.*"
+               :oninvalid "this.setCustomValidity('please enter valid github owner/repo')"
                :placeholder "user/repo"}]
       [:input {:type "submit"
                :value "Get Started!"}]]]]
@@ -116,3 +119,51 @@
       [:p tmate])
     ]
    username true)))
+
+(defn new
+  [user]
+  (layout
+   [:main
+   [:header
+    [:h2 "Create a new Pairing Box"]]
+    (new-box-form user)]
+   (:username user)))
+
+(defn new-box-form
+  [{:keys [fullname email username]}]
+  (form/form-to {:id "new-box"}
+   [:post "/new"]
+   (util/anti-forgery-field)
+   [:label {:for "type"} "Type"]
+   (form/drop-down "type" '("Kubernetes")
+                   "kubernetes")
+   [:input {:type :hidden
+            :name "facility"
+            :value "sjc1"}]
+   [:input {:type :hidden
+            :name "fullname"
+            :value fullname}]
+   [:input {:type :hidden
+            :name "email"
+            :value email}]
+   [:div.form-group
+   [:label {:for "repos"} "Repos to include"]
+   [:input {:type :text
+            :name "repos"
+            :id "repos"
+            :placeholder "additional repos to add (space separated)"}]]
+   [:div.form-group
+   [:label {:for "guests"} "guests"]
+   [:input {:type :text
+            :name "guests"
+            :id "guests"
+            :placeholder "users to invite (space separated)"}]]
+   [:input {:type :submit :value "launch"}]))
+
+(defn instance
+  [instance username]
+  (layout
+   [:main
+   [:header
+    [:h2 "you made it to " (:instance-id instance)]]]
+   username))

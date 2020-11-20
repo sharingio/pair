@@ -1,7 +1,9 @@
 (ns client.github
   (:require [cheshire.core :as json]
             [environ.core :refer [env]]
-            [clj-http.client :as http]))
+            [clojure.tools.logging :as log]
+            [clj-http.client :as http])
+(:use [slingshot.slingshot :only [throw+ try+]]))
 
 (defn get-token [code]
   (-> (http/post "https://github.com/login/oauth/access_token"
@@ -31,6 +33,8 @@
 
 (defn get-repo
   [project]
-  (-> (http/get (str "https://api.github.com/repos/" project)
+  (try+ (-> (http/get (str "https://api.github.com/repos/" project)
                 {:headers {"accept" "application/json"}})
-      :body (json/decode true)))
+            :body (json/decode true))
+        (catch [:status 404] {:keys [request-time headers body]}
+          (log/warn "404" request-time project headers body))))

@@ -77,6 +77,11 @@
               (log/error "tried to get tmate, no luck for " instance_id)
               "No Tmate session yet"))))
 
+(defn zaunch
+  [username params]
+  (println "ZAUNCH" username params)
+  {:instance-id "zach-1sc00l"})
+
 
 ;; #+RESULTS: get all names of Kubernetes instances
 ;; #+begin_example
@@ -104,9 +109,9 @@
 ;; curl -X GET http://localhost:8080/api/instance/kubernetes | jq .
 ;; #+end_src
 
-(-> (http/get (str backend-address"/api/instance/kubernetes/zachmandeville-1i0q/tmate/web"))
+;; (-> (http/get (str backend-address"/api/instance/kubernetes/zachmandeville-1i0q/tmate/web"))
 
-          :body (json/decode true) :spec)
+;;           :body (json/decode true) :spec)
 
-(-> (http/get (str backend-address"/api/instance/kubernetes/zachmandeville-1i0q/tmate/ssh"))
-    :body (json/decode true) :spec)
+;; (-> (http/get (str backend-address"/api/instance/kubernetes/zachmandeville-1i0q/tmate/ssh"))
+;;     :body (json/decode true) :spec)
