@@ -190,11 +190,21 @@
 
 (defn all-instances
   [instances {:keys [username]}]
-  (layout
-   [:main
-    [:header
-     [:h2 "you seeing all instances"]]
-     (for [instance instances]
-       [:p (:instance-id instance)])
-     ]
-   username))
+  (let [[owner guest] ((juxt filter remove) #(= (:owner %) username) instances)]
+    (layout
+     [:main
+      [:header
+       [:h2 "Your Instances"]]
+      [:section#owner
+       [:h3 "Created by You"]
+       [:ul
+        (for [instance owner]
+          [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
+           (:instance-id instance)]])]]
+      (when guest
+      [:section#guest
+       [:h3 "Shared with You"]
+       (for [instance guest]
+         [:a {:href (str "/instances/id/"(:instance-id instance))}
+          (:instance-id instance)])])]
+     username)))

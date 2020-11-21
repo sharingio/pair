@@ -48,7 +48,7 @@
           (assoc (res/redirect (str "instances/id/"instance-id))
                  :session (merge session {:instance instance}))))
 
-  (GET "/instances/all" {{:keys [user instances]} :session}
+  (GET "/instances" {{:keys [user instances]} :session}
        (views/all-instances instances user))
 
   (GET "/instances/id/:id" {{:keys [user instance]} :session}
@@ -88,9 +88,11 @@
   [handler]
   (fn [req]
     (handler
-     (if (= "/instances/all" (:uri req))
-       (assoc-in req [:session :instances] (packet/get-all-instances (-> req :session :user :username)))
-       req))))
+     (if (= "/instances" (:uri req))
+       (let [instances (packet/get-all-instances (-> req :session :user :username))]
+         (println "YEP YEP!" instances)
+         (assoc-in req [:session :instances] instances))
+       (do (println "not found!!! baby!!") req)))))
 
 (defn wrap-update-instance
   [handler]
@@ -104,8 +106,7 @@
                      status {:phase phase :kubeconfig kubeconfig :tmate-ssh tmate-ssh
                              :tmate-web tmate-web}]
                (assoc-in req [:session :instance] (merge (-> req :session :instance) status)))
-               (do (println "NO INSTANCE!" (second (re-find #"/instances/id/(.*)" (:uri req))))
-                  req )))))
+                  req ))))
 
 (defn wrap-logging
   [handler]
