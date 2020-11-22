@@ -76,9 +76,8 @@
     (handler
      (if (= "/instances" (:uri req))
        (let [instances (packet/get-all-instances (-> req :session :user :username))]
-         (println "YEP YEP!" instances)
          (assoc-in req [:session :instances] instances))
-       (do (println "not found!!! baby!!" (-> req :session)) req)))))
+       (do (println "No Instances Found" (-> req :session)) req)))))
 
 (defn wrap-update-instance
   [handler]
