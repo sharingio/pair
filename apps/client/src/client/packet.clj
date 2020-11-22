@@ -106,8 +106,9 @@
                         (catch Object _
                           (log/warn "Couldn't get instances")
                           []))
-        instances (map (fn [{:keys [spec]}]
+        instances (map (fn [{:keys [spec status]}]
                          {:instance-id (:name spec)
+                          :phase (:phase status )
                           :owner (-> spec :setup :user)
                           :guests (-> spec :setup :guests)
                           }) raw-instances)]
