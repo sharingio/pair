@@ -17,24 +17,6 @@
   (GET "/" {session :session}
        (views/splash (:username session)))
 
-  (GET "/launch" {{:keys [username] :as session} :session
-                  {:keys [project] :as params} :params}
-       (if-let [instance (db/find-instance username project)]
-         (res/redirect (str "project/"project))
-         (if username
-           (views/launch username (or project(:project session)))
-           (assoc (res/redirect views/login-url)
-                  :session (merge session {:project project})))))
-
-  (POST "/launch" {{:keys [username] :as session} :session
-                   {:keys [project] :as params} :params}
-        (when-not username
-          (throw (ex-info "must be logged in" {:status 400})))
-        (when (db/find-instance username project)
-          (throw (ex-info "already launched" {:status 403})))
-        (db/new-instance (packet/launch username params))
-        (assoc (res/redirect (str "project/"project)) :session (merge session {:project project})))
-
   (GET "/new" {{:keys [username user] :as session} :session}
        (if username
          (views/new user)
@@ -44,7 +26,8 @@
                 {:keys [project] :as params} :params}
         (when-not (:username user)
           (throw (ex-info "must be logged in" {:status 400})))
-        (let [{:keys [instance-id] :as instance} (packet/zaunch user params)]
+        (let [{:keys [instance-id] :as instance} (packet/launch user params)]
+          (println "INSTANCE BYA!" instance-id)
           (assoc (res/redirect (str "instances/id/"instance-id))
                  :session (merge session {:instance instance}))))
 
@@ -54,6 +37,13 @@
   (GET "/instances/id/:id" {{:keys [user instance]} :session}
        (views/instance instance (:username user)))
 
+  (GET "/instances/id/:id/delete" {{:keys [user instance]} :session}
+       (views/delete-instance instance (:username user)))
+
+  (POST "/instances/id/:id/delete" {{:keys [user instance]} :session
+                                    {:keys [instance-id]} :params}
+        (packet/delete-instance instance-id)
+        (res/redirect "/instances"))
 
   (GET "/logout" []
        (assoc (res/redirect "/") :session nil))
@@ -75,12 +65,8 @@
            (if (db/find-user username)
              (db/update-user user)
              (db/add-user user))
-           (assoc (res/redirect (if (:project session) "/launch" "/"))
+           (assoc (res/redirect "/")
                   :session (merge session {:token token :username username :user user})))))
-
-  (GET "/project/:gh-user/:project" {{:keys [username]} :session
-                                     instance :instance}
-       (views/project username instance))
 
   (route/not-found "Not Found"))
 
@@ -92,19 +78,20 @@
        (let [instances (packet/get-all-instances (-> req :session :user :username))]
          (println "YEP YEP!" instances)
          (assoc-in req [:session :instances] instances))
-       (do (println "not found!!! baby!!") req)))))
+       (do (println "not found!!! baby!!" (-> req :session)) req)))))
 
 (defn wrap-update-instance
   [handler]
   (fn [req]
-    (handler (if-let [instance-id (second (re-find #"/instances/id/(.*)"
+    (handler (if-let [instance-id (second (re-find #"/instances/id/([a-zA-Z0-9-]*)"
                                                (:uri req)))]
-               (let [phase (packet/get-phase instance-id)
-                     kubeconfig (packet/get-kubeconfig phase instance-id)
+               (let [instance (packet/get-instance instance-id)
+                     kubeconfig (packet/get-kubeconfig (:phase instance) instance-id)
                      tmate-ssh (packet/get-tmate-ssh kubeconfig instance-id)
                      tmate-web (packet/get-tmate-web kubeconfig instance-id)
-                     status {:phase phase :kubeconfig kubeconfig :tmate-ssh tmate-ssh
-                             :tmate-web tmate-web}]
+                     status (merge instance {:kubeconfig kubeconfig
+                                             :tmate-ssh tmate-ssh
+                                             :tmate-web tmate-web})]
                (assoc-in req [:session :instance] (merge (-> req :session :instance) status)))
                   req ))))
 

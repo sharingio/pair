@@ -14,12 +14,12 @@
   [username]
   (if username
     (let [{:keys [full_name avatar_url]} (db/find-user username)]
-    [:header
-     [:a.home {:href "/"} "sharing.io"]
+    [:header#top
+     [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
       [:p [:img {:src avatar_url}] [:a {:href "/logout"} "logout"]]]])
   [:header
-   [:a.home {:href "/"} "sharing.io"]
+   [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
     [:a {:href login-url} (if username username "login with github")]]]))
 
@@ -46,80 +46,10 @@
    [:main#splash
     [:section#cta
      [:p.tagline "Sharing is pairing!"]
-     [:form {:action "/launch"
-             :method :get
-             :id "git-started"}
-      [:label {:for "project"} "Enter a github repository"]
-      [:input {:type "text"
-               :name "project"
-               :required "true"
-               :pattern ".*\\/.*"
-               :oninvalid "this.setCustomValidity('please enter valid github owner/repo')"
-               :placeholder "user/repo"}]
-      [:input {:type "submit"
-               :value "Get Started!"}]]]]
+     [:div
+      [:a {:href "/new"} "New"]
+      [:a {:href "/instances"} "All"]]]]
    username))
-
-(defn launch
-  [username project]
-  (let [{:keys [html_url description]} (gh/get-repo project)
-        {:keys [full_name email permitted_org_member]} (db/find-user username)]
-  (layout
-   [:main#launch
-    [:h3 "Let's Collaborate on " project]
-    [:p description]
-    [:hr]
-    (if permitted_org_member
-         [:div
-       [:h3 "Deploy to Packet"]
-          (form/form-to
-           [:post "/launch"]
-           (util/anti-forgery-field)
-        [:label {:for "type"} "Type"]
-        (form/drop-down "type" '("Kubernetes")
-                        "kubernetes")
-        [:input {:type :hidden
-                 :name "project"
-                 :value project}]
-        [:input {:type :hidden
-                 :name "facility"
-                 :value "sjc1"}]
-        [:input {:type :hidden
-                 :name "fullname"
-                 :value full_name}]
-        [:input {:type :hidden
-                 :name "email"
-                 :value email}]
-        [:label {:for "guests"} "guests"]
-        [:input {:type :text
-                 :name "guests"
-                 :id "guests"
-                 :placeholder "users to invite (space separated)"}]
-        [:label {:for "repos"} "Additional Repos"]
-        [:input {:type :text
-                 :name "repos"
-                 :id "repos"
-                 :placeholder "additional repos to add (space separated)"}]
-        [:input {:type :submit :value "launch"}])]
-         [:div "you aren't allowed"])]
-     username)))
-
-(defn project
-  [username {:keys [project status]}]
-  (let [{:keys [phase kubeconfig tmate]} (db/find-instance username project)]
-  (layout
-   [:main#project
-    [:h3 "Pairing Box for " project]
-    [:p phase]
-    (when kubeconfig
-      [:details
-       [:summary "Your Kubeconfig"]
-       [:pre kubeconfig]])
-    (when tmate
-      [:p tmate])
-    ]
-   username true)))
-
 
 (defn new-box-form
   [{:keys [fullname email username]}]
@@ -164,29 +94,66 @@
 (defn kubeconfig-box
   [kubeconfig]
   (if kubeconfig
+    [:section#kubeconfig
+    [:h3 "Kubeconfig available"]
   [:details
-   [:summary "Kubeconfig is ready"]
-   [:pre kubeconfig]]
-  [:p.status "Kubeconfig not yet available"]))
+   [:summary "See Full Kubeconfig"]
+   [:pre kubeconfig]]]
+    [:section#kubeconfig
+     [:h3 "Kubeconfig not yet available"]]))
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
   (when (and tmate-ssh tmate-web)
     [:section#tmate
      [:h3 "Pairing Session Ready"]
-     [:a.tmate {:href tmate-web} "Join Pair in Browser"]
-     [:p "Alternately, copy this into a terminal"]
-     [:pre tmate-ssh]]))
+     [:a.tmate.action {:href tmate-web} "Join Pair"]
+     [:aside
+      [:p "Or join via ssh:"
+      [:pre tmate-ssh]]]]))
+
+(defn status
+  [{:keys [facility type phase]}]
+  [:section#status
+   [:h3 "Status: " phase]
+    [:p  type " instance"]
+    [:p "deployed at " facility]])
+
 
 (defn instance
   [instance username]
   (layout
-   [:main
+   [:main#instance
    [:header
     [:h2 "Status for "(:instance-id instance)]]
+    [:article
     (tmate instance)
-    (kubeconfig-box (:kubeconfig instance))]
+     (status instance)
+    (kubeconfig-box (:kubeconfig instance))
+    (when (= (:owner instance) username)
+      [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
+       "Delete Instance"])]]
    username))
+
+(defn delete-instance
+  [{:keys [instance-id]} username]
+  (layout
+   [:main#delete-instance
+    [:header
+     [:h2 "Delete "instance-id]]
+    [:article
+     [:h3 "Do you really want to delete this box?"]
+     (form/form-to {:id "delete-box"}
+                   [:post (str "/instances/id/"instance-id"/delete")]
+                   (util/anti-forgery-field)
+                   [:input {:type :hidden
+                            :name "instance-id"
+                            :value instance-id}]
+                   [:input {:type :submit
+                            :name "confirm"
+                            :value (str "Delete " instance-id)}])]]
+   username))
+
 
 (defn all-instances
   [instances {:keys [username]}]
