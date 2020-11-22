@@ -8,7 +8,6 @@
             [ring.util.response :as res]
             [compojure.handler :refer [site]]
             [client.views :as views]
-            [client.db :as db]
             [client.github :as gh]
             [client.packet :as packet]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
@@ -62,9 +61,6 @@
                      :avatar avatar
                      :email email
                      :permitted-org-member permitted-org-member}]
-           (if (db/find-user username)
-             (db/update-user user)
-             (db/add-user user))
            (assoc (res/redirect "/")
                   :session (merge session {:token token :username username :user user})))))
 

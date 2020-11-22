@@ -1,13 +1,10 @@
 (ns client.packet
   (:refer-clojure :exclude [load])
   (:require [cheshire.core :as json]
-            [next.jdbc :as jdbc]
-            [next.jdbc.result-set :as rs]
             [clojure.tools.logging :as log]
             [clj-http.client :as http]
             [yaml.core :as yaml]
-            [environ.core :refer [env]]
-            [client.db :as db])
+            [environ.core :refer [env]])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
 (def backend-address (str "http://"(env :backend-address)))

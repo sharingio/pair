@@ -2,7 +2,6 @@
   (:require [hiccup.page :refer [html5 include-css]]
             [hiccup.form :as form]
             [ring.util.anti-forgery :as util]
-            [client.db :as db]
             [client.github :as gh]
             [environ.core :refer [env]]))
 
@@ -13,11 +12,10 @@
 (defn header
   [username]
   (if username
-    (let [{:keys [full_name avatar_url]} (db/find-user username)]
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      [:p [:img {:src avatar_url}] [:a {:href "/logout"} "logout"]]]])
+      [:p username [:a {:href "/logout"} "logout"]]]]
   [:header#top
    [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
