@@ -18,7 +18,7 @@
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
       [:p [:img {:src avatar_url}] [:a {:href "/logout"} "logout"]]]])
-  [:header
+  [:header#top
    [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
     [:a {:href login-url} (if username username "login with github")]]]))
@@ -46,9 +46,10 @@
    [:main#splash
     [:section#cta
      [:p.tagline "Sharing is pairing!"]
+     (when username
      [:div
       [:a {:href "/instances/new"} "New"]
-      [:a {:href "/instances"} "All"]]]]
+      [:a {:href "/instances"} "All"]])]]
    username))
 
 (defn new-box-form
@@ -109,7 +110,9 @@
      [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
      [:h3 "Pairing Session Ready"]
-     [:a.tmate.action {:href tmate-web} "Join Pair"]
+     [:a.tmate.action {:href tmate-web
+                       :target "_blank"
+                       :rel "noreferrer noopener"} "Join Pair"]
      [:aside
       [:p "Or join via ssh:"
       [:pre tmate-ssh]]]]))
