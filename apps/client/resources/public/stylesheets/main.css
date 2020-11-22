@@ -98,7 +98,7 @@ main#splash {
 }
 
 
-#cta a[href="/new"] {
+#cta a[href="/instances/new"] {
     background: var(--color_action_secondary);
     filter: drop-shadow(2px 2px 2px var(--color_action_secondary));
 }
