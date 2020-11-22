@@ -51,7 +51,7 @@
                   :body (json/decode true))
               (catch Object _
                 (log/error "no http response for instance " instance-id)))]
-    {:instance-id (:name spec)
+    {:instance-id (or (:name spec) instance-id)
      :owner (-> spec :setup :user)
      :guests (-> spec :setup :guests)
      :facility (-> spec :facility)
