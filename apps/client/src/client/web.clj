@@ -17,22 +17,22 @@
   (GET "/" {session :session}
        (views/splash (:username session)))
 
-  (GET "/new" {{:keys [username user] :as session} :session}
+
+  (GET "/instances" {{:keys [user instances]} :session}
+       (views/all-instances instances user))
+
+  (GET "/instances/new" {{:keys [username user] :as session} :session}
        (if username
          (views/new user)
          (res/redirect views/login-url)))
 
-  (POST "/new" {{:keys [user] :as session} :session
-                {:keys [project] :as params} :params}
+  (POST "/instances/new" {{:keys [user] :as session} :session
+                          {:keys [project] :as params} :params}
         (when-not (:username user)
           (throw (ex-info "must be logged in" {:status 400})))
         (let [{:keys [instance-id] :as instance} (packet/launch user params)]
-          (println "INSTANCE BYA!" instance-id)
-          (assoc (res/redirect (str "instances/id/"instance-id))
+          (assoc (res/redirect (str "/instances/id/"instance-id))
                  :session (merge session {:instance instance}))))
-
-  (GET "/instances" {{:keys [user instances]} :session}
-       (views/all-instances instances user))
 
   (GET "/instances/id/:id" {{:keys [user instance]} :session}
        (views/instance instance (:username user)))

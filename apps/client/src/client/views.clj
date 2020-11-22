@@ -47,14 +47,14 @@
     [:section#cta
      [:p.tagline "Sharing is pairing!"]
      [:div
-      [:a {:href "/new"} "New"]
+      [:a {:href "/instances/new"} "New"]
       [:a {:href "/instances"} "All"]]]]
    username))
 
 (defn new-box-form
   [{:keys [fullname email username]}]
   (form/form-to {:id "new-box"}
-   [:post "/new"]
+   [:post "/instances/new"]
    (util/anti-forgery-field)
    [:label {:for "type"} "Type"]
    (form/drop-down "type" '("Kubernetes")
