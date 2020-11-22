@@ -104,7 +104,9 @@
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
-  (when (and tmate-ssh tmate-web)
+  (if(= "Not ready to fetch tmate session" tmate-web)
+    [:section#tmate
+     [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
      [:h3 "Pairing Session Ready"]
      [:a.tmate.action {:href tmate-web} "Join Pair"]
@@ -140,7 +142,7 @@
   (layout
    [:main#delete-instance
     [:header
-     [:h2 "Delete "instance-id]]
+     [:h2 "Delete "instance-id"?"]]
     [:article
      [:h3 "Do you really want to delete this box?"]
      (form/form-to {:id "delete-box"}
@@ -149,7 +151,7 @@
                    [:input {:type :hidden
                             :name "instance-id"
                             :value instance-id}]
-                   [:input {:type :submit
+                   [:input.action.delete {:type :submit
                             :name "confirm"
                             :value (str "Delete " instance-id)}])]]
    username))
@@ -159,19 +161,21 @@
   [instances {:keys [username]}]
   (let [[owner guest] ((juxt filter remove) #(= (:owner %) username) instances)]
     (layout
-     [:main
+     [:main#all-instances
       [:header
        [:h2 "Your Instances"]]
+      [:article
       [:section#owner
        [:h3 "Created by You"]
        [:ul
         (for [instance owner]
           [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-           (:instance-id instance)]])]]
+           (:instance-id instance)] [:em (:phase instance)]])]]
       (when guest
       [:section#guest
        [:h3 "Shared with You"]
+       [:ul
        (for [instance guest]
-         [:a {:href (str "/instances/id/"(:instance-id instance))}
-          (:instance-id instance)])])]
+         [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
+          (:instance-id instance)] [:em (:phase instance)]])]])]]
      username)))
