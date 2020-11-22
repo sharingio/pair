@@ -236,3 +236,10 @@ main#all-instances ul {
     list-style-type: none;
     margin-bottom: 3rem;
 }
+
+@media (max-width: 667px) {
+    main#instance article {
+        display: flex;
+        flex-flow: column;
+    }
+}
