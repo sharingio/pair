@@ -6,11 +6,13 @@
             [compojure.route :as route]
             [ring.middleware.session.cookie :as cookie]
             [ring.util.response :as res]
+            [ring.adapter.jetty :refer [run-jetty]]
             [compojure.handler :refer [site]]
             [client.views :as views]
             [client.github :as gh]
             [client.packet :as packet]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]))
+            [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
+  (:gen-class))
 
 (defroutes app-routes
   (GET "/" {session :session}
@@ -106,3 +108,6 @@
         (wrap-update-instance)
         (wrap-logging)
         (wrap-defaults (assoc site-defaults :session {:store store})))))
+
+(defn -main [& args]
+  (run-jetty app {:port (Integer/valueOf (or (System/getenv "PORT") "5000"))}))
