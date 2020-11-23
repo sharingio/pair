@@ -1015,8 +1015,19 @@ EOF
   kubectl -n powerdns exec deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
   kubectl -n powerdns exec deployment/powerdns -- pdnsutil activate-tsig-key {{ $.Setup.BaseDNSName }} pair master
   kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} TSIG-ALLOW-DNSUPDATE pair
-  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
-  kubectl -n powerdns create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
+  kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} NOTIFY-DNSUPDATE 1
+  kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} SOA-EDIT-DNSUPDATE EPOCH
+  export POWERDNS_TSIG_SECRET="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
+  nsupdate <<EOF
+server ${LOAD_BALANCER_IP} 53
+zone {{ $.Setup.BaseDNSName }}
+update add {{ $.Setup.BaseDNSName }} 60 NS ns1.{{ $.Setup.BaseDNSName }}
+key pair ${POWERDNS_TSIG_SECRET}
+send
+EOF
+
+  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$POWERDNS_TSIG_SECRET"
+  kubectl -n powerdns create secret generic tsig-powerdns --from-literal=powerdns="$POWERDNS_TSIG_SECRET"
   kubectl -n powerdns apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
