@@ -1,5 +1,9 @@
 #+TITLE: Setup
 
+* Introduction
+  This is the web frontend for our cluster-api-manager, and allows permitted members to create new pairing instances on a packet account.
+
+  It is written in clojure, using a ring web server and routing through compojure.
 * Preliminary setup
 
 Declare the host to bring the site up on
@@ -24,7 +28,7 @@ Install a few system packages required for development
   sudo apt install -y openjdk-14-jdk rlwrap
 #+end_src
 
-** Extras
+** Clojure Dependencies
 
 Install lein
 #+begin_src shell :results silent
@@ -160,53 +164,16 @@ Create an Ingress mapping
 
 Create Java jar files out of the clojure
 #+begin_src shell :dir :results silent
-  lein uberjar
+  lein ring uberjar
 #+end_src
-
-* Create a database
-
-Create a namespace
-#+begin_src shell
-  kubectl create ns pair
-#+end_src
-
-#+RESULTS:
-#+begin_example
-namespace/pair created
-#+end_example
-
-Create the database secrets
-#+begin_src shell
-  kubectl -n pair create secret generic postgres-configuration \
-    --from-literal=POSTGRES_DB=pair \
-    --from-literal=POSTGRES_USER=pair \
-    --from-literal=POSTGRES_PASSWORD=pair \
-    --from-literal=PGUSER=pair \
-    --from-literal=PGPASSWORD=pair \
-    --from-literal=PGDATABASE=pair
-#+end_src
-
-#+RESULTS:
-#+begin_example
-secret/postgres-configuration created
-#+end_example
-
-Create the Postgres instance
-#+begin_src shell
-  kubectl -n pair apply -f postgres.yaml
-#+end_src
-
-#+RESULTS:
-#+begin_example
-service/postgres created
-statefulset.apps/postgres created
-#+end_example
 
 * Config
+  This sets our env vars to a =.env= file we can then invoke when starting up the app.
+
 #+begin_src elisp :results none
-  (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS(localhost:8080 if dev): "))
-  (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
-  (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
+    (setenv "BACKEND_ADDRESS" (read-from-minibuffer "BACKEND_ADDRESS: " "localhost:8080"))
+    (setenv "OAUTH_CLIENT_ID" (read-from-minibuffer "OAUTH_CLIENT_ID: "))
+    (setenv "OAUTH_CLIENT_SECRET" (read-from-minibuffer "OAUTH_CLIENT_SECRET: "))
 #+end_src
 
 #+name: get-oauth-client-id
@@ -221,14 +188,11 @@ statefulset.apps/postgres created
 
 #+name: get-backend-address
 #+begin_src elisp :results silent
-  (getenv "BACKEND_ADDRESS")
+  (or (getenv "BACKEND_ADDRESS") "localhost:8080")
 #+end_src
 
-#+begin_src shell :tangle ../../.env :noweb yes
-  DATABASE_URL=postgres://pair:pair@postgres.pair/pair?sslmode=disable
-  SESSION_SECRET=hahahahahahahaha
-  CANONICAL_URL=<<get-pair-host()>>
-  SUBDOMAIN=%s.%s.<<get-pair-host()>>
+#+begin_src shell :tangle ./.env :noweb yes
+  SESSION_SECRET=pairpairpairpair
   BACKEND_ADDRESS=<<get-backend-address()>>
   OAUTH_CLIENT_ID=<<get-oauth-client-id()>>
   OAUTH_CLIENT_SECRET=<<get-oauth-client-secret()>>
@@ -238,27 +202,36 @@ statefulset.apps/postgres created
 #+begin_example
 #+end_example
 
-* Migrate the database
-
-Run migrations
-#+begin_src shell :dir
-  export $(cat .env | xargs)
-  lein run -m sharingio.db
-#+end_src
-
-#+RESULTS:
-#+begin_example
-Running migration: initial-schema
-Running migration: add-instance-id
-Running migration: add-shutdown-token
-#+end_example
-
-* Launching
-
+* Running in Development
 Run this in a separate window, so it doesn't hold up the buffer:
-#+begin_src shell :dir ../../
+#+begin_src tmate :dir . :window dev-ring
   export $(cat .env | xargs)
-  java $JVM_OPTS -cp target/uberjar/sharingio-standalone.jar clojure.main -m sharingio.web
+  lein ring server-headless
 #+end_src
 
+This will create a repl with an nrepl port, so you can connect to it from a clojure file with the command
+: cider-connect-clj
 
+Easiest is to navigate to client/src/client/web.clj and then type =,scj= and choose =localhost= as yr server.  It should already have a port set for you, and so you can just hit enter on that port screen.
+
+* Build and Run for Production
+  For production, you want to build an uberjar, and then run that .jar file with the correct env vars.
+  This .jar file will be an embedded server set to run on port 5000, though you can specifiy a new port by declaring a PORT env var.
+
+#+NAME: Build the uberjar
+#+begin_src tmate :dir . :window prod
+lein ring uberjar
+#+end_src
+
+This outputs a new uberjar at =client/target/uberjar/client-0.1.0-standalone.jar=
+
+You can then run it with
+
+#+begin_src tmate :dir . :window prod
+  export $(cat .env | xargs)
+  java -jar target/uberjar/client-0.1.0-standalone.jar
+#+end_src
+
+* Next
+  This app requires having a working backend, so make sure you have this up and running by following the instructions at
+ [[file:~/pair/apps/cluster-api-manager/README.org][cluster-api-manager/readme.org]]

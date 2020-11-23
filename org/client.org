@@ -1,0 +1,7 @@
+#+TITLE: Tasks for the client
+
+* TODO Login, see github profile and username in top right
+** TODO create user db with github details
+* TODO Add repository, redirect to repository-not-found if doesn't exist in github.
+* TODO Status page shows repo, and quick copy-able commands to add kubeconfig
+* TODO when tmate session available, joining command is big and prominent on status page

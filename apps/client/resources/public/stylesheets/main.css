@@ -1,0 +1,245 @@
+:root{
+    --color_bg: hsl(100, 98.0%, 99.0%);
+    --color_code: #cdecff;
+    --color_text: hsl(0, 1.2%, 3.4%);
+    --color_outline: hsl(0, 1.2%, 60%);
+    --color_action: dodgerblue;
+    --color_action_secondary: mediumseagreen;
+    --color_action_alert: tomato;
+    --font_body: 'Manrope', 'Helvetica', sans-serif;
+    --font-base: 20px;
+    --section-spacing: 3rem;
+    --hover_action: hue-rotate(30deg);
+}
+
+body , html {
+    margin: 0;
+    padding: 0;
+}
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--color_bg);
+    color: var(--color_text);
+    font-family: var(--font_body);
+    font-size: var(--font-base);
+}
+
+p, a, ul, li, h1, h2, h3, h4 {
+    margin: 0;
+    padding: 0;
+}
+
+pre {
+    display: table;
+    background: var(--color_code);
+    padding: 0.5rem;
+}
+
+.action.delete {
+    background: var(--color_action_alert);
+}
+
+header#top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+}
+
+header#top a {
+    text-decoration: none;
+    color: unset;
+}
+
+header#top a.home {
+    font-size: 2.5rem;
+    font-weight: 200;
+}
+header#top nav p {
+    display: flex;
+    align-items: center;
+}
+
+header#top nav img {
+    max-width: 2rem;
+}
+
+main#splash {
+    margin-top: 3rem;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+#cta p.tagline {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--section-spacing);
+}
+
+#cta div {
+    display: flex;
+    justify-content: space-between;
+}
+
+#cta a {
+    font-size: 2rem;
+    padding: 0.5rem;
+    width: 8rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--color_text);
+}
+
+
+#cta a[href="/instances/new"] {
+    background: var(--color_action_secondary);
+    filter: drop-shadow(2px 2px 2px var(--color_action_secondary));
+}
+
+#cta a[href="/instances"] {
+    background: var(--color_action);
+    filter: drop-shadow(2px 2px 2px var(--color_action));
+}
+
+#cta a:hover {
+    filter: var(--hover_action);
+}
+
+
+form input {
+    font-size: 1.25rem;
+    border-radius: 3px;
+    border: 1px solid var(--color_outline);
+    padding: 0.22rem;
+}
+
+form#git-started input[type=submit] {
+    background: var(--color_action);
+    margin-left: 0.25rem;
+    drop-shadow: 1px 1px black;
+    font-weight: 200;
+    border-radius: 3px;
+}
+
+main header  {
+    padding: 1rem;
+    border-top: 1px solid var(--color_text);
+    border-bottom: 1px solid var(--color_text);
+}
+
+main header h2 {
+    font-size: 2rem;
+    font-weight: 200;
+}
+
+form#new-box {
+    margin: 3rem;
+    max-width: 30rem;
+}
+
+div.form-group {
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-flow: column;
+}
+
+form input[type=submit] {
+    background: var(--color_action);
+    drop-shadow: 1px 1px black;
+    font-weight: 200;
+    font-size: 1.25rem;
+    padding: 0.5rem;
+    color: var(--color_bg);
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+form input[type=submit]:hover {
+    filter: var(--hover_action);
+}
+
+
+a.action {
+    background: var(--color_action);
+    filter: drop-shadow(2px 2px 2px var(--color_action));
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    width: 8rem;
+    text-align: center;
+    text-decoration: none;
+    color: var(--color_text);
+}
+
+main article {
+    margin: 3rem;
+}
+
+main article h3 {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+main section {
+    margin-bottom: 1.5rem;
+}
+
+main#instance article {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    margin: 3rem;
+}
+
+section#tmate aside {
+    margin-top: 1.5rem;
+    font-size: 1rem;
+}
+
+section#tmate aside p {
+    font-style: italic;
+}
+
+main#instance section#status {
+    border: 1px solid var(--color_text);
+}
+
+main#instance section#status h3 {
+    border-bottom: 1px solid var(--color_text);
+    padding-left: 1rem;
+}
+
+main#instance section#status p {
+    padding-left: 1rem;
+}
+
+main#instance a.delete {
+    background: var(--color_action_alert);
+    color: var(--color_bg);
+    width: 15rem;
+    height: 3rem;
+}
+
+main#all-instances h3 {
+    margin-bottom: 0.5rem;
+}
+
+main#all-instances ul {
+    list-style-type: none;
+    margin-bottom: 3rem;
+}
+
+@media (max-width: 667px) {
+    main#instance article {
+        display: flex;
+        flex-flow: column;
+    }
+}
