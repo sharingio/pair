@@ -606,7 +606,7 @@ EOF`,
 						"apt-key fingerprint 0EBFCD88",
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils",
 						`cat <<EOF > /etc/docker/daemon.json
 {
   "log-driver": "json-file",
@@ -789,9 +789,10 @@ spec:
         - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
         - --crd-source-kind=DNSEndpoint
         - --provider=pdns
-        - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+        - --policy=sync
         - --registry=txt
         - --interval=10s
+        - --log-level=debug
         env:
           - name: EXTERNAL_DNS_DOMAIN_FILTER
             valueFrom:
@@ -1007,10 +1008,15 @@ EOF
 `,
 						`
   kubectl -n powerdns wait pod --for=condition=Ready --selector=app.kubernetes.io/name=powerdns --timeout=200s
+  until [ "$(dig A {{ $.Setup.BaseDNSName }} +short)" = "${LOAD_BALANCER_IP}" ]; do
+    echo "BaseDNSName does not resolve to Instance IP yet"
+    sleep 1
+  done
   kubectl -n powerdns exec deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
   kubectl -n powerdns exec deployment/powerdns -- pdnsutil activate-tsig-key {{ $.Setup.BaseDNSName }} pair master
   kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta {{ $.Setup.BaseDNSName }} TSIG-ALLOW-DNSUPDATE pair
   kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
+  kubectl -n powerdns create secret generic tsig-powerdns --from-literal=powerdns="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
   kubectl -n powerdns apply -f - << EOF
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
