@@ -8,8 +8,8 @@ Pairing is sharing
 - provision a Kubernetes cluster on Equinix Metal / Packet with a repo ready to pair shortly
 - get a Kubeconfig and a tmate session to begin
 
-* Setup
-For setting up a Pair operator, check out the [[./org/setup/setup.org][setup.org doc]].
+* Set up
+For setting up Pair, check out the [[./org/deployment/deployment.org][deployment docs]].
 
 * License
 
