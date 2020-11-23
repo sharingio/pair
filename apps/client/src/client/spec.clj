@@ -10,3 +10,5 @@
 (s/valid? ::username "BobyMcBobs")
 (s/valid? ::username "cool-h2and-57l-luke")
 (s/valid? ::username "-should-be-false!")
+
+(s/def ::gh-oauth-code string?)

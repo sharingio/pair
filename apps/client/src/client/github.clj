@@ -2,8 +2,22 @@
   (:require [cheshire.core :as json]
             [environ.core :refer [env]]
             [clojure.tools.logging :as log]
+            [clojure.spec.alpha :as s]
+            [clojure.spec.test.alpha :as test]
             [clj-http.client :as http])
 (:use [slingshot.slingshot :only [throw+ try+]]))
+
+
+(def github-username-regex #"^([A-Za-z\d]+-)*[A-Za-z\d]+$")
+
+(s/def ::username (s/and string? #(re-matches github-username-regex %)))
+
+(s/def ::gh-oauth-code string?)
+
+(s/fdef get-token
+  :args (s/cat :code ::gh-oauth-code)
+  :ret (s/nilable string?))
+
 
 (defn get-token [code]
   (-> (http/post "https://github.com/login/oauth/access_token"
