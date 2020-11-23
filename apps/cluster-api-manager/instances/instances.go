@@ -67,6 +67,9 @@ func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface, option
 	instance.Name = GenerateName(instance)
 	instance.Setup.UserLowercase = strings.ToLower(instance.Setup.User)
 	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
+	if instance.Setup.Timezone == "" {
+		instance.Setup.Timezone = instanceDefaultTimezone
+	}
 	switch instance.Type {
 	case InstanceTypeKubernetes:
 		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset, options)

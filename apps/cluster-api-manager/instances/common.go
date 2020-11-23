@@ -11,6 +11,7 @@ import (
 
 const (
 	instanceDefaultNodeSize = "c1.small.x86"
+	instanceDefaultTimezone = "Pacific/Auckland"
 )
 
 func GetInstanceDefaultNodeSize() (string) {
