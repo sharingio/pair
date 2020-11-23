@@ -4,7 +4,6 @@ COPY src/client /app/src/client
 COPY resources /app/resources
 COPY test /app/test
 COPY *.clj /app/
-RUN lein deps
 RUN lein ring uberjar
 
 FROM gcr.io/distroless/java:11
