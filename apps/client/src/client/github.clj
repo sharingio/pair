@@ -34,9 +34,40 @@
    :emails (get "user/emails" token)
    :orgs (get "user/orgs" token)})
 
+(s/fdef primary-email
+  :args (s/cat :emails :gh/emails)
+  :ret (s/nilable :client.spec/email))
+(defn primary-email
+  [emails]
+  (:email (first (filter #(= (:primary %) true) emails))))
+
+(s/fdef in-permitted-org?
+  :args (s/cat :orgs :gh/orgs)
+  :ret boolean?)
 
 (defn in-permitted-org?
-  [token]
-  (let [user-orgs (set (map :login (github-get "user/orgs" token)))
-        permitted-orgs (set '(sharingio cncf kubernetes))]
-    (empty? (clojure.set/intersection user-orgs permitted-orgs))))
+  [orgs]
+  (let [permitted-orgs (set '(sharingio cncf kubernetes))
+        user-orgs (set (map :login orgs))]
+    ((complement empty?) (clojure.set/intersection user-orgs permitted-orgs))))
+
+(s/fdef user-info
+  :args (s/cat :raw-info :gh/raw-info)
+  :ret :client.spec/user)
+(defn user-info
+  [{{:keys [login name avatar_url html_url]} :user
+    emails :emails
+    orgs :orgs}]
+  {:username login
+   :fullname name
+   :email (primary-email emails)
+   :profile html_url
+   :avatar avatar_url
+   :permitted-member (in-permitted-org? orgs)})
+
+(s/fdef get-user-info
+  :args (s/cat :code string?)
+  :ret :client.spec/user)
+(defn get-user-info
+  [code]
+  (-> code get-token get-raw-info user-info))
