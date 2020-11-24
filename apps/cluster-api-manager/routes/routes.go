@@ -12,15 +12,15 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-
-	"github.com/sharingio/pair/common"
-	"github.com/sharingio/pair/instances"
-	"github.com/sharingio/pair/types"
-
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+
+	"github.com/sharingio/pair/common"
+	"github.com/sharingio/pair/instances"
+	"github.com/sharingio/pair/types"
 )
 
 func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
@@ -387,6 +387,48 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 				Response: response,
 			},
 			Spec: session,
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
+func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Fetched Kubeconfig for instance"
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, ingresses := instances.KubernetesGetInstanceIngresses(kubernetesClientset, name)
+		if len(ingresses.Items) == 0 && err == nil {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec: networkingv1.IngressList{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if err != nil {
+			log.Println(err)
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec: networkingv1.IngressList{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		responseCode = http.StatusOK
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
+			Spec: ingresses,
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}

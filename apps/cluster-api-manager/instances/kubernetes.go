@@ -16,6 +16,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -849,6 +850,8 @@ EOF
     --set admin.ingress.enabled=true \
     --set admin.ingress.class=nginx \
     --set admin.ingress.hostname=powerdns \
+    --set admin.tls[0].secretName=letsencrypt-prod \
+    --set admin.tls[0].hosts[0]={{ $.Setup.BaseDNSName }} \
     --set powerdns.extraEnv[0].name="PDNS_dnsupdate" \
     --set powerdns.extraEnv[0].value="yes" \
     --set powerdns.extraEnv[1].name="PDNS_allow_dnsupdate_from" \
@@ -897,7 +900,7 @@ EOF
           git clone https://github.com/humacs/humacs
           cd humacs
           kubectl create ns "{{ $.Setup.UserLowercase }}"
-
+          kubectl label ns "{{ $.Setup.UserLowercase }}" cert-manager-tls=sync
           mkdir -p /var/local/humacs-home-ii
           chown 1000:1000 -R /var/local/humacs-home-ii
           kubectl -n "{{ $.Setup.UserLowercase }}" apply -f - <<EOF
@@ -949,7 +952,7 @@ EOF
             --set extraEnvVars[0].value="{{ $.Name }}" \
             --set extraEnvVars[1].name="SHARINGIO_PAIR_USER" \
             --set extraEnvVars[1].value="{{ $.Setup.User }}" \
-            --set extraEnvVars[2].name="DEBUG" \
+            --set extraEnvVars[2].name="HUMACS_DEBUG" \
             --set-string extraEnvVars[2].value="true" \
             --set extraEnvVars[3].name="REINIT_HOME_FOLDER" \
             --set-string extraEnvVars[3].value="true" \
@@ -958,17 +961,19 @@ EOF
             --set options.preinitScript='(
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
-              ./.sharing.io/init || true
+              (
+                ./.sharing.io/init || true
+              ) &
               for repo in $(find ~ -type d -name ".git"); do
                 repoName=$(basename $(dirname $repo))
                 if [ -x $HOME/.sharing.io/$repoName/init ]; then
                   cd $repo/..
-                  $HOME/.sharing.io/$repoName/init
+                  $HOME/.sharing.io/$repoName/init &
                   continue
                 fi
                 if [ -x $repo/../.sharing.io/init ]; then
                   cd $repo/..
-                  ./.sharing.io/init
+                  ./.sharing.io/init &
                 fi
               done
               echo "{{ $.Setup.GitHubOAuthToken }}" > /home/ii/.githubOAuthToken
@@ -998,6 +1003,10 @@ kind: Ingress
 metadata:
   name: humacs-tilt
 spec:
+  tls:
+    - hosts:
+        - "tilt.{{ $.Setup.BaseDNSName }}"
+      secretName: letsencrypt-prod
   rules:
   - host: "tilt.{{ $.Setup.BaseDNSName }}"
     http:
@@ -1606,6 +1615,20 @@ func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName 
 		return fmt.Errorf(stderr), stdout
 	}
 	return err, stdout
+}
+
+func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceName string) (err error, ingresses *networkingv1.IngressList) {
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	if err != nil {
+		return err, &networkingv1.IngressList{}
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return err, &networkingv1.IngressList{}
+	}
+
+	ingresses, err = instanceClientset.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
+	return err, ingresses
 }
 
 func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, clientset *kubernetes.Clientset) {

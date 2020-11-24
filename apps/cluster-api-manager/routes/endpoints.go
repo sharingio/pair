@@ -37,6 +37,11 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 			HttpMethods:  []string{http.MethodGet},
 		},
 		{
+			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/ingresses",
+			HandlerFunc:  GetKubernetesIngresses(clientset),
+			HttpMethods:  []string{http.MethodGet},
+		},
+		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate",
 			HandlerFunc:  GetKubernetesTmateSSHSession(clientset, restConfig, dynamicClient),
 			HttpMethods:  []string{http.MethodGet},
