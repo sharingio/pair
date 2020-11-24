@@ -35,10 +35,10 @@
                  :session (merge session {:instance instance}))))
 
   (GET "/instances/id/:id" {{:keys [user instance]} :session}
-       (views/instance instance (:username user)))
+       (views/instance instance user))
 
   (GET "/instances/id/:id/delete" {{:keys [user instance]} :session}
-       (views/delete-instance instance (:username user)))
+       (views/delete-instance instance user))
 
   (POST "/instances/id/:id/delete" {{:keys [user instance]} :session
                                     {:keys [instance-id]} :params}
@@ -60,7 +60,7 @@
   (fn [req]
     (handler
      (if (= "/instances" (:uri req))
-       (let [instances (packet/get-all-instances (-> req :session :user :username))]
+       (let [instances (packet/get-all-instances (-> req :session :user))]
          (assoc-in req [:session :instances] instances))
        (do (println "No Instances Found" (-> req :session)) req)))))
 

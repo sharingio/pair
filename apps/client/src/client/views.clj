@@ -124,7 +124,7 @@
 
 
 (defn instance
-  [instance username]
+  [instance {:keys [username admin-member]}]
   (layout
    [:main#instance
    [:header
@@ -133,13 +133,13 @@
     (tmate instance)
      (status instance)
     (kubeconfig-box (:kubeconfig instance))
-    (when (= (:owner instance) username)
+    (when (or (= (:owner instance) username) admin-member)
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"])]]
    username))
 
 (defn delete-instance
-  [{:keys [instance-id]} username]
+  [{:keys [instance-id]} {:keys [username]}]
   (layout
    [:main#delete-instance
     [:header
@@ -159,8 +159,9 @@
 
 
 (defn all-instances
-  [instances {:keys [username]}]
-  (let [[owner guest] ((juxt filter remove) #(= (:owner %) username) instances)]
+  [instances {:keys [username admin-member]}]
+  (let [[owner rest] ((juxt filter remove) #(= (:owner %) username) instances)
+        [guest other] ((juxt filter remove) #(some #{username} (:guests %)) rest)]
     (layout
      [:main#all-instances
       [:header
@@ -178,5 +179,12 @@
        [:ul
        (for [instance guest]
          [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-          (:instance-id instance)] [:em (:phase instance)]])]])]]
+               (:instance-id instance)] [:em (:phase instance)]])]])
+       (when (and admin-member other)
+         [:section#admin
+          [:h3 "All Other Instances"]
+          [:ul
+           (for [instance other]
+             [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
+                   (:instance-id instance)] [:em (:phase instance)]])]])]]
      username)))

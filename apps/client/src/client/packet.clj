@@ -97,7 +97,7 @@
 
 
 (defn get-all-instances
-  [username]
+  [{:keys [username admin-member]}]
   (let [raw-instances (try+ (-> (http/get (str backend-address"/api/instance/kubernetes"))
                             :body (json/decode true) :list)
                         (catch Object _
@@ -109,8 +109,10 @@
                           :owner (-> spec :setup :user)
                           :guests (-> spec :setup :guests)
                           }) raw-instances)]
+    (if admin-member
+      instances
     (filter #(or (some #{username} (:guests %))
-                 (= (:owner %) username)) instances)))
+                 (= (:owner %) username)) instances))))
 
 (defn delete-instance
   [instance-id]
