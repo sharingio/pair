@@ -47,9 +47,18 @@
 
 (defn in-permitted-org?
   [orgs]
-  (let [permitted-orgs (set '(sharingio cncf kubernetes))
+  (let [permitted-orgs (set '("sharingio" "cncf" "kubernetes"))
         user-orgs (set (map :login orgs))]
     ((complement empty?) (clojure.set/intersection user-orgs permitted-orgs))))
+
+(s/fdef is-admin?
+  :args (s/cat :emails :gh/emails)
+  :ret (s/nilable boolean?))
+(defn is-admin?
+  "do emails include ii.coop, indicating admin"
+  [emails]
+  (let [addresses (map :email emails)]
+  (some #(clojure.string/ends-with? % "@ii.coop") addresses)))
 
 (s/fdef user-info
   :args (s/cat :raw-info :gh/raw-info)
@@ -63,7 +72,8 @@
    :email (primary-email emails)
    :profile html_url
    :avatar avatar_url
-   :permitted-member (in-permitted-org? orgs)})
+   :permitted-member (in-permitted-org? orgs)
+   :admin-member (is-admin? emails)})
 
 (s/fdef get-user-info
   :args (s/cat :code string?)
