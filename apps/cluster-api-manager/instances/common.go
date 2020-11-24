@@ -12,7 +12,12 @@ import (
 const (
 	instanceDefaultNodeSize = "c1.small.x86"
 	instanceDefaultTimezone = "Pacific/Auckland"
+	instanceDefaultHumacsVersion = "2020.11.23"
 )
+
+func GetHumacsVersion() (string) {
+	return common.GetEnvOrDefault("APP_HUMACS_VERSION", instanceDefaultHumacsVersion)
+}
 
 func GetInstanceDefaultNodeSize() (string) {
 	return instanceDefaultNodeSize

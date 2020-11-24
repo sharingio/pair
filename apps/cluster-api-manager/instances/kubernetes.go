@@ -65,7 +65,6 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 var defaultMachineOS = "ubuntu_20_04"
 var defaultKubernetesVersion = "1.19.0"
-var defaultHumacsVersion = "2020.11.23"
 
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
@@ -1221,7 +1220,7 @@ EOF
 	}
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
-	instance.Setup.HumacsVersion = defaultHumacsVersion
+	instance.Setup.HumacsVersion = GetHumacsVersion()
 	instance.Setup.BaseDNSName = instance.Setup.UserLowercase + "." + common.GetBaseHost()
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
