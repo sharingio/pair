@@ -887,14 +887,19 @@ spec:
     targets:
     - 'ns1.{{ $.Setup.BaseDNSName }}. hostmaster.{{ $.Setup.BaseDNSName }}. 5 60 60 60 60'
 EOF
+
+  helm repo add appscode https://charts.appscode.com/stable/
+  helm repo update
+  helm install kubed appscode/kubed -n kube-system --set enableAnalytics=false
 `,
 						`(
-          cd /root;
-          git clone https://github.com/humacs/humacs;
-          cd humacs;
-          kubectl create ns "{{ $.Setup.UserLowercase }}";
-          mkdir -p /var/local/humacs-home-ii;
-          chown 1000:1000 -R /var/local/humacs-home-ii;
+          cd /root
+          git clone https://github.com/humacs/humacs
+          cd humacs
+          kubectl create ns "{{ $.Setup.UserLowercase }}"
+
+          mkdir -p /var/local/humacs-home-ii
+          chown 1000:1000 -R /var/local/humacs-home-ii
           kubectl -n "{{ $.Setup.UserLowercase }}" apply -f - <<EOF
 apiVersion: v1
 kind: PersistentVolume
@@ -1066,6 +1071,17 @@ spec:
     - "*.{{ $.Setup.BaseDNSName }}"
     - "{{ $.Setup.BaseDNSName }}"
 EOF
+(
+   while true; do
+     conditions=$(kubectl -n powerdns get cert letsencrypt-prod -o=jsonpath='{.status.conditions[0]}')
+     if [ "$(echo $conditions | jq -r .type)" = "Ready" ] && [ "$(echo $conditions | jq -r .status)" = "True" ]; then
+       break
+     fi
+     echo "Waiting for valid TLS cert"
+     sleep 1
+   done
+   kubectl -n powerdns annotate secret letsencrypt-prod kubed.appscode.com/sync=cert-manager-tls=sync
+) &
 `,
 						"kubectl -n default create configmap sharingio-pair-init-complete",
 					},
