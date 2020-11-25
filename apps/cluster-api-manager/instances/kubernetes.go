@@ -320,6 +320,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 
 	if options.DryRun == true {
 		log.Println("Exiting before create due to dry run")
+		log.Printf("%v\n", newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26])
 		return err, instanceCreated
 	}
 
@@ -950,6 +951,9 @@ EOF
             --set-string extraEnvVars[3].value="true" \
             --set extraEnvVars[4].name="SHARINGIO_PAIR_BASE_DNS_NAME" \
             --set-string extraEnvVars[4].value="{{ $.Setup.BaseDNSName }}" \
+      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}{{ $newIndex := add $index 5 }}
+            --set extraEnvVars[{{ $newIndex }}].name="{{ $key }}" \
+            --set-string extraEnvVars[{{ $newIndex }}].value="{{ $key }}" \{{ end }}{{ end }}{{- end }}
             --set options.preinitScript='(
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
@@ -1314,7 +1318,7 @@ EOF
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25] = templatedBuffer.String()
 
 	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26])
+	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Funcs(TemplateFuncMap()).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
