@@ -68,15 +68,13 @@
 
 (defn get-kubeconfig
   [phase instance-id]
-  (if (= "Provisioning" phase) nil
       (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/kubeconfig"))
                 :body (json/decode true)
                 :spec json/generate-string
                 yaml/parse-string
                 (yaml/generate-string :dumper-options {:flow-style :block}))
             (catch Object _
-              (log/error "tried to get kubeconfig, no luck for " instance-id)
-              nil))))
+              (log/error "tried to get kubeconfig, no luck for " instance-id))))
 
 (defn get-tmate-ssh
   [kubeconfig instance_id]
@@ -96,6 +94,23 @@
               (log/error "tried to get tmate, no luck for " instance-id)
               "No Tmate session yet"))))
 
+(defn get-ingresses
+  [instance-id]
+  (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/ingresses"))
+            :body (json/decode true))
+            (catch Object _
+              (log/error "tried to get ingress, no luck for " instance-id)
+              nil)))
+
+(defn get-sites
+  [ingresses]
+  (let [items (-> ingresses  :spec :items)
+        rules (mapcat #(map :host (-> % :spec :rules)) items)
+        tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
+    (map (fn [addr]
+           (if (some #{addr} tls)
+             (str "https://"addr)
+             (str "http://"addr))) rules)))
 
 (defn get-all-instances
   [{:keys [username admin-member]}]
@@ -118,3 +133,14 @@
 (defn delete-instance
   [instance-id]
   (http/delete (str backend-address"/api/instance/kubernetes/"instance-id)))
+
+(comment
+(let [items (-> (get-ingresses "hh-0iew") :spec :items)
+      rules (mapcat #(map :host (-> % :spec :rules)) items)
+      tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
+  (map (fn [addr]
+         (if (some #{addr} tls)
+          (str "https://"addr)
+          (str "http://"addr))) rules))
+
+  )

@@ -73,9 +73,13 @@
                      kubeconfig (packet/get-kubeconfig (:phase instance) instance-id)
                      tmate-ssh (packet/get-tmate-ssh kubeconfig instance-id)
                      tmate-web (packet/get-tmate-web kubeconfig instance-id)
+                     ingresses (packet/get-ingresses instance-id)
+                     sites (packet/get-sites ingresses)
                      status (merge instance {:kubeconfig kubeconfig
                                              :tmate-ssh tmate-ssh
-                                             :tmate-web tmate-web})]
+                                             :tmate-web tmate-web
+                                             :ingresses ingresses
+                                             :sites sites})]
                (assoc-in req [:session :instance] (merge (-> req :session :instance) status)))
                   req ))))
 
