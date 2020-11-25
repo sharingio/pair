@@ -1,7 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: pair-dev-sharing-io
 spec:
   rules:
-    - http:
-        paths:
-          - backend:
-              serviceName: humacs
-              servicePort: 5000
+  - host: pair-dev.sharing.io
+    http:
+      paths:
+      - backend:
+          serviceName: humacs
+          servicePort: 5000
+        path: /
+  tls:
+  - hosts:
+    - pair-dev.sharing.io
+    secretName: sharingio-pair-letsencrypt

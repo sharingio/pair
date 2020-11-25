@@ -1,0 +1,15 @@
+# Frontend REPL
+# Setup DNS endpoints
+
+
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: pair-dev-sharing-io
+spec:
+  endpoints:
+  - dnsName: pair-dev.sharing.io
+    recordTTL: 60
+    recordType: A
+    targets:
+    - 139.178.68.219
