@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
+    /usr/local/bin/tmate-wait-for-socket.sh
+    export APP_NAMESPACE=sharingio-pair
+    kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
+
+    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n tilt bash
+    tmate -S $TMATE_SOCKET send-keys -t "tilt export DEFAULT_SUBDOMAIN_NAME=pair-dev && export SHARINGIO_PAIR_HOST=\"\$DEFAULT_SUBDOMAIN_NAME.$SHARINGIO_PAIR_BASE_DNS_NAME\"" Enter
+    tmate -S $TMATE_SOCKET send-keys -t tilt "tilt up --host 0.0.0.0 --hud" Enter
+fi
