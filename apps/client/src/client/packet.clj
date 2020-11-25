@@ -10,7 +10,7 @@
 (def backend-address (str "http://"(env :backend-address)))
 
 (defn launch
-  [{:keys [username]} {:keys [project facility type guests fullname email repos] :as params}]
+  [{:keys [username token]} {:keys [project facility type guests fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
@@ -18,6 +18,7 @@
                                :guests (if (empty? guests)
                                          [ ]
                                          (clojure.string/split guests #" "))
+                               :githubOAuthToken token
                                :repos (if (empty? repos)
                                         [ ]
                                         (clojure.string/split repos #" "))

@@ -12,7 +12,6 @@
 (s/fdef get-token
   :args (s/cat :code ::gh-oauth-code)
   :ret (s/nilable string?))
-
 (defn get-token [code]
   (-> (http/post "https://github.com/login/oauth/access_token"
                  {:form-params {:client_id (env :oauth-client-id)
@@ -32,6 +31,7 @@
   [token]
   {:user (get "user" token)
    :emails (get "user/emails" token)
+   :token token
    :orgs (get "user/orgs" token)})
 
 (s/fdef primary-email
@@ -44,7 +44,6 @@
 (s/fdef in-permitted-org?
   :args (s/cat :orgs :gh/orgs)
   :ret boolean?)
-
 (defn in-permitted-org?
   [orgs]
   (let [permitted-orgs (set '("sharingio" "cncf" "kubernetes"))
@@ -66,10 +65,12 @@
 (defn user-info
   [{{:keys [login name avatar_url html_url]} :user
     emails :emails
-    orgs :orgs}]
+    orgs :orgs
+    token :token}]
   {:username login
    :fullname name
    :email (primary-email emails)
+   :token token
    :profile html_url
    :avatar avatar_url
    :permitted-member (in-permitted-org? orgs)
@@ -81,3 +82,10 @@
 (defn get-user-info
   [code]
   (-> code get-token get-raw-info user-info))
+
+
+(comment
+  (def user (get-user-info "376cab7a8724c40cebe8"))
+user
+
+)
