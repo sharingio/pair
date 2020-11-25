@@ -87,6 +87,12 @@
             :title "github usernames separated by white space"
             }]
     [:p.helper "please add github usernames, separated by whitespace"]]
+   [:div.form-group
+    [:label {:form "envvars"} "Environment Variables"]
+    [:textarea {:name "envvars"
+                :id "envvars"
+                :placeholder "PAIR=sharing\nSHARE=pairing"}]
+    [:p.helper "Add env vars as KEY=value, with each new variable on its own line."]]
    [:input {:type :submit :value "launch"}]))
 
 (defn new

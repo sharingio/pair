@@ -3,14 +3,33 @@
   (:require [cheshire.core :as json]
             [clojure.tools.logging :as log]
             [clj-http.client :as http]
+            [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [clojure.spec.test.alpha :as test]
             [yaml.core :as yaml]
             [environ.core :refer [env]])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
 (def backend-address (str "http://"(env :backend-address)))
 
+(s/fdef text->env
+  :args (s/cat :text string?)
+  :ret map?)
+(defn text->env-map
+  "given envvars on newlines
+  separate key and value into {:key 'value'}"
+  [text]
+  (map (comp #(conj {} %) #(str/split % #"="))
+       (str/split-lines text)))
+
+(comment
+  (text->env-map "PAIR=sharing\nSHARE=pairing")
+
+  )
+
+
 (defn launch
-  [{:keys [username token]} {:keys [project facility type guests fullname email repos] :as params}]
+  [{:keys [username token]} {:keys [project envvars facility type guests fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
@@ -19,6 +38,7 @@
                                          [ ]
                                          (clojure.string/split guests #" "))
                                :githubOAuthToken token
+                               :env (text->env-map envvars)
                                :repos (if (empty? repos)
                                         [ ]
                                         (clojure.string/split repos #" "))
@@ -30,7 +50,6 @@
         {{api-response :response} :metadata
          {phase :phase} :status
          {name :name} :spec} response]
-    (println "INSTANCE SPEC" instance-spec)
     {:owner username
      :facility facility
      :type type
