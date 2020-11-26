@@ -10,19 +10,19 @@
                     "&scope=read:user user:email read:org"))
 
 (defn header
-  [username]
-  (if username
+  [{:keys [avatar username] :as user}]
+  (if user
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      [:p username [:a {:href "/logout"} "logout"]]]]
+      [:p [:img {:src avatar :alt (str "avatar icon for "username)}] [:a {:href "/logout"} "logout"]]]]
   [:header#top
    [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
-    [:a {:href login-url} (if username username "login with github")]]]))
+    [:a {:href login-url} "login with github"]]]))
 
 (defn layout
-  [body username &[refresh?]]
+  [body user &[refresh?]]
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
@@ -35,11 +35,11 @@
             :content "width=device-width"}]
     (include-css "/stylesheets/main.css")]
    [:body
-    (header username)
+    (header user)
     body]))
 
 (defn splash
-  [username]
+  [{:keys [username] :as user}]
   (layout
    [:main#splash
     [:section#cta
@@ -48,7 +48,7 @@
      [:div
       [:a {:href "/instances/new"} "New"]
       [:a {:href "/instances"} "All"]])]]
-   username))
+   user))
 
 (defn new-box-form
   [{:keys [fullname email username]}]
@@ -102,7 +102,7 @@
     [:header
      [:h2 "Create a new Pairing Box"]]
     (new-box-form user)]
-   (:username user)))
+   user))
 
 (defn kubeconfig-box
   [kubeconfig]
@@ -144,7 +144,7 @@
 
 
 (defn instance
-  [instance {:keys [username admin-member]}]
+  [instance {:keys [username admin-member] :as user}]
   (layout
    [:main#instance
    [:header
@@ -156,10 +156,10 @@
     (when (or (= (:owner instance) username) admin-member)
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"])]]
-   username))
+   user))
 
 (defn delete-instance
-  [{:keys [instance-id]} {:keys [username]}]
+  [{:keys [instance-id]} user]
   (layout
    [:main#delete-instance
     [:header
@@ -175,11 +175,11 @@
                    [:input.action.delete {:type :submit
                             :name "confirm"
                             :value (str "Delete " instance-id)}])]]
-   username))
+   user))
 
 
 (defn all-instances
-  [instances {:keys [username admin-member]}]
+  [instances {:keys [username admin-member] :as user}]
   (let [[owner rest] ((juxt filter remove) #(= (:owner %) username) instances)
         [guest other] ((juxt filter remove) #(some #{username} (:guests %)) rest)]
     (layout
@@ -207,4 +207,4 @@
            (for [instance other]
              [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
                    (:instance-id instance)] [:em (:phase instance)]])]])]]
-     username)))
+     user)))

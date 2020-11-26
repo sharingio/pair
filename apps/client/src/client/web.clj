@@ -15,8 +15,8 @@
   (:gen-class))
 
 (defroutes app-routes
-  (GET "/" {session :session}
-       (views/splash (-> session :user :username)))
+  (GET "/" {{:keys [user]} :session}
+       (views/splash user))
 
   (GET "/instances" {{:keys [user instances]} :session}
        (views/all-instances instances user))
