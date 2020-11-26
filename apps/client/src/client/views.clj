@@ -143,7 +143,7 @@
    [:h3 "Status: " phase]
     [:p  type " instance"]
    [:p "deployed at " facility]
-   [:p "Sites Available"]
+   [:h3 "Sites Available"]
    [:ul
     (for [site sites]
       [:li [:a {:href site
