@@ -52,10 +52,9 @@
 (s/def :gh/raw-info (s/keys :req-un [:gh/user :gh/emails :gh/orgs]))
 
 (s/def ::permitted-member boolean?)
+(s/def ::admin-member boolean?)
 (s/def ::avatar string?)
 (s/def ::fullname string?)
 (s/def ::profile string?)
 
-(s/def ::user (s/keys :req-un [::username ::fullname ::email ::permitted-member ::avatar ::profile]))
-
-(s/exercise :gh/emails 5)
+(s/def ::user (s/keys :req-un [::username ::fullname ::email ::permitted-member ::avatar ::profile ::admin-member]))

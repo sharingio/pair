@@ -56,7 +56,7 @@
 (defn is-admin?
   "do emails include ii.coop, indicating admin"
   [emails]
-  (let [addresses (map :email emails)]
+  (let [addresses (->> emails (filter :verified) (map :email))]
   (some #(clojure.string/ends-with? % "@ii.coop") addresses)))
 
 (s/fdef user-info
