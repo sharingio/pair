@@ -23,14 +23,14 @@ import (
 	"github.com/sharingio/pair/types"
 )
 
-func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+func GetInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, kubernetesClientset)
+		err, instance := instances.KubernetesGet(name, dynamicClient)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -66,7 +66,7 @@ func GetInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFu
 	}
 }
 
-func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+func ListInstancesKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all Kubernetes instances"
 		responseCode := http.StatusInternalServerError
@@ -78,7 +78,7 @@ func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.Handler
 			},
 		}
 
-		err, availableInstances := instances.KubernetesList(kubernetesClientset, options)
+		err, availableInstances := instances.KubernetesList(dynamicClient, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -103,7 +103,7 @@ func ListInstancesKubernetes(kubernetesClientset dynamic.Interface) http.Handler
 	}
 }
 
-func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+func PostInstance(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
@@ -116,7 +116,7 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 			DryRun: dryRunFormValue == "true",
 		}
 
-		err, instanceCreated := instances.Create(instance, kubernetesClientset, options)
+		err, instanceCreated := instances.Create(instance, dynamicClient, clientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -142,14 +142,14 @@ func PostInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 	}
 }
 
-func DeleteInstanceKubernetes(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+func DeleteInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, kubernetesClientset)
+		err, instance := instances.KubernetesGet(name, dynamicClient)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -174,7 +174,7 @@ func DeleteInstanceKubernetes(kubernetesClientset dynamic.Interface) http.Handle
 			return
 		}
 
-		err = instances.KubernetesDelete(name, kubernetesClientset)
+		err = instances.KubernetesDelete(name, dynamicClient)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -199,7 +199,7 @@ func DeleteInstanceKubernetes(kubernetesClientset dynamic.Interface) http.Handle
 	}
 }
 
-func DeleteInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
+func DeleteInstance(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
@@ -207,7 +207,7 @@ func DeleteInstance(kubernetesClientset dynamic.Interface) http.HandlerFunc {
 		body, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(body, &instance)
 
-		err := instances.Delete(instance, kubernetesClientset)
+		err := instances.Delete(instance, dynamicClient)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -429,6 +429,100 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 				Response: response,
 			},
 			Spec: ingresses,
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
+func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Failed to initiate DNS management"
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, instance := instances.KubernetesGet(name, dynamicClient)
+		if instance.Spec.Name == "" && err == nil {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+
+		_ = instances.KubernetesAddMachineIPToDNS(dynamicClient, name, instance.Spec.Setup.UserLowercase)
+		response = "Initiated DNS management"
+		responseCode = http.StatusOK
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
+func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Failed to initiate cert management"
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, instance := instances.KubernetesGet(name, dynamicClient)
+		if instance.Spec.Name == "" && err == nil {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+
+		_ = instances.KubernetesAddCertToMachine(clientset, dynamicClient, name, instance.Spec.Setup.UserLowercase)
+		response = "Initiated cert management"
+		responseCode = http.StatusOK
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}

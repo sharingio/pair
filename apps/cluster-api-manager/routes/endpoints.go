@@ -42,6 +42,16 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 			HttpMethods:  []string{http.MethodGet},
 		},
 		{
+			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/certmanage",
+			HandlerFunc:  PostKubernetesCertManage(clientset, dynamicClient),
+			HttpMethods:  []string{http.MethodPost},
+		},
+		{
+			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/dnsmanage",
+			HandlerFunc:  PostKubernetesDNSManage(dynamicClient),
+			HttpMethods:  []string{http.MethodPost},
+		},
+		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate",
 			HandlerFunc:  GetKubernetesTmateSSHSession(clientset, restConfig, dynamicClient),
 			HttpMethods:  []string{http.MethodGet},
@@ -58,7 +68,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		},
 		{
 			EndpointPath: endpointPrefix + "/instance",
-			HandlerFunc:  PostInstance(dynamicClient),
+			HandlerFunc:  PostInstance(dynamicClient, clientset),
 			HttpMethods:  []string{http.MethodPost},
 		},
 		{

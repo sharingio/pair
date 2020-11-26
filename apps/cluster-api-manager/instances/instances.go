@@ -7,6 +7,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/sharingio/pair/common"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 func ValidateInstance(instance InstanceSpec) (err error) {
@@ -59,7 +60,7 @@ func List(kubernetesClientset dynamic.Interface, options InstanceListOptions) (e
 	return err, instances
 }
 
-func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
+func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	err = ValidateInstance(instance)
 	if err != nil {
 		return err, instanceCreated
@@ -72,7 +73,7 @@ func Create(instance InstanceSpec, kubernetesClientset dynamic.Interface, option
 	}
 	switch instance.Type {
 	case InstanceTypeKubernetes:
-		err, instanceCreated = KubernetesCreate(instance, kubernetesClientset, options)
+		err, instanceCreated = KubernetesCreate(instance, dynamicClient, clientset, options)
 		break
 
 	case InstanceTypePlain:

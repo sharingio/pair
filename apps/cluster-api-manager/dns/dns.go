@@ -89,7 +89,7 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instance
 			return fmt.Errorf("Failed to get DNSEndpoint (for metadata.resourceVersion), %#v", err)
 		}
 		asUnstructured.SetResourceVersion(dnsendpoint.GetResourceVersion())
-		log.Println("attemtping update of DNSEndpoint")
+		log.Println("attempting update of DNSEndpoint")
 		_, err = dynamicClientset.Resource(groupVersionResource).Namespace(targetNamespace).Update(context.TODO(), asUnstructured, metav1.UpdateOptions{})
 		if err != nil {
 			log.Println("%#v\n", err)

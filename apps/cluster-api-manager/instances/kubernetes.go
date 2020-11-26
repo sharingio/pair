@@ -307,7 +307,7 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	return err, instances
 }
 
-func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interface, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
+func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 	err, newInstance := KubernetesTemplateResources(instance, targetNamespace)
@@ -330,7 +330,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured := common.ObjectToUnstructured(newInstance.KubeadmControlPlane)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Kind: "KubeadmControlPlane"})
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err), instanceCreated
@@ -349,7 +349,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure PacketMachineTemplate, %#v", err), instanceCreated
 	}
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err), instanceCreated
@@ -368,7 +368,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure PacketCluster, %#v", err), instanceCreated
 	}
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instanceCreated
@@ -387,7 +387,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure Cluster, %#v", err), instanceCreated
 	}
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create Cluster, %#v", err), instanceCreated
@@ -406,7 +406,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure MachineDeployment, %#v", err), instanceCreated
 	}
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instanceCreated
@@ -425,7 +425,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure KubeadmConfigTemplate, %#v", err), instanceCreated
 	}
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err), instanceCreated
@@ -444,7 +444,7 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to unstructure PacketMachineTemplateWorker, %#v", err), instanceCreated
 	}
-	_, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
+	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err), instanceCreated
@@ -453,7 +453,8 @@ func KubernetesCreate(instance InstanceSpec, kubernetesClientset dynamic.Interfa
 		log.Println("Already exists")
 	}
 	log.Println("[pre] adding Kubernetes Instance IP to DNS")
-	go KubernetesAddMachineIPToDNS(kubernetesClientset, instance.Name, instance.Setup.UserLowercase)
+	go KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Setup.UserLowercase)
+	go KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name, instance.Setup.UserLowercase)
 	log.Println("[post] adding Kubernetes Instance IP to DNS")
 
 	err = nil
@@ -953,7 +954,7 @@ EOF
             --set-string extraEnvVars[4].value="{{ $.Setup.BaseDNSName }}" \
       {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}{{ $newIndex := add $index 5 }}
             --set extraEnvVars[{{ $newIndex }}].name="{{ $key }}" \
-            --set-string extraEnvVars[{{ $newIndex }}].value="{{ $key }}" \{{ end }}{{ end }}{{- end }}
+            --set-string extraEnvVars[{{ $newIndex }}].value="{{ $value }}" \{{ end }}{{ end }}{{- end }}
             --set options.preinitScript='(
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
@@ -1085,7 +1086,7 @@ EOF
      echo "Waiting for valid TLS cert"
      sleep 1
    done
-   kubectl -n powerdns annotate secret letsencrypt-prod kubed.appscode.com/sync=cert-manager-tls=sync
+   kubectl -n powerdns annotate secret letsencrypt-prod kubed.appscode.com/sync=cert-manager-tls
 ) &
 `,
 						"kubectl -n default create configmap sharingio-pair-init-complete",
@@ -1636,6 +1637,23 @@ func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, 
 	return err, clientset
 }
 
+func KubernetesWaitForInstanceKubeconfig(clientset *kubernetes.Clientset, instanceName string) {
+	targetNamespace := common.GetTargetNamespace()
+	kubeconfigName := fmt.Sprintf("%s-kubeconfig", instanceName)
+pollInstanceNamespace:
+	for true {
+		deadline := time.Now().Add(time.Second * 3)
+		ctx, _ := context.WithDeadline(context.TODO(), deadline)
+		ns, err := clientset.CoreV1().Secrets(targetNamespace).Get(ctx, kubeconfigName, metav1.GetOptions{})
+		if err == nil && ns.ObjectMeta.Name == kubeconfigName {
+			log.Printf("Found Secret '%v' in Namespace '%v'\n", kubeconfigName, targetNamespace)
+			break pollInstanceNamespace
+		}
+		log.Printf("Failed to find Secret '%v' in Namespace '%v', %v\n", kubeconfigName, targetNamespace, err)
+		time.Sleep(time.Second * 5)
+	}
+}
+
 func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, username string) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 	var ipAddress string
@@ -1686,5 +1704,172 @@ machineWatchChannel:
 		log.Printf("%#v\n", err)
 	}
 
+	return err
+}
+
+func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instanceName string) (err error, secret *corev1.Secret) {
+	targetNamespace := "powerdns"
+	templatedSecretName := "letsencrypt-prod"
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	if err != nil {
+		return err, &corev1.Secret{}
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return err, &corev1.Secret{}
+	}
+
+	secret, err = instanceClientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
+	return err, secret
+}
+
+func KubernetesGetLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string) (err error, secret *corev1.Secret) {
+	targetNamespace := common.GetTargetNamespace()
+	templatedSecretName := fmt.Sprintf("%v-tls", username)
+
+	secret, err = clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
+	if secret.ObjectMeta.Name == templatedSecretName {
+		log.Printf("Found secret '%v' in namespace '%v'\n", templatedSecretName, targetNamespace)
+	}
+	return err, secret
+}
+
+func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string, secret *corev1.Secret) (err error) {
+	targetNamespace := common.GetTargetNamespace()
+	templatedSecretName := fmt.Sprintf("%v-tls", username)
+	templatedSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: templatedSecretName,
+			Labels: map[string]string{
+				"io.sharing.pair": "instance",
+			},
+			Annotations: secret.ObjectMeta.Annotations,
+		},
+		Data: secret.Data,
+	}
+	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		err = nil
+		existingSecret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
+		if err != nil {
+			log.Println("%#v\n", err)
+			return fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
+		}
+		templatedSecret.SetResourceVersion(existingSecret.GetResourceVersion())
+		_, err = clientset.CoreV1().Secrets(targetNamespace).Update(context.TODO(), &templatedSecret, metav1.UpdateOptions{})
+		if err != nil {
+			log.Println("%#v\n", err)
+			return fmt.Errorf("Failed to update Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
+		}
+	}
+	return err
+}
+
+func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string, secret *corev1.Secret) (err error) {
+	targetNamespace := "powerdns"
+	templatedSecretName := "letsencrypt-prod"
+	templatedSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: templatedSecretName,
+			Labels: map[string]string{
+				"io.sharing.pair": "instance",
+			},
+			Annotations: secret.ObjectMeta.Annotations,
+		},
+		Data: secret.Data,
+	}
+	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
+	if apierrors.IsAlreadyExists(err) {
+		log.Printf("Secret '%v' already exists in namespace '%v'", templatedSecretName, targetNamespace)
+		err = nil
+		existingSecret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
+		if err != nil {
+			log.Println("%#v\n", err)
+			return fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
+		}
+		templatedSecret.SetResourceVersion(existingSecret.GetResourceVersion())
+		log.Printf("Updating Secret '%v' in namespace '%v'", templatedSecretName, targetNamespace)
+		_, err = clientset.CoreV1().Secrets(targetNamespace).Update(context.TODO(), &templatedSecret, metav1.UpdateOptions{})
+		if err != nil {
+			log.Println("%#v\n", err)
+			return fmt.Errorf("Failed to update Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
+		}
+	} else if err == nil {
+		log.Printf("Created Secret '%v' in namespace '%v'", templatedSecretName, targetNamespace)
+	}
+	return err
+}
+
+func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instanceName string, username string) (err error) {
+	// if cert secret for user name exists locally
+	namespace := "powerdns"
+	log.Printf("Managing cert for Instance '%v'\n", instanceName)
+	errLocalInstance, localSecret := KubernetesGetLocalInstanceWildcardTLSCert(clientset, username)
+
+	KubernetesWaitForInstanceKubeconfig(clientset, instanceName)
+
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	if err != nil {
+		return err
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return err
+	}
+
+	//   wait for cluster and namespace availability
+	restClient := instanceClientset.Discovery().RESTClient()
+pollInstanceAPIServer:
+	for true {
+		deadline := time.Now().Add(time.Second * 3)
+		ctx, _ := context.WithDeadline(context.TODO(), deadline)
+		_, err := restClient.Get().AbsPath("/healthz").DoRaw(ctx)
+		if err == nil {
+			break pollInstanceAPIServer
+		} else {
+			log.Printf("err: %#v\n", err)
+		}
+		log.Printf("Instance '%v' not alive yet\n", instanceName)
+		time.Sleep(time.Second * 5)
+	}
+	log.Printf("Instance '%v' alive\n", instanceName)
+
+pollInstanceNamespace:
+	for true {
+		deadline := time.Now().Add(time.Second * 3)
+		ctx, _ := context.WithDeadline(context.TODO(), deadline)
+		ns, err := instanceClientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+		if err == nil && ns.ObjectMeta.Name == namespace {
+			log.Printf("Found namespace '%v' on Instance '%v'\n", namespace, instanceName)
+			break pollInstanceNamespace
+		}
+		log.Printf("Failed to find namespace '%v' on Instance '%v', %v\n", namespace, instanceName, err)
+		time.Sleep(time.Second * 5)
+	}
+
+	// if cert doesn't exist locally
+	if apierrors.IsNotFound(errLocalInstance) {
+		err = nil
+		log.Printf("Cert for Instance '%v' not found locally. Fetching from Instance\n", instanceName)
+		//   get remote cert
+		err, instanceSecret := KubernetesGetInstanceWildcardTLSCert(clientset, instanceName)
+		if err != nil {
+			return err
+		}
+		//   upsert remote cert locally
+		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, username, instanceSecret)
+		if err != nil {
+			log.Printf("%#v\n", err)
+		}
+	} else if err == nil {
+		log.Printf("Cert for Instance '%v' found locally. Creating it in the Instance\n", instanceName)
+		//   upsert local cert secret to remote
+		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, username, localSecret)
+		if err != nil {
+			log.Printf("%#v\n", err)
+		}
+	} else {
+		log.Printf("%#v\n", err)
+	}
 	return err
 }
