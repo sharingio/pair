@@ -34,8 +34,12 @@
           (assoc (res/redirect (str "/instances/id/"instance-id))
                  :session (merge session {:instance instance}))))
 
-  (GET "/instances/id/:id" {{:keys [user instance]} :session}
-       (views/instance instance user))
+  (GET "/instances/id/:id" {{{:keys [username admin-member] :as user} :user
+                            {:keys [owner guests] :as instance} :instance} :session}
+       (let [owner-or-guest (some #{username} (conj guests owner))]
+         (if (or admin-member owner-or-guest)
+           (views/instance instance user)
+           (res/redirect "/instances"))))
 
   (GET "/instances/id/:id/delete" {{:keys [user instance]} :session}
        (views/delete-instance instance user))
@@ -83,6 +87,14 @@
                (assoc-in req [:session :instance] (merge (-> req :session :instance) status)))
                   req ))))
 
+(defn wrap-login
+  [handler]
+  (fn [req]
+    (if (or (#{"/" "/about" "/faq" "/oauth" "/logout"} (:uri req))
+            (-> req :session :user :permitted-member))
+      (handler req)
+      {:status 401 :body "You Must be Logged in"})))
+
 (defn wrap-logging
   [handler]
   (fn [req]
@@ -95,6 +107,7 @@
 (def app
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
     (-> app-routes
+        (wrap-login)
         (wrap-get-all-instances)
         (wrap-update-instance)
         (wrap-logging)

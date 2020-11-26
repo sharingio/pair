@@ -7,15 +7,20 @@
 
 (def login-url (str "https://github.com/login/oauth/authorize?"
                     "client_id=" (env :oauth-client-id)
-                    "&scope=read:user user:email read:org"))
+                    "&scope=read:user user:email read:org repo"))
 
 (defn header
-  [{:keys [avatar username] :as user}]
+  [{:keys [avatar username permitted-member] :as user}]
   (if user
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      [:p [:img {:src avatar :alt (str "avatar icon for "username)}] [:a {:href "/logout"} "logout"]]]]
+      (when permitted-member
+        (list
+        [:a.btn.beta {:href "/instances/new"} "New"]
+        [:a.btn.alpha {:href "/instances"} "All"]))
+      [:p [:img {:width "50px" :src avatar :alt (str "avatar icon for "username)}]
+       [:a.logout {:href "/logout"} "logout"]]]]
   [:header#top
    [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
@@ -39,15 +44,18 @@
     body]))
 
 (defn splash
-  [{:keys [username] :as user}]
+  [{:keys [permitted-member] :as user}]
   (layout
    [:main#splash
     [:section#cta
      [:p.tagline "Sharing is pairing!"]
-     (when username
+     (if permitted-member
      [:div
       [:a {:href "/instances/new"} "New"]
-      [:a {:href "/instances"} "All"]])]]
+      [:a {:href "/instances"} "All"]]
+     [:div
+      [:p "To use sharing.io, you must be a member of a permitted github org."]]
+     )]]
    user))
 
 (defn new-box-form
@@ -135,7 +143,7 @@
    [:h3 "Status: " phase]
     [:p  type " instance"]
    [:p "deployed at " facility]
-   [:p "Sites Available"]
+   [:h3 "Sites Available"]
    [:ul
     (for [site sites]
       [:li [:a {:href site

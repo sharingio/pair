@@ -38,7 +38,7 @@
                                          [ ]
                                          (clojure.string/split guests #" "))
                                :githubOAuthToken token
-                               :env (text->env-map envvars)
+                               :env (if (empty? envvars) [] (text->env-map envvars))
                                :repos (if (empty? repos)
                                         [ ]
                                         (clojure.string/split repos #" "))
@@ -87,13 +87,14 @@
 
 (defn get-kubeconfig
   [phase instance-id]
+  (if (= "Provisioning" phase) nil
       (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/kubeconfig"))
                 :body (json/decode true)
                 :spec json/generate-string
                 yaml/parse-string
                 (yaml/generate-string :dumper-options {:flow-style :block}))
             (catch Object _
-              (log/error "tried to get kubeconfig, no luck for " instance-id))))
+              (log/error "tried to get kubeconfig, no luck for " instance-id)))))
 
 (defn get-tmate-ssh
   [kubeconfig instance_id]
@@ -102,7 +103,7 @@
                 :body (json/decode true) :spec)
             (catch Object _
               (log/error "tried to get tmate, no luck for " instance_id)
-              "No Tmate session yet"))))
+              nil))))
 
 (defn get-tmate-web
   [kubeconfig instance-id]

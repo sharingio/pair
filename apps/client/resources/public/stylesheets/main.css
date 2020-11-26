@@ -5,6 +5,7 @@
     --color_outline: hsl(0, 1.2%, 60%);
     --color_action: dodgerblue;
     --color_action_secondary: mediumseagreen;
+    --color_glow: plum;
     --color_action_alert: tomato;
     --font_body: 'Manrope', 'Helvetica', sans-serif;
     --font-base: 20px;
@@ -34,6 +35,8 @@ p, a, ul, li, h1, h2, h3, h4 {
 
 pre {
     display: table;
+    padding
+    padding
     background: var(--color_code);
     padding: 0.5rem;
 }
@@ -51,12 +54,22 @@ header#top {
 
 header#top a {
     text-decoration: none;
-    color: unset;
 }
 
 header#top a.home {
     font-size: 2.5rem;
     font-weight: 200;
+}
+
+header#top a.home ,
+header#top a.logout {
+    color: var(--color_text);
+}
+
+header#top nav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
 }
 header#top nav p {
     display: flex;
@@ -162,6 +175,23 @@ textarea#envvars {
     padding: 0.5rem;
 }
 
+a.btn {
+    padding: 0.25rem;
+    margin-right: 1rem;
+    min-width: 5rem;
+    text-align: center;
+    font-size: 1.2em;
+    color: var(--color_bg);
+    filter: drop-shadow(2px 2px 2px var(--color_glow));
+}
+
+a.btn.alpha {
+    background: var(--color_action);
+}
+a.btn.beta {
+    background: var(--color_action_secondary);
+}
+
 
 form input[type=submit] {
     background: var(--color_action);
@@ -225,12 +255,27 @@ main#instance section#status {
 }
 
 main#instance section#status h3 {
+    padding-left: 1rem;
+    border-top: 1px solid var(--color_text);
+    margin-bottom: 0;
+    padding-top: 1rem;
+}
+
+main#instance section#status h3:first-child {
+    border-top: none;
     border-bottom: 1px solid var(--color_text);
+    margin-bottom: 1rem;
+}
+
+/* nice */
+main#instance section#status p {
     padding-left: 1rem;
 }
 
-main#instance section#status p {
-    padding-left: 1rem;
+section#status ul {
+    list-style-type: none;
+    padding: 1rem;
+    margin-top: 0;
 }
 
 main#instance a.delete {
