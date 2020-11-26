@@ -15,7 +15,10 @@
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      [:p [:img {:src avatar :alt (str "avatar icon for "username)}] [:a {:href "/logout"} "logout"]]]]
+      [:a.btn.alpha {:href "/instances/new"} "New"]
+      [:a.btn.beta {:href "/instances"} "All"]
+      [:p [:img {:width "50px" :src avatar :alt (str "avatar icon for "username)}]
+       [:a.logout {:href "/logout"} "logout"]]]]
   [:header#top
    [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
