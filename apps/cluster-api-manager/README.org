@@ -62,17 +62,32 @@ Select all resources from a deployment
 
 #+NAME: create a Kubernetes instance
 #+begin_src shell
-  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"zachmandeville\"],\"repos\":[\"humacs/humacs\",\"sharingio/pair\"],\"fullname\":\"Test User\",\"email\":\"email@example.com\"}}" | jq .
+  curl -X POST http://localhost:8080/api/instance --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"calebwoodbine\",\"guests\":[\"BobyMCbobs\"],\"repos\":[\"https://gitlab.com/flattrack/flattrack\"],\"fullname\":\"Caleb Woodbine\",\"email\":\"caleb@ii.coop\",\"env\":[{\"MY_CUSTOM_VAR\":\"it's alive!\"}]}}" | jq .
+#+end_src
+
+#+NAME: create a Kubernetes instance
+#+begin_src shell
+  curl -X POST http://localhost:8080/api/instance?dryRun=true --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"\"],\"repos\":[\"https://gitlab.com/flattrack/flattrack\"],\"fullname\":\"Caleb Woodbine\",\"email\":\"caleb@ii.coop\"}}" | jq .
 #+end_src
 
 #+NAME: delete a Kubernetes instance
 #+begin_src shell
-  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-65fd2a11ef | jq .
+  curl -X DELETE http://localhost:8080/api/instance/kubernetes/bobymcbobs-exjk | jq .
 #+end_src
 
 #+NAME: get all names of Kubernetes instances
 #+begin_src shell
   curl -X GET http://localhost:8080/api/instance/kubernetes | jq -r '.list[].spec.name'
+#+end_src
+
+#+NAME: initiate cert management for instance
+#+begin_src shell :results silent
+  curl -X POST http://localhost:8080/api/instance/kubernetes/calebwoodbine-exjk/certmanage | jq .
+#+end_src
+
+#+NAME: initiate DNS management for instance
+#+begin_src shell :results silent
+  curl -X POST http://localhost:8080/api/instance/kubernetes/calebwoodbine-exjk/dnsmanage | jq .
 #+end_src
 
 #+NAME: get a Kubernetes instance
@@ -88,6 +103,11 @@ Select all resources from a deployment
 #+NAME: get kubeconfig for Kubernetes instance
 #+begin_src shell
   curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-b556f7da7a-128d9375a4/kubeconfig | jq .spec
+#+end_src
+
+#+NAME: get ingresses for Kubernetes instance
+#+begin_src shell
+  curl -X GET http://localhost:8080/api/instance/kubernetes/bobymcbobs-36xc/ingresses | jq .
 #+end_src
 
 #+NAME: get a list of all Kubernetes instances
