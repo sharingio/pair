@@ -16,14 +16,13 @@
 
 (defroutes app-routes
   (GET "/" {session :session}
-       (views/splash (:username session)))
-
+       (views/splash (-> session :user :username)))
 
   (GET "/instances" {{:keys [user instances]} :session}
        (views/all-instances instances user))
 
   (GET "/instances/new" {{:keys [username user] :as session} :session}
-       (if username
+       (if (:username user)
          (views/new user)
          (res/redirect views/login-url)))
 
@@ -36,10 +35,10 @@
                  :session (merge session {:instance instance}))))
 
   (GET "/instances/id/:id" {{:keys [user instance]} :session}
-       (views/instance instance (:username user)))
+       (views/instance instance user))
 
   (GET "/instances/id/:id/delete" {{:keys [user instance]} :session}
-       (views/delete-instance instance (:username user)))
+       (views/delete-instance instance user))
 
   (POST "/instances/id/:id/delete" {{:keys [user instance]} :session
                                     {:keys [instance-id]} :params}
@@ -51,20 +50,8 @@
 
   (GET "/oauth"[code :as {session :session}]
        (if code
-         (let [token (gh/get-token code)
-               {username :login
-                fullname :name
-                avatar :avatar_url
-                :as user}(gh/github-get "user" token)
-               email (gh/get-primary-email token)
-               permitted-org-member (gh/in-permitted-org? token)
-               user {:username username
-                     :fullname fullname
-                     :avatar avatar
-                     :email email
-                     :permitted-org-member permitted-org-member}]
-           (assoc (res/redirect "/")
-                  :session (merge session {:token token :username username :user user})))))
+         (assoc (res/redirect "/")
+                :session (merge session {:user (gh/get-user-info code)}))))
 
   (route/not-found "Not Found"))
 
@@ -73,7 +60,7 @@
   (fn [req]
     (handler
      (if (= "/instances" (:uri req))
-       (let [instances (packet/get-all-instances (-> req :session :user :username))]
+       (let [instances (packet/get-all-instances (-> req :session :user))]
          (assoc-in req [:session :instances] instances))
        (do (println "No Instances Found" (-> req :session)) req)))))
 
@@ -86,9 +73,13 @@
                      kubeconfig (packet/get-kubeconfig (:phase instance) instance-id)
                      tmate-ssh (packet/get-tmate-ssh kubeconfig instance-id)
                      tmate-web (packet/get-tmate-web kubeconfig instance-id)
+                     ingresses (packet/get-ingresses instance-id)
+                     sites (packet/get-sites ingresses)
                      status (merge instance {:kubeconfig kubeconfig
                                              :tmate-ssh tmate-ssh
-                                             :tmate-web tmate-web})]
+                                             :tmate-web tmate-web
+                                             :ingresses ingresses
+                                             :sites sites})]
                (assoc-in req [:session :instance] (merge (-> req :session :instance) status)))
                   req ))))
 

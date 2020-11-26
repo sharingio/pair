@@ -151,6 +151,18 @@ div.form-group {
     flex-flow: column;
 }
 
+div.form-group p.helper {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+
+textarea#envvars {
+    font-size: 1em;
+    min-height: 20rem;
+    padding: 0.5rem;
+}
+
+
 form input[type=submit] {
     background: var(--color_action);
     drop-shadow: 1px 1px black;

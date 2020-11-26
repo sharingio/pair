@@ -2,9 +2,16 @@
   (:require [cheshire.core :as json]
             [environ.core :refer [env]]
             [clojure.tools.logging :as log]
-            [clj-http.client :as http])
+            [clojure.spec.alpha :as s]
+            [clojure.spec.test.alpha :as test]
+            [clj-http.client :as http]
+            [client.spec :as spec])
 (:use [slingshot.slingshot :only [throw+ try+]]))
 
+
+(s/fdef get-token
+  :args (s/cat :code ::gh-oauth-code)
+  :ret (s/nilable string?))
 (defn get-token [code]
   (-> (http/post "https://github.com/login/oauth/access_token"
                  {:form-params {:client_id (env :oauth-client-id)
@@ -13,28 +20,72 @@
                   :headers {"Accept" "application/json"}})
       :body (json/decode true) :access_token))
 
-(defn github-get
+(defn get
   [endpoint token]
   (-> (http/get (str "https://api.github.com/" endpoint)
                 {:headers {"accept" "application/json"
                            "Authorization" (str "token " token)}})
       :body (json/decode true)))
 
-(defn get-primary-email
+(defn get-raw-info
   [token]
-  (let [emails (github-get "user/emails" token)]
-    (:email (first (filter #(= (:primary %)true) emails)))))
+  {:user (get "user" token)
+   :emails (get "user/emails" token)
+   :token token
+   :orgs (get "user/orgs" token)})
 
+(s/fdef primary-email
+  :args (s/cat :emails :gh/emails)
+  :ret (s/nilable :client.spec/email))
+(defn primary-email
+  [emails]
+  (:email (first (filter #(= (:primary %) true) emails))))
+
+(s/fdef in-permitted-org?
+  :args (s/cat :orgs :gh/orgs)
+  :ret boolean?)
 (defn in-permitted-org?
-  [token]
-  (let [user-orgs (set (map :login (github-get "user/orgs" token)))
-        permitted-orgs (set '(sharingio cncf kubernetes))]
-    (empty? (clojure.set/intersection user-orgs permitted-orgs))))
+  [orgs]
+  (let [permitted-orgs (set '("sharingio" "cncf" "kubernetes"))
+        user-orgs (set (map :login orgs))]
+    ((complement empty?) (clojure.set/intersection user-orgs permitted-orgs))))
 
-(defn get-repo
-  [project]
-  (try+ (-> (http/get (str "https://api.github.com/repos/" project)
-                {:headers {"accept" "application/json"}})
-            :body (json/decode true))
-        (catch [:status 404] {:keys [request-time headers body]}
-          (log/warn "404" request-time project headers body))))
+(s/fdef is-admin?
+  :args (s/cat :emails :gh/emails)
+  :ret (s/nilable boolean?))
+(defn is-admin?
+  "do emails include ii.coop, indicating admin"
+  [emails]
+  (let [addresses (map :email emails)]
+  (some #(clojure.string/ends-with? % "@ii.coop") addresses)))
+
+(s/fdef user-info
+  :args (s/cat :raw-info :gh/raw-info)
+  :ret :client.spec/user)
+(defn user-info
+  [{{:keys [login name avatar_url html_url]} :user
+    emails :emails
+    orgs :orgs
+    token :token}]
+  {:username login
+   :fullname name
+   :email (primary-email emails)
+   :token token
+   :profile html_url
+   :avatar avatar_url
+   :permitted-member (in-permitted-org? orgs)
+   :admin-member (is-admin? emails)})
+
+(s/fdef get-user-info
+  :args (s/cat :code string?)
+  :ret :client.spec/user)
+(defn get-user-info
+  [code]
+  (-> code get-token get-raw-info user-info))
+
+
+(comment
+  (def user (get-user-info "376cab7a8724c40cebe8"))
+user
+
+)

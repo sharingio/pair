@@ -72,13 +72,27 @@
    [:input {:type :text
             :name "repos"
             :id "repos"
-            :placeholder "additional repos to add (space separated)"}]]
+            :placeholder "additional repos to add (space separated)"
+            :pattern "^[^,]*[^ ,][^,]*$"
+            :title "Repos separated by white space"
+            }]
+    [:p.helper "separate each repo with whitespace"]]
    [:div.form-group
    [:label {:for "guests"} "guests"]
    [:input {:type :text
             :name "guests"
             :id "guests"
-            :placeholder "users to invite (space separated)"}]]
+            :placeholder "github users to invite (space separated)"
+            :pattern "^[^,]*[^ ,][^,]*$"
+            :title "github usernames separated by white space"
+            }]
+    [:p.helper "please add github usernames, separated by whitespace"]]
+   [:div.form-group
+    [:label {:form "envvars"} "Environment Variables"]
+    [:textarea {:name "envvars"
+                :id "envvars"
+                :placeholder "PAIR=sharing\nSHARE=pairing"}]
+    [:p.helper "Add env vars as KEY=value, with each new variable on its own line."]]
    [:input {:type :submit :value "launch"}]))
 
 (defn new
@@ -116,15 +130,21 @@
       [:pre tmate-ssh]]]]))
 
 (defn status
-  [{:keys [facility type phase]}]
+  [{:keys [facility type phase sites]}]
   [:section#status
    [:h3 "Status: " phase]
     [:p  type " instance"]
-    [:p "deployed at " facility]])
+   [:p "deployed at " facility]
+   [:p "Sites Available"]
+   [:ul
+    (for [site sites]
+      [:li [:a {:href site
+                :target "_blank"
+                :rel "noreferrer noopener"} site]])]])
 
 
 (defn instance
-  [instance username]
+  [instance {:keys [username admin-member]}]
   (layout
    [:main#instance
    [:header
@@ -133,13 +153,13 @@
     (tmate instance)
      (status instance)
     (kubeconfig-box (:kubeconfig instance))
-    (when (= (:owner instance) username)
+    (when (or (= (:owner instance) username) admin-member)
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"])]]
    username))
 
 (defn delete-instance
-  [{:keys [instance-id]} username]
+  [{:keys [instance-id]} {:keys [username]}]
   (layout
    [:main#delete-instance
     [:header
@@ -159,8 +179,9 @@
 
 
 (defn all-instances
-  [instances {:keys [username]}]
-  (let [[owner guest] ((juxt filter remove) #(= (:owner %) username) instances)]
+  [instances {:keys [username admin-member]}]
+  (let [[owner rest] ((juxt filter remove) #(= (:owner %) username) instances)
+        [guest other] ((juxt filter remove) #(some #{username} (:guests %)) rest)]
     (layout
      [:main#all-instances
       [:header
@@ -178,5 +199,12 @@
        [:ul
        (for [instance guest]
          [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-          (:instance-id instance)] [:em (:phase instance)]])]])]]
+               (:instance-id instance)] [:em (:phase instance)]])]])
+       (when (and admin-member other)
+         [:section#admin
+          [:h3 "All Other Instances"]
+          [:ul
+           (for [instance other]
+             [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
+                   (:instance-id instance)] [:em (:phase instance)]])]])]]
      username)))

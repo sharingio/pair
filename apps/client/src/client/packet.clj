@@ -3,14 +3,33 @@
   (:require [cheshire.core :as json]
             [clojure.tools.logging :as log]
             [clj-http.client :as http]
+            [clojure.spec.alpha :as s]
+            [clojure.string :as str]
+            [clojure.spec.test.alpha :as test]
             [yaml.core :as yaml]
             [environ.core :refer [env]])
   (:use [slingshot.slingshot :only [throw+ try+]]))
 
 (def backend-address (str "http://"(env :backend-address)))
 
+(s/fdef text->env
+  :args (s/cat :text string?)
+  :ret map?)
+(defn text->env-map
+  "given envvars on newlines
+  separate key and value into {:key 'value'}"
+  [text]
+  (map (comp #(conj {} %) #(str/split % #"="))
+       (str/split-lines text)))
+
+(comment
+  (text->env-map "PAIR=sharing\nSHARE=pairing")
+
+  )
+
+
 (defn launch
-  [{:keys [username]} {:keys [project facility type guests fullname email repos] :as params}]
+  [{:keys [username token]} {:keys [project envvars facility type guests fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
@@ -18,6 +37,8 @@
                                :guests (if (empty? guests)
                                          [ ]
                                          (clojure.string/split guests #" "))
+                               :githubOAuthToken token
+                               :env (text->env-map envvars)
                                :repos (if (empty? repos)
                                         [ ]
                                         (clojure.string/split repos #" "))
@@ -29,7 +50,6 @@
         {{api-response :response} :metadata
          {phase :phase} :status
          {name :name} :spec} response]
-    (println "INSTANCE SPEC" instance-spec)
     {:owner username
      :facility facility
      :type type
@@ -67,15 +87,13 @@
 
 (defn get-kubeconfig
   [phase instance-id]
-  (if (= "Provisioning" phase) nil
       (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/kubeconfig"))
                 :body (json/decode true)
                 :spec json/generate-string
                 yaml/parse-string
                 (yaml/generate-string :dumper-options {:flow-style :block}))
             (catch Object _
-              (log/error "tried to get kubeconfig, no luck for " instance-id)
-              nil))))
+              (log/error "tried to get kubeconfig, no luck for " instance-id))))
 
 (defn get-tmate-ssh
   [kubeconfig instance_id]
@@ -95,9 +113,26 @@
               (log/error "tried to get tmate, no luck for " instance-id)
               "No Tmate session yet"))))
 
+(defn get-ingresses
+  [instance-id]
+  (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/ingresses"))
+            :body (json/decode true))
+            (catch Object _
+              (log/error "tried to get ingress, no luck for " instance-id)
+              nil)))
+
+(defn get-sites
+  [ingresses]
+  (let [items (-> ingresses  :spec :items)
+        rules (mapcat #(map :host (-> % :spec :rules)) items)
+        tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
+    (map (fn [addr]
+           (if (some #{addr} tls)
+             (str "https://"addr)
+             (str "http://"addr))) rules)))
 
 (defn get-all-instances
-  [username]
+  [{:keys [username admin-member]}]
   (let [raw-instances (try+ (-> (http/get (str backend-address"/api/instance/kubernetes"))
                             :body (json/decode true) :list)
                         (catch Object _
@@ -109,9 +144,22 @@
                           :owner (-> spec :setup :user)
                           :guests (-> spec :setup :guests)
                           }) raw-instances)]
+    (if admin-member
+      instances
     (filter #(or (some #{username} (:guests %))
-                 (= (:owner %) username)) instances)))
+                 (= (:owner %) username)) instances))))
 
 (defn delete-instance
   [instance-id]
   (http/delete (str backend-address"/api/instance/kubernetes/"instance-id)))
+
+(comment
+(let [items (-> (get-ingresses "hh-0iew") :spec :items)
+      rules (mapcat #(map :host (-> % :spec :rules)) items)
+      tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
+  (map (fn [addr]
+         (if (some #{addr} tls)
+          (str "https://"addr)
+          (str "http://"addr))) rules))
+
+  )

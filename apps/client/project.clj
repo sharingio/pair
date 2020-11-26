@@ -9,6 +9,7 @@
                  [io.forward/yaml "1.0.10"]
                  [hiccup "1.0.5"]
                  [environ "1.2.0"]
+                 [com.gfredericks/test.chuck "0.2.10"]
                  [clj-http "3.10.3"]
                  [org.clojure/tools.logging "1.1.0"]
                  [ring/ring-defaults "0.3.2"]
