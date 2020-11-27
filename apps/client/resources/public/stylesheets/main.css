@@ -152,6 +152,29 @@ main header h2 {
     font-weight: 200;
 }
 
+main header h3 {
+    font-size: 0.9rem;
+}
+
+main header div.info {
+    display: flex;
+    justify-content: flex-start;
+    align-items: space-around;
+}
+
+main header div.detail {
+    font-size: 0.9rem;
+    margin-right: 2rem;
+}
+
+div.detail ul {
+    list-style-type: none;
+}
+
+ul.guests li {
+    margin-right: 0.5rem;
+}
+
 form#new-box {
     margin: 3rem;
     max-width: 30rem;

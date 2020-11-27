@@ -3,6 +3,7 @@
             [hiccup.form :as form]
             [ring.util.anti-forgery :as util]
             [client.github :as gh]
+            [clojure.string :as str]
             [environ.core :refer [env]]))
 
 (def login-url (str "https://github.com/login/oauth/authorize?"
@@ -31,7 +32,7 @@
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
-    (when refresh? [:meta {:http-equiv "refresh" :content "20"}])
+    (when refresh? [:meta {:http-equiv "refresh" :content "10"}])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
     [:link {:rel "stylesheet"
@@ -48,7 +49,7 @@
   (layout
    [:main#splash
     [:section#cta
-     [:p.tagline "Sharing is pairing!"]
+     [:p.tagline "Sharing is Pairing!!"]
      (if permitted-member
      [:div
       [:a {:href "/instances/new"} "New"]
@@ -152,11 +153,27 @@
 
 
 (defn instance
-  [instance {:keys [username admin-member] :as user}]
+  [{:keys [guests repos] :as instance} {:keys [username admin-member] :as user}]
+  (println "REPO" repos)
   (layout
    [:main#instance
    [:header
-    [:h2 "Status for "(:instance-id instance)]]
+    [:h2 "Status for "(:instance-id instance)]
+    [:div.info
+     (when (> (count (filter (complement empty?) guests)) 0)
+       [:div.detail
+        [:h3 "Shared with:"]
+        [:ul.guests
+         (for [guest guests]
+           [:li [:a {:href (str "https://github.com/"guest)}guest]]
+           )]])
+     (when (> (count (filter (complement empty?) repos)) 0)
+       [:div.detail
+        [:h3 "Loaded with:"]
+        [:ul.repos
+         (for [repo repos]
+           [:li [:a {:href (if (re-find #"^(http)(.)+//" repo) repo (str "https://github.com/" repo))}
+                 repo]])]])]]
     [:article
     (tmate instance)
      (status instance)
@@ -164,7 +181,7 @@
     (when (or (= (:owner instance) username) admin-member)
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"])]]
-   user))
+   user true))
 
 (defn delete-instance
   [{:keys [instance-id]} user]

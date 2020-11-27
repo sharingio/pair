@@ -71,6 +71,7 @@
     {:instance-id (or (:name spec) instance-id)
      :owner (-> spec :setup :user)
      :guests (-> spec :setup :guests)
+     :repos (-> spec :setup :repos)
      :facility (-> spec :facility)
      :type (-> spec :type)
      :phase (:phase status)
@@ -144,6 +145,7 @@
                           :phase (:phase status )
                           :owner (-> spec :setup :user)
                           :guests (-> spec :setup :guests)
+                          :repos (-> spec :setup :repos)
                           }) raw-instances)]
     (if admin-member
       instances

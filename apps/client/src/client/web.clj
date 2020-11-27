@@ -74,10 +74,10 @@
     (handler (if-let [instance-id (second (re-find #"/instances/id/([a-zA-Z0-9-]*)"
                                                (:uri req)))]
                (let [instance (packet/get-instance instance-id)
-                     kubeconfig (packet/get-kubeconfig (:phase instance) instance-id)
-                     tmate-ssh (packet/get-tmate-ssh kubeconfig instance-id)
-                     tmate-web (packet/get-tmate-web kubeconfig instance-id)
-                     ingresses (packet/get-ingresses instance-id)
+                     kubeconfig nil;(packet/get-kubeconfig (:phase instance) instance-id)
+                     tmate-ssh nil ;(packet/get-tmate-ssh kubeconfig instance-id)
+                     tmate-web nil ;(packet/get-tmate-web kubeconfig instance-id)
+                     ingresses nil ;(packet/get-ingresses instance-id)
                      sites (packet/get-sites ingresses)
                      status (merge instance {:kubeconfig kubeconfig
                                              :tmate-ssh tmate-ssh
