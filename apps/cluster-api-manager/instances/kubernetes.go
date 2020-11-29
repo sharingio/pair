@@ -1745,7 +1745,7 @@ func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientse
 			},
 			Annotations: secret.ObjectMeta.Annotations,
 		},
-		Type: "kubernetes.io/tls",
+		Type: corev1.SecretTypeTLS,
 		Data: secret.Data,
 	}
 	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
@@ -1779,7 +1779,7 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 			},
 			Annotations: secret.ObjectMeta.Annotations,
 		},
-		Type: "kubernetes.io/tls",
+		Type: corev1.SecretTypeTLS,
 		Data: secret.Data,
 	}
 	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
@@ -1856,9 +1856,19 @@ pollInstanceNamespace:
 		err = nil
 		log.Printf("Cert for Instance '%v' not found locally. Fetching from Instance\n", instanceName)
 		//   get remote cert
-		err, instanceSecret := KubernetesGetInstanceWildcardTLSCert(clientset, instanceName)
-		if err != nil {
-			return err
+		var instanceSecret *corev1.Secret
+	pollInstanceSecretWildcardTLSCert:
+		for true {
+			err, instanceSecret = KubernetesGetInstanceWildcardTLSCert(clientset, instanceName)
+			if apierrors.IsNotFound(err) {
+				log.Printf("Secret 'letsencrypt-prod' is not found in Namespace 'powerdns' on Instance '%v' yet\n", instanceName)
+				time.Sleep(time.Second * 5)
+				continue
+			}
+			if instanceSecret.ObjectMeta.Name != "" {
+				break pollInstanceSecretWildcardTLSCert
+			}
+			time.Sleep(time.Second * 5)
 		}
 		//   upsert remote cert locally
 		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, username, instanceSecret)
