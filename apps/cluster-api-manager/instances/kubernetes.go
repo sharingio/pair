@@ -1745,6 +1745,7 @@ func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientse
 			},
 			Annotations: secret.ObjectMeta.Annotations,
 		},
+		Type: "kubernetes.io/tls",
 		Data: secret.Data,
 	}
 	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
@@ -1752,15 +1753,17 @@ func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientse
 		err = nil
 		existingSecret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
 		if err != nil {
-			log.Println("%#v\n", err)
+			log.Printf("%#v\n", err)
 			return fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
 		}
 		templatedSecret.SetResourceVersion(existingSecret.GetResourceVersion())
 		_, err = clientset.CoreV1().Secrets(targetNamespace).Update(context.TODO(), &templatedSecret, metav1.UpdateOptions{})
 		if err != nil {
-			log.Println("%#v\n", err)
+			log.Printf("%#v\n", err)
 			return fmt.Errorf("Failed to update Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
 		}
+	} else {
+		log.Printf("Created Secret '%v' in namespace '%v'", templatedSecretName, targetNamespace)
 	}
 	return err
 }
@@ -1776,6 +1779,7 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 			},
 			Annotations: secret.ObjectMeta.Annotations,
 		},
+		Type: "kubernetes.io/tls",
 		Data: secret.Data,
 	}
 	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
@@ -1784,17 +1788,17 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 		err = nil
 		existingSecret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
 		if err != nil {
-			log.Println("%#v\n", err)
+			log.Printf("%#v\n", err)
 			return fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
 		}
 		templatedSecret.SetResourceVersion(existingSecret.GetResourceVersion())
 		log.Printf("Updating Secret '%v' in namespace '%v'", templatedSecretName, targetNamespace)
 		_, err = clientset.CoreV1().Secrets(targetNamespace).Update(context.TODO(), &templatedSecret, metav1.UpdateOptions{})
 		if err != nil {
-			log.Println("%#v\n", err)
+			log.Printf("%#v\n", err)
 			return fmt.Errorf("Failed to update Secret '%v' in namespace '%v', %#v", templatedSecretName, targetNamespace, err)
 		}
-	} else if err == nil {
+	} else {
 		log.Printf("Created Secret '%v' in namespace '%v'", templatedSecretName, targetNamespace)
 	}
 	return err
