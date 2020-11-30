@@ -160,6 +160,7 @@ main header div.info {
     display: flex;
     justify-content: flex-start;
     align-items: space-around;
+    flex-wrap: wrap;
 }
 
 main header div.detail {
@@ -171,8 +172,13 @@ div.detail ul {
     list-style-type: none;
 }
 
-ul.guests li {
-    margin-right: 0.5rem;
+div.info em {
+    display: block;
+    width: 100%;
+}
+
+div.info em , ul.guests li {
+    margin-right: 1rem;
 }
 
 form#new-box {

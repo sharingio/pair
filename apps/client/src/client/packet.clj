@@ -4,6 +4,7 @@
             [clojure.tools.logging :as log]
             [clj-http.client :as http]
             [clojure.spec.alpha :as s]
+            [java-time :as time]
             [clojure.string :as str]
             [clojure.spec.test.alpha :as test]
             [yaml.core :as yaml]
@@ -22,14 +23,35 @@
   (map (comp #(conj {} %) #(str/split % #"="))
        (str/split-lines text)))
 
-(comment
-  (text->env-map "PAIR=sharing\nSHARE=pairing")
+(s/fdef instance-age
+  :args (s/cat :created-at map? :timezone string?)
+  :ret any?); a java zoned-date-time, TODO correct predicate!
+(defn status->created-at
+  "Given  a cluster status map and timezone, return time its machine started as java local time"
+  [status timezone]
+  (let [last-transition-time (->> status :resources :MachineStatus :conditions
+       (filter #(= "Ready" (:type %))) first :lastTransitionTime)]
+    (-> last-transition-time time/zoned-date-time (time/with-zone timezone))))
 
-  )
+(s/fdef instance-age
+  :args (s/cat :created-at map? :timezone string?)
+  :ret string?)
+(defn instance-age
+  "compares creation time of instnace to current local time and calculates age in hours or days."
+  [created-at timezone]
+  (let [now (time/with-zone (time/zoned-date-time) timezone)
+        age-hours (time/time-between created-at now :hours)
+        age-days (time/time-between created-at now :days)]
+    (println "TIMENOW" now)
+    (println "TIMETHEN" created-at)
+    (cond
+      (= 0 age-hours) "Less than an hour old"
+      (< age-hours 24) (str age-hours" "(if (= 1 age-hours)"hour" "hours")" old")
+      :else (str age-days" "(if (= 1 age-days)"day""days")" old"))))
 
 
 (defn launch
-  [{:keys [username token]} {:keys [project envvars facility type guests fullname email repos] :as params}]
+  [{:keys [username token]} {:keys [project timezone envvars facility type guests fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
@@ -39,6 +61,7 @@
                                          (clojure.string/split guests #" "))
                                :githubOAuthToken token
                                :env (if (empty? envvars) [] (text->env-map envvars))
+                               :timezone timezone
                                :repos (if (empty? repos)
                                         [ ]
                                         (clojure.string/split repos #" "))
@@ -59,6 +82,7 @@
      :guests guests
      :instance-id name
      :name name
+     :timezone timezone
      :status (str api-response": "phase)}))
 
 (defn get-instance
@@ -67,14 +91,19 @@
         (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id))
                   :body (json/decode true))
               (catch Object _
-                (log/error "no http response for instance " instance-id)))]
+                (log/error "no http response for instance " instance-id)))
+        setup (:setup spec)
+        created-at (status->created-at status (:timezone setup))]
     {:instance-id (or (:name spec) instance-id)
-     :owner (-> spec :setup :user)
-     :guests (-> spec :setup :guests)
-     :repos (-> spec :setup :repos)
-     :facility (-> spec :facility)
-     :type (-> spec :type)
+     :owner (:user setup)
+     :guests (:guests setup)
+     :repos (:repos setup)
+     :facility (:facility spec)
+     :type (:type spec)
      :phase (:phase status)
+     :timezone (:timezone setup)
+     :created-at created-at
+     :age (instance-age created-at (:timezone setup))
      :spec spec}))
 
 (defn get-phase
@@ -136,19 +165,19 @@
 (defn get-all-instances
   [{:keys [username admin-member]}]
   (let [raw-instances (try+ (-> (http/get (str backend-address"/api/instance/kubernetes"))
-                            :body (json/decode true) :list)
-                        (catch Object _
-                          (log/warn "Couldn't get instances")
-                          []))
+                                :body (json/decode true) :list)
+                            (catch Object _
+                              (log/warn "Couldn't get instances")
+                              []))
         instances (map (fn [{:keys [spec status]}]
                          {:instance-id (:name spec)
                           :phase (:phase status )
                           :owner (-> spec :setup :user)
                           :guests (-> spec :setup :guests)
                           :repos (-> spec :setup :repos)
-                          }) raw-instances)]
-    (if admin-member
-      instances
+                         }) raw-instances)]
+  (if admin-member
+    instances
     (filter #(or (some #{username} (:guests %))
                  (= (:owner %) username)) instances))))
 

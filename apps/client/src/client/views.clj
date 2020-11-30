@@ -49,7 +49,7 @@
   (layout
    [:main#splash
     [:section#cta
-     [:p.tagline "Sharing is Pairing!!"]
+     [:p.tagline "Sharing is Pairing"]
      (if permitted-member
      [:div
       [:a {:href "/instances/new"} "New"]
@@ -76,6 +76,10 @@
    [:input {:type :hidden
             :name "email"
             :value email}]
+   [:input {:type :hidden
+            :id "timezone"
+            :name "timezone"
+            :value "Pacific/Auckland"}]
    [:div.form-group
    [:label {:for "repos"} "Repos to include"]
    [:input {:type :text
@@ -110,7 +114,9 @@
    [:main
     [:header
      [:h2 "Create a new Pairing Box"]]
-    (new-box-form user)]
+    (new-box-form user)
+    ;; This will set the timezone field to the timezone of the client browser.  If js disabled, timezone is Pacific/Auckland
+    [:script "document.querySelector('input#timezone').value=(new Intl.DateTimeFormat).resolvedOptions().timeZone;"]]
    user))
 
 (defn kubeconfig-box
@@ -153,13 +159,14 @@
 
 
 (defn instance
-  [{:keys [guests repos] :as instance} {:keys [username admin-member] :as user}]
+  [{:keys [guests repos timezone created-at age] :as instance} {:keys [username admin-member] :as user}]
   (println "REPO" repos)
   (layout
    [:main#instance
    [:header
     [:h2 "Status for "(:instance-id instance)]
     [:div.info
+     [:em age]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
