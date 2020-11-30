@@ -957,8 +957,14 @@ EOF
             --set options.preinitScript='(
               cat << EOF >> $HOME/.gitconfig
 [credential "https://github.com"]
-  username = "\\$SHARINGIO_PAIR_USER"
-  password = "\\$GITHUB_TOKEN"
+  helper = "!f() { test \"$1\" = get && echo \"password=$GITHUB_TOKEN\nusername=$SHARINGIO_PAIR_USER\";}; f"
+EOF
+              git config --gloabl commit.template $HOME/.git-commit-template
+              cat << EOF > $HOME/.git-commit-template
+
+
+
+Co-Authored-By: ${COAUTHOR_NAME:-Pair is Sharing} <${COAUTHOR_EMAIL:-pair@sharing.io}>
 EOF
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
