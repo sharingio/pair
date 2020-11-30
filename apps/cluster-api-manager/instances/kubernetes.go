@@ -669,7 +669,7 @@ EOF
           helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx \
             --set controller.service.externalTrafficPolicy=Local \
             --set controller.service.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
-            --set controller.service.externalIPs[0]="{{ .controlPlaneEndpoint }}"
+            --set controller.service.externalIPs[0]="{{ .controlPlaneEndpoint }}" \
             --version 2.16.0
           kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
         )
