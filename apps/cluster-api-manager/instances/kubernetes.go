@@ -608,7 +608,7 @@ EOF`,
 						"apt-key fingerprint 0EBFCD88",
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo",
 						`cat <<EOF > /etc/docker/daemon.json
 {
   "log-driver": "json-file",
@@ -642,6 +642,8 @@ EOF
           echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
           cp -a /root/.ssh /etc/skel/.ssh
           useradd -m -G users,sudo -u 1000 -s /bin/bash ii
+          cp -a /root/.kube /home/ii/.kube
+          chown ii:ii -R /home/ii/.kube
         )
 `,
 						`(
@@ -667,6 +669,7 @@ EOF
           helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx \
             --set controller.service.externalTrafficPolicy=Local \
             --set controller.service.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
+            --set controller.service.externalIPs[0]="{{ .controlPlaneEndpoint }}"
             --version 2.16.0
           kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
         )
@@ -685,7 +688,9 @@ data:
         protocol: layer2
         addresses:
           - {{ .controlPlaneEndpoint }}/32
-EOF`,
+EOF
+export LOAD_BALANCER_IP="{{ .controlPlaneEndpoint }}"
+`,
 						`(
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml;
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
@@ -820,15 +825,7 @@ spec:
             value: "0"
 EOF
 )`,
-						`echo "waiting for nginx-ingress Service to have an IP address"
-  while true; do
-    if [ "$(kubectl -n nginx-ingress get service nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[].ip}')" ]; then
-      echo "nginx-ingress doesn't not have an IP address yet"
-      break
-    fi
-    sleep 1s
-  done
-  export LOAD_BALANCER_IP="$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+						`
   kubectl create ns powerdns
   helm repo add sharingio https://raw.githubusercontent.com/sharingio/helm-charts/gh-pages/
   helm repo update
@@ -889,7 +886,7 @@ EOF
   helm repo update
   helm install kubed appscode/kubed -n kube-system --set enableAnalytics=false
 `,
-						`(
+						`
           cd /root
           git clone https://github.com/humacs/humacs
           cd humacs
@@ -952,10 +949,17 @@ EOF
             --set-string extraEnvVars[3].value="true" \
             --set extraEnvVars[4].name="SHARINGIO_PAIR_BASE_DNS_NAME" \
             --set-string extraEnvVars[4].value="{{ $.Setup.BaseDNSName }}" \
-      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}{{ $newIndex := add $index 5 }}
-            --set extraEnvVars[{{ $newIndex }}].name="{{ $key }}" \
-            --set-string extraEnvVars[{{ $newIndex }}].value="{{ $value }}" \{{ end }}{{ end }}{{- end }}
+            --set extraEnvVars[5].name="GITHUB_TOKEN" \
+            --set-string extraEnvVars[5].value="{{ $.Setup.GitHubOAuthToken }}" \
+      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}{{ $newIndex := add $index 6 }}
+            --set extraEnvVars[{{ $newIndex }}].name='{{ $key }}' \
+            --set-string extraEnvVars[{{ $newIndex }}].value='{{ $value }}' \{{ end }}{{ end }}{{- end }}
             --set options.preinitScript='(
+              cat << EOF >> $HOME/.gitconfig
+[credential "https://github.com"]
+  username = "\\$SHARINGIO_PAIR_USER"
+  password = "\\$GITHUB_TOKEN"
+EOF
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
               (
@@ -973,7 +977,6 @@ EOF
                   ./.sharing.io/init &
                 fi
               done
-              echo "{{ $.Setup.GitHubOAuthToken }}" > /home/ii/.githubOAuthToken
 )' \
             {{ range $index, $repo := $.Setup.Repos }}--set options.repos[{{ $index }}]={{ $repo }} {{ end }} \
             --set extraVolumes[0].name=home-ii \
@@ -1013,8 +1016,6 @@ spec:
           servicePort: 10350
         path: /
 EOF
-
-        )
 `,
 						`
   kubectl -n powerdns wait pod --for=condition=Ready --selector=app.kubernetes.io/name=powerdns --timeout=200s
@@ -1086,7 +1087,7 @@ EOF
      echo "Waiting for valid TLS cert"
      sleep 1
    done
-   kubectl -n powerdns annotate secret letsencrypt-prod kubed.appscode.com/sync=cert-manager-tls
+   kubectl -n powerdns annotate secret letsencrypt-prod kubed.appscode.com/sync=cert-manager-tls --overwrite
 ) &
 `,
 						"kubectl -n default create configmap sharingio-pair-init-complete",
