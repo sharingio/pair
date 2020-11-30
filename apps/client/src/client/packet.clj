@@ -23,32 +23,43 @@
   (map (comp #(conj {} %) #(str/split % #"="))
        (str/split-lines text)))
 
-(s/fdef instance-age
-  :args (s/cat :created-at map? :timezone string?)
+(s/fdef status->created-at
+  :args (s/cat :created-at map?)
   :ret any?); a java zoned-date-time, TODO correct predicate!
 (defn status->created-at
   "Given  a cluster status map and timezone, return time its machine started as java local time"
-  [status timezone]
-  (let [last-transition-time (->> status :resources :MachineStatus :conditions
-       (filter #(= "Ready" (:type %))) first :lastTransitionTime)]
-    (-> last-transition-time time/zoned-date-time (time/with-zone timezone))))
+  [status]
+  (let [last-transition-time
+        (->> status :resources :MachineStatus :conditions
+             (filter #(= "Ready" (:type %))) first :lastTransitionTime)]
+    ; when box is first made, there won't be a transition time avialble.
+    ; in this instant, return the current time
+    (if (nil? last-transition-time)
+      (time/format (time/instant))
+      last-transition-time)))
 
-(s/fdef instance-age
-  :args (s/cat :created-at map? :timezone string?)
-  :ret string?)
-(defn instance-age
-  "compares creation time of instnace to current local time and calculates age in hours or days."
-  [created-at timezone]
-  (let [now (time/with-zone (time/zoned-date-time) timezone)
-        age-hours (time/time-between created-at now :hours)
-        age-days (time/time-between created-at now :days)]
-    (println "TIMENOW" now)
-    (println "TIMETHEN" created-at)
-    (cond
-      (= 0 age-hours) "Less than an hour old"
-      (< age-hours 24) (str age-hours" "(if (= 1 age-hours)"hour" "hours")" old")
-      :else (str age-days" "(if (= 1 age-days)"day""days")" old"))))
+(s/fdef k8stime->unix-timestamp
+  :args (s/cat :k8s-time string?)
+  :ret int?)
+(defn k8stime->unix-timestamp
+  "Takes timestamp like 2020-11-30T21:32:44Z, and returns it as seconds from epoch"
+  [k8stime]
+  (time/to-millis-from-epoch k8stime))
 
+(defn relative-age
+  [k8stime]
+  (let [age-in-seconds
+        (quot (-
+               (time/to-millis-from-epoch (time/instant))
+               (k8stime->unix-timestamp k8stime)) 1000)
+        days (quot age-in-seconds 86400)
+        hours (quot (mod age-in-seconds 86400) 3600)
+        minutes (quot (mod (mod age-in-seconds 86400) 3600) 60)]
+    (str (when (> days 0)
+           (str (pluralize days"day")", "))
+         (when(and (> days 0)(> hours 0))
+           (str (pluralize hours"hour")", "))
+         (pluralize minutes"minute"))))
 
 (defn launch
   [{:keys [username token]} {:keys [project timezone envvars facility type guests fullname email repos] :as params}]
@@ -93,7 +104,7 @@
               (catch Object _
                 (log/error "no http response for instance " instance-id)))
         setup (:setup spec)
-        created-at (status->created-at status (:timezone setup))]
+        created-at (status->created-at status)]
     {:instance-id (or (:name spec) instance-id)
      :owner (:user setup)
      :guests (:guests setup)
@@ -103,7 +114,7 @@
      :phase (:phase status)
      :timezone (:timezone setup)
      :created-at created-at
-     :age (instance-age created-at (:timezone setup))
+     :age (relative-age created-at)
      :spec spec}))
 
 (defn get-phase
@@ -184,14 +195,3 @@
 (defn delete-instance
   [instance-id]
   (http/delete (str backend-address"/api/instance/kubernetes/"instance-id)))
-
-(comment
-(let [items (-> (get-ingresses "hh-0iew") :spec :items)
-      rules (mapcat #(map :host (-> % :spec :rules)) items)
-      tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
-  (map (fn [addr]
-         (if (some #{addr} tls)
-          (str "https://"addr)
-          (str "http://"addr))) rules))
-
-  )
