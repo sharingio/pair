@@ -2,9 +2,9 @@ package instances
 
 import (
 	"github.com/sharingio/pair/types"
+
 	corev1 "k8s.io/api/core/v1"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
@@ -25,9 +25,9 @@ type InstanceSpec struct {
 type InstanceResourceStatus struct {
 	KubeadmControlPlane clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneStatus
 	Cluster             clusterAPIv1alpha3.ClusterStatus
-	PacketCluster       clusterAPIPacketv1alpha3.PacketClusterStatus
 	HumacsPod           corev1.PodStatus
 	MachineStatus       clusterAPIv1alpha3.MachineStatus
+	PacketMachineUID    *string
 }
 
 type InstanceStatus struct {

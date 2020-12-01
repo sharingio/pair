@@ -38,7 +38,7 @@ type SetupSpec struct {
 	Fullname         string              `json:"fullname"`
 	Email            string              `json:"email"`
 	GitHubOAuthToken string              `json:"githubOAuthToken,omitempty"`
-	Env              []map[string]string `json:"env"`
+	Env              []map[string]string `json:"env,omitempty"`
 
 	HumacsVersion string `json:"-"`
 	BaseDNSName   string `json:"-"`

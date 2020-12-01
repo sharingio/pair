@@ -92,28 +92,8 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		}
 	}
 
-	//   - newInstance.PacketCluster
-	groupVersion := clusterAPIPacketv1alpha3.GroupVersion
-	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
-	log.Printf("%#v\n", groupVersionResource)
-	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		log.Printf("%#v\n", err)
-	} else {
-		var itemRestructuredPC clusterAPIPacketv1alpha3.PacketCluster
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPC)
-		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructuredPC), Instance{}
-		}
-		if itemRestructuredPC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredPC, itemRestructuredPC.ObjectMeta.Name)
-		} else {
-			instance.Status.Resources.PacketCluster = itemRestructuredPC.Status
-		}
-	}
-
 	//   - newInstance.Machine
-	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
 	log.Printf("%#v\n", groupVersionResource)
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
@@ -127,6 +107,24 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 			return fmt.Errorf("Failed to restructure %T", itemRestructuredM), Instance{}
 		}
 		instance.Status.Resources.MachineStatus = itemRestructuredM.Status
+	}
+
+	//   - newInstance.PacketMachine
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
+	if err != nil {
+		log.Printf("%#v\n", err)
+	} else {
+		item = &items.Items[0]
+		var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
+		}
+		log.Printf("%#v\n", itemRestructuredPM.Spec)
+		instance.Status.Resources.PacketMachineUID = itemRestructuredPM.Spec.ProviderID
 	}
 
 	//   - newInstance.Cluster
@@ -170,7 +168,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	instance.Status.Resources.HumacsPod = humacsPod.Status
 
 	instance.Status.Phase = InstanceStatusPhaseProvisioning
-	if instance.Status.Resources.Cluster.Phase == "Deleting" {
+	if instance.Status.Resources.Cluster.Phase == string(InstanceStatusPhaseDeleting) {
 		instance.Status.Phase = InstanceStatusPhaseDeleting
 	} else if instance.Status.Resources.HumacsPod.Phase == corev1.PodRunning {
 		instance.Status.Phase = InstanceStatusPhaseProvisioned
@@ -232,35 +230,52 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 		instances = append(instances, instance)
 	}
 
-	//   - newInstance.PacketCluster
-	groupVersion := clusterAPIPacketv1alpha3.GroupVersion
-	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
+	//   - newInstance.Machine
+	groupVersion := clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
 	log.Printf("%#v\n", groupVersionResource)
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instances
+		return fmt.Errorf("Failed to list Machine, %#v", err), instances
 	}
 
 	for _, item := range items.Items {
-		var itemRestructured clusterAPIPacketv1alpha3.PacketCluster
+		var itemRestructured clusterAPIv1alpha3.Machine
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
 		if err != nil {
 			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
 		}
-		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
-			continue
-		}
-		if options.Filter.Username != "" && itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] != options.Filter.Username {
-			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
-			continue
-		}
 	instances1:
 		for i := range instances {
-			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
-				instances[i].Status.Resources.PacketCluster = itemRestructured.Status
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] {
+				instances[i].Status.Resources.MachineStatus = itemRestructured.Status
 				break instances1
+			}
+		}
+	}
+
+	//   - newInstance.PacketMachine
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
+	log.Printf("%#v\n", groupVersionResource)
+	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to list PacketMachine, %#v", err), instances
+	}
+
+	for _, item := range items.Items {
+		var itemRestructured clusterAPIPacketv1alpha3.PacketMachine
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+		}
+	instances2:
+		for i := range instances {
+			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] {
+				instances[i].Status.Resources.PacketMachineUID = itemRestructured.Spec.ProviderID
+				break instances2
 			}
 		}
 	}
@@ -272,7 +287,7 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create Cluster, %#v", err), instances
+		return fmt.Errorf("Failed to list Cluster, %#v", err), instances
 	}
 
 	for _, item := range items.Items {
@@ -289,9 +304,10 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 			log.Printf("Not using object %s/%T/%s - not related to username\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
 			continue
 		}
-	instances2:
+	instances3:
 		for i := range instances {
 			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
+				instances[i].Spec.Type = InstanceTypeKubernetes
 				instances[i].Status.Resources.Cluster = itemRestructured.Status
 				instances[i].Spec.Name = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
 				instances[i].Spec.NodeSize = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
@@ -302,7 +318,18 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 				instances[i].Spec.Setup.Timezone = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
 				instances[i].Spec.Setup.Fullname = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"]
 				instances[i].Spec.Setup.Email = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"]
-				break instances2
+				var env []map[string]string
+				json.Unmarshal([]byte(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-env"]), &env)
+				instances[i].Spec.Setup.Env = env
+				instances[i].Status.Resources.Cluster = itemRestructured.Status
+
+				instances[i].Status.Phase = InstanceStatusPhaseProvisioning
+				if instances[i].Status.Resources.Cluster.Phase == string(InstanceStatusPhaseDeleting) {
+					instances[i].Status.Phase = InstanceStatusPhaseDeleting
+				} else if instances[i].Status.Resources.HumacsPod.Phase == corev1.PodRunning {
+					instances[i].Status.Phase = InstanceStatusPhaseProvisioned
+				}
+				break instances3
 			}
 		}
 	}
