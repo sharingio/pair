@@ -9,7 +9,8 @@
             [clojure.spec.test.alpha :as test]
             [yaml.core :as yaml]
             [environ.core :refer [env]])
-  (:use [slingshot.slingshot :only [throw+ try+]]))
+  (:use [slingshot.slingshot :only [throw+ try+]])
+  (:import [java.util.concurrent TimeoutException TimeUnit]))
 
 (def backend-address (str "http://"(env :backend-address)))
 
@@ -47,6 +48,7 @@
   (time/to-millis-from-epoch k8stime))
 
 (defn relative-age
+  "return string of hours,minutes,seconds difference between k8stime and now."
   [k8stime]
   (let [age-in-seconds
         (quot (-
@@ -57,9 +59,29 @@
         minutes (quot (mod (mod age-in-seconds 86400) 3600) 60)]
     (str (when (> days 0)
            (str (pluralize days"day")", "))
-         (when(and (> days 0)(> hours 0))
+         (when(or (> days 0)(> hours 0))
            (str (pluralize hours"hour")", "))
          (pluralize minutes"minute"))))
+
+(defn get-backend
+  "wrapper for fetching from backend and timing out if response takes longer than 2 seconds"
+  [endpoint]
+  (try+
+   (-> (http/get endpoint {:socket-timeout 2000 :connection-timeout 2000})
+       :body (json/decode true))
+   (catch Object _
+     (log/warn (str "Call to " endpoint "took too long or other error"))
+     nil)))
+
+(defn fetch-instance
+  "Fetch raw data for each of our main instance endpoints"
+  [instance-id]
+  (let [endpoint (str backend-address "/api/instance/kubernetes/"instance-id)]
+    {:instance (get-backend endpoint)
+     :kubeconfig (get-backend (str endpoint "/kubeconfig"))
+     :tmate-ssh (get-backend (str endpoint "/tmate/ssh"))
+     :tmate-web (get-backend (str endpoint "/tmate/web"))
+     :ingresses (get-backend (str endpoint "/ingresses"))}))
 
 (defn launch
   [{:keys [username token]} {:keys [project timezone envvars facility type guests fullname email repos] :as params}]
@@ -98,70 +120,24 @@
 
 (defn get-instance
   [instance-id]
-  (let [{:keys [spec status] :as instance}
-        (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id))
-                  :body (json/decode true))
-              (catch Object _
-                (log/error "no http response for instance " instance-id)))
-        setup (:setup spec)
-        created-at (status->created-at status)]
-    {:instance-id (or (:name spec) instance-id)
-     :owner (:user setup)
-     :guests (:guests setup)
-     :repos (:repos setup)
-     :facility (:facility spec)
-     :type (:type spec)
-     :phase (:phase status)
-     :timezone (:timezone setup)
-     :created-at created-at
-     :age (relative-age created-at)
-     :spec spec}))
-
-(defn get-phase
-  [instance-id]
-  (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id))
-            :body
-            (json/decode true) :status :phase)
-        (catch Object _ ;; The first time it is pinged we sometimes get an HTTPNoResponse
-          (log/error "no http response for instance " instance-id)
-          "Not Ready")))
-
-(defn get-kubeconfig
-  [phase instance-id]
-  (if (= "Provisioning" phase) nil
-      (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/kubeconfig"))
-                :body (json/decode true)
-                :spec json/generate-string
-                yaml/parse-string
-                (yaml/generate-string :dumper-options {:flow-style :block}))
-            (catch Object _
-              (log/error "tried to get kubeconfig, no luck for " instance-id)))))
-
-(defn get-tmate-ssh
-  [kubeconfig instance_id]
-  (if (nil? kubeconfig) "Not ready to fetch tmate session"
-      (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance_id"/tmate/ssh"))
-                :body (json/decode true) :spec)
-            (catch Object _
-              (log/error "tried to get tmate, no luck for " instance_id)
-              nil))))
-
-(defn get-tmate-web
-  [kubeconfig instance-id]
-  (if (nil? kubeconfig) "Not ready to fetch tmate session"
-      (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/tmate/web"))
-                :body (json/decode true) :spec)
-            (catch Object _
-              (log/error "tried to get tmate, no luck for " instance-id)
-              "No Tmate session yet"))))
-
-(defn get-ingresses
-  [instance-id]
-  (try+ (-> (http/get (str backend-address"/api/instance/kubernetes/"instance-id"/ingresses"))
-            :body (json/decode true))
-            (catch Object _
-              (log/error "tried to get ingress, no luck for " instance-id)
-              nil)))
+  (let [{:keys [instance kubeconfig tmate-ssh tmate-web ingresses]} (fetch-instance instance-id)]
+    (println instance)
+    {:instance-id (or (-> instance :spec :name) instance-id)
+     :owner (-> instance :setup :user)
+     :guests (-> instance :setup :guests)
+     :repos (-> instance :setup :repos)
+     :facility (-> instance :spec :facility)
+     :type (-> instance :spec :type)
+     :phase (-> instance :status :phase)
+     :timezone (-> instance :setup :timezone)
+     :kubeconfig (-> kubeconfig :spec)
+     :tmate-ssh (-> tmate-ssh :spec)
+     :tmate-web (-> tmate-web :spec)
+     :ingresses (-> ingresses :spec)
+     :sites (get-sites (-> ingresses :spec))
+     :created-at (status->created-at (:status instance))
+     :age (relative-age (status->created-at (:status instance)))
+     :spec (:spec instance)}))
 
 (defn get-sites
   [ingresses]

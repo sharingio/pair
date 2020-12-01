@@ -32,7 +32,7 @@
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
-    (when refresh? [:meta {:http-equiv "refresh" :content "10"}])
+    (when refresh? [:meta {:http-equiv "refresh" :content "15"}])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
     [:link {:rel "stylesheet"
