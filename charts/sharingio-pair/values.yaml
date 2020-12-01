@@ -2,10 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# place the database URL in here
-databaseURL: ""
-# or use the reference to the secret
-databaseURLRef: {}
 sessionSecret: ""
 
 githubOAuth:
