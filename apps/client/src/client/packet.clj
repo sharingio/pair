@@ -47,6 +47,12 @@
   [k8stime]
   (time/to-millis-from-epoch k8stime))
 
+(defn pluralize
+  [n s]
+  (if (= 1 n)
+    (str n" "s)
+    (str n" "s"s")))
+
 (defn relative-age
   "return string of hours,minutes,seconds difference between k8stime and now."
   [k8stime]
@@ -82,6 +88,16 @@
      :tmate-ssh (get-backend (str endpoint "/tmate/ssh"))
      :tmate-web (get-backend (str endpoint "/tmate/web"))
      :ingresses (get-backend (str endpoint "/ingresses"))}))
+
+(defn get-sites
+  [ingresses]
+  (let [items (-> ingresses  :spec :items)
+        rules (mapcat #(map :host (-> % :spec :rules)) items)
+        tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
+    (map (fn [addr]
+           (if (some #{addr} tls)
+             (str "https://"addr)
+             (str "http://"addr))) rules)))
 
 (defn launch
   [{:keys [username token]} {:keys [project timezone envvars facility type guests fullname email repos] :as params}]
@@ -121,7 +137,6 @@
 (defn get-instance
   [instance-id]
   (let [{:keys [instance kubeconfig tmate-ssh tmate-web ingresses]} (fetch-instance instance-id)]
-    (println instance)
     {:instance-id (or (-> instance :spec :name) instance-id)
      :owner (-> instance :setup :user)
      :guests (-> instance :setup :guests)
@@ -129,6 +144,7 @@
      :facility (-> instance :spec :facility)
      :type (-> instance :spec :type)
      :phase (-> instance :status :phase)
+     :uid (-> instance :status :resources :MachineStatus :nodeRef :uid)
      :timezone (-> instance :setup :timezone)
      :kubeconfig (-> kubeconfig :spec)
      :tmate-ssh (-> tmate-ssh :spec)
@@ -138,16 +154,6 @@
      :created-at (status->created-at (:status instance))
      :age (relative-age (status->created-at (:status instance)))
      :spec (:spec instance)}))
-
-(defn get-sites
-  [ingresses]
-  (let [items (-> ingresses  :spec :items)
-        rules (mapcat #(map :host (-> % :spec :rules)) items)
-        tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
-    (map (fn [addr]
-           (if (some #{addr} tls)
-             (str "https://"addr)
-             (str "http://"addr))) rules)))
 
 (defn get-all-instances
   [{:keys [username admin-member]}]
@@ -171,3 +177,14 @@
 (defn delete-instance
   [instance-id]
   (http/delete (str backend-address"/api/instance/kubernetes/"instance-id)))
+
+(comment
+  (def ztel(fetch-instance "zachmandeville-ztel"))
+
+  (:uid (get-instance "zachmandeville-ztel"))
+
+
+  (def insts (-> (http/get (str backend-address"/api/instance/kubernetes"))
+                                :body (json/decode true) :list))
+
+ )

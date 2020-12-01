@@ -12,7 +12,7 @@
 
 (defn header
   [{:keys [avatar username permitted-member] :as user}]
-  (if user
+  (if (and user (not (= (:username user) "guest")))
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
@@ -25,7 +25,7 @@
   [:header#top
    [:h1 [:a.home {:href "/"} "sharing.io"]]
    [:nav
-    [:a {:href login-url} "login with github"]]]))
+    (when (nil? user) [:a {:href login-url} "login with github"])]]))
 
 (defn layout
   [body user &[refresh?]]
@@ -120,10 +120,18 @@
    user))
 
 (defn kubeconfig-box
-  [kubeconfig]
+  [{:keys [kubeconfig uid instance-id]}]
   (if kubeconfig
     [:section#kubeconfig
-    [:h3 "Kubeconfig available"]
+     [:h3 "Kubeconfig available "]
+     [:a {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
+                                       :download (str instance-id"-kubeconfig")} "download"]
+     [:p "you can attach to the cluster immediately with this command"
+      [:pre
+       (str
+        "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -O $KUBECONFIG "
+        "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig"
+        " ; kubectl api-resources")]]
   [:details
    [:summary "See Full Kubeconfig"]
    [:pre kubeconfig]]]
@@ -160,7 +168,6 @@
 
 (defn instance
   [{:keys [guests repos timezone created-at age] :as instance} {:keys [username admin-member] :as user}]
-  (println "REPO" repos)
   (layout
    [:main#instance
    [:header
@@ -184,7 +191,7 @@
     [:article
     (tmate instance)
      (status instance)
-    (kubeconfig-box (:kubeconfig instance))
+    (kubeconfig-box instance)
     (when (or (= (:owner instance) username) admin-member)
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"])]]

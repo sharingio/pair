@@ -34,11 +34,11 @@ p, a, ul, li, h1, h2, h3, h4 {
 }
 
 pre {
-    display: table;
-    padding
-    padding
     background: var(--color_code);
     padding: 0.5rem;
+    font-size: 0.8rem;
+    width: 32rem;
+    overflow-x: scroll;
 }
 
 .action.delete {
@@ -321,6 +321,10 @@ main#all-instances h3 {
 main#all-instances ul {
     list-style-type: none;
     margin-bottom: 3rem;
+}
+
+section#kubeconfig h3 {
+    margin-bottom: 0;
 }
 
 @media (max-width: 667px) {

@@ -49,6 +49,18 @@
         (packet/delete-instance instance-id)
         (res/redirect "/instances"))
 
+  (GET "/public-instances/:uid/:instance-id" {{:keys [uid instance-id]} :params}
+       (let [instance (packet/get-instance instance-id)]
+         (if (and (:uid instance)(= uid (:uid instance)))
+           (views/instance instance {:username "guest"})
+           (assoc (res/redirect "/") :session nil))))
+
+  (GET "/public-instances/:uid/:instance-id/kubeconfig" {{:keys [uid instance-id]} :params}
+       (let [instance (packet/get-instance instance-id)]
+         (if (and (:uid instance)(= uid (:uid instance)))
+           {:status 200 :body (:kubeconfig instance)}
+           (assoc (res/redirect "/") :session nil))))
+
   (GET "/logout" []
        (assoc (res/redirect "/") :session nil))
 
@@ -81,7 +93,8 @@
 (defn wrap-login
   [handler]
   (fn [req]
-    (if (or (#{"/" "/about" "/faq" "/oauth" "/logout"} (:uri req))
+    (if (or (#{"/" "/about" "/faq" "/404" "/oauth" "/logout"} (:uri req))
+            (re-find #"/public-instances/[A-Za-z0-9-]*/[a-zA-Z0-9-]*" (:uri req))
             (-> req :session :user :permitted-member))
       (handler req)
       {:status 401 :body "You Must be Logged in"})))
@@ -92,7 +105,8 @@
     (let [{req :request-method
            proto :protocol
            headers :headers} req]
-      (println "\n req:"req"\n protocol: "proto "\n headers: " headers))
+      ;; (println "\n req:"req"\n protocol: "proto "\n headers: " headers)
+      )
     (handler req)))
 
 (def app
