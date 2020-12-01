@@ -124,7 +124,11 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 			return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
 		}
 		log.Printf("%#v\n", itemRestructuredPM.Spec)
-		instance.Status.Resources.PacketMachineUID = itemRestructuredPM.Spec.ProviderID
+		var providerID string = *itemRestructuredPM.Spec.ProviderID
+		providerIDSplit := strings.Split(providerID, "/")
+		if len(providerIDSplit) == 3 {
+			instance.Status.Resources.PacketMachineUID = &providerIDSplit[2]
+		}
 	}
 
 	//   - newInstance.Cluster
