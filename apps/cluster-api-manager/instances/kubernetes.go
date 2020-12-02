@@ -189,6 +189,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	var env []map[string]string
 	json.Unmarshal([]byte(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-env"]), &env)
 	instance.Spec.Setup.Env = env
+	instance.Spec.Setup.BaseDNSName = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-baseDNSName"]
 
 	err = nil
 	return err, instance
@@ -278,7 +279,14 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	instances2:
 		for i := range instances {
 			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] {
-				instances[i].Status.Resources.PacketMachineUID = itemRestructured.Spec.ProviderID
+				if itemRestructured.Spec.ProviderID == nil {
+					continue instances2
+				}
+				var providerID string = *itemRestructured.Spec.ProviderID
+				providerIDSplit := strings.Split(providerID, "/")
+				if len(providerIDSplit) == 3 {
+					instances[i].Status.Resources.PacketMachineUID = &providerIDSplit[2]
+				}
 				break instances2
 			}
 		}
@@ -487,12 +495,16 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 		log.Println("Already exists")
 	}
 	log.Println("[pre] adding Kubernetes Instance IP to DNS")
-	go KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Setup.UserLowercase)
-	go KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name, instance.Setup.UserLowercase)
+
+	go KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Name)
+	if options.NameScheme == InstanceNameSchemeSpecified || options.NameScheme == InstanceNameSchemeUsername {
+		go KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name)
+	}
 	log.Println("[post] adding Kubernetes Instance IP to DNS")
 
 	err = nil
 
+	// TODO return the same creation fields (repos, guests, etc...)
 	return err, instanceCreated
 }
 
@@ -1284,7 +1296,7 @@ EOF
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
 	instance.Setup.HumacsVersion = GetHumacsVersion()
-	instance.Setup.BaseDNSName = instance.Setup.UserLowercase + "." + common.GetBaseHost()
+	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
@@ -1428,6 +1440,7 @@ EOF
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-baseDNSName"] = instance.Setup.BaseDNSName
 	envJSON, err := json.Marshal(instance.Setup.Env)
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -1652,7 +1665,7 @@ pollInstanceNamespace:
 	}
 }
 
-func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, username string) (err error) {
+func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, subdomain string) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 	var ipAddress string
 	groupVersion := clusterAPIv1alpha3.GroupVersion
@@ -1692,7 +1705,7 @@ machineWatchChannel:
 		break machineWatchChannel
 	}
 	entry := dns.Entry{
-		Subdomain: username,
+		Subdomain: subdomain,
 		Values: []string{
 			ipAddress,
 		},
@@ -1802,11 +1815,11 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 	return err
 }
 
-func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instanceName string, username string) (err error) {
+func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instanceName string) (err error) {
 	// if cert secret for user name exists locally
 	namespace := "powerdns"
 	log.Printf("Managing cert for Instance '%v'\n", instanceName)
-	errLocalInstance, localSecret := KubernetesGetLocalInstanceWildcardTLSCert(clientset, username)
+	errLocalInstance, localSecret := KubernetesGetLocalInstanceWildcardTLSCert(clientset, instanceName)
 
 	KubernetesWaitForInstanceKubeconfig(clientset, instanceName)
 
@@ -1869,14 +1882,14 @@ pollInstanceNamespace:
 			time.Sleep(time.Second * 5)
 		}
 		//   upsert remote cert locally
-		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, username, instanceSecret)
+		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, instanceName, instanceSecret)
 		if err != nil {
 			log.Printf("%#v\n", err)
 		}
 	} else if err == nil {
 		log.Printf("Cert for Instance '%v' found locally. Creating it in the Instance\n", instanceName)
 		//   upsert local cert secret to remote
-		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, username, localSecret)
+		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, instanceName, localSecret)
 		if err != nil {
 			log.Printf("%#v\n", err)
 		}

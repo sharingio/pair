@@ -66,6 +66,45 @@ func GetInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+func ListInstances(dynamicClient dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Listing all instances"
+		responseCode := http.StatusInternalServerError
+
+		instanceFilterUsername := r.FormValue("username")
+		instanceFilterType := r.FormValue("type")
+		options := instances.InstanceListOptions{
+			Filter: instances.InstanceFilter{
+				Username: instanceFilterUsername,
+				Type:     instances.InstanceType(instanceFilterType),
+			},
+		}
+
+		err, availableInstances := instances.List(dynamicClient, options)
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				List: []instances.Instance{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if len(availableInstances) == 0 {
+			response = "No instances found"
+		}
+		responseCode = http.StatusOK
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
+			List: availableInstances,
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
 func ListInstancesKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all Kubernetes instances"
@@ -516,7 +555,7 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 
-		_ = instances.KubernetesAddCertToMachine(clientset, dynamicClient, name, instance.Spec.Setup.UserLowercase)
+		go instances.KubernetesAddCertToMachine(clientset, dynamicClient, name)
 		response = "Initiated cert management"
 		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{

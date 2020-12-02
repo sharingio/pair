@@ -22,6 +22,11 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 			HttpMethods:  []string{http.MethodGet},
 		},
 		{
+			EndpointPath: endpointPrefix + "/instance",
+			HandlerFunc:  ListInstances(dynamicClient),
+			HttpMethods:  []string{http.MethodGet},
+		},
+		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes",
 			HandlerFunc:  ListInstancesKubernetes(dynamicClient),
 			HttpMethods:  []string{http.MethodGet},

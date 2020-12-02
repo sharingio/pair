@@ -56,7 +56,19 @@ func Get(name string) (err error, instance Instance) {
 	return err, instance
 }
 
-func List(kubernetesClientset dynamic.Interface, options InstanceListOptions) (err string, instances []Instance) {
+func List(dynamicClient dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
+	switch options.Filter.Type {
+	case InstanceTypeKubernetes:
+		err, instances = KubernetesList(dynamicClient, options)
+		break
+
+	case InstanceTypePlain:
+		break
+
+	default:
+		err, instances = KubernetesList(dynamicClient, options)
+		// append plain type
+	}
 	return err, instances
 }
 
@@ -65,8 +77,37 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	if err != nil {
 		return err, instanceCreated
 	}
-	instance.Name = GenerateName(instance)
+	err, instancesOfUser := List(dynamicClient, InstanceListOptions{
+		Filter: InstanceFilter{
+			Username: instance.Setup.User,
+		},
+	})
+	if err != nil {
+		return err, instanceCreated
+	}
 	instance.Setup.UserLowercase = strings.ToLower(instance.Setup.User)
+	// uses instance.Name if specified
+	// if no other instances exist
+	if len(instancesOfUser) == 0 && instance.Name == "" {
+		instance.Name = instance.Setup.UserLowercase
+		options.NameScheme = InstanceNameSchemeSpecified
+	} else if len(instancesOfUser) > 0 && instance.Name == "" {
+		// if other instances exist
+		instance.Name = GenerateName(instance)
+		options.NameScheme = InstanceNameSchemeGenerateFromUsername
+	} else if instance.Name != "" {
+		options.NameScheme = InstanceNameSchemeSpecified
+	}
+
+	if options.NameScheme == InstanceNameSchemeSpecified {
+		for _, existingInstance := range instancesOfUser {
+			if instance.Name == existingInstance.Spec.Name {
+				return fmt.Errorf("An instance with the provided name already exists"), instanceCreated
+			}
+		}
+	}
+	instance.Name = strings.ToLower(instance.Name)
+
 	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
 	if instance.Setup.Timezone == "" {
 		instance.Setup.Timezone = instanceDefaultTimezone

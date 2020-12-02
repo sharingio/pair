@@ -52,7 +52,8 @@ const (
 )
 
 type InstanceFilter struct {
-	Username string `json:"username"`
+	Username string       `json:"username"`
+	Type     InstanceType `json:"type"`
 }
 
 type InstanceListOptions struct {
@@ -64,6 +65,15 @@ type InstanceAccess struct {
 	TmateString string              `json:"tmateString"`
 }
 
+type InstanceNameScheme string
+
+const (
+	InstanceNameSchemeSpecified            InstanceNameScheme = "Specified"
+	InstanceNameSchemeUsername             InstanceNameScheme = "Username"
+	InstanceNameSchemeGenerateFromUsername InstanceNameScheme = "GenerateFromUsername"
+)
+
 type InstanceCreateOptions struct {
-	DryRun bool
+	DryRun     bool
+	NameScheme InstanceNameScheme
 }

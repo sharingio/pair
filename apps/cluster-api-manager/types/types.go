@@ -31,7 +31,6 @@ type Endpoints []struct {
 
 type SetupSpec struct {
 	User             string              `json:"user"`
-	UserLowercase    string              `json:"-"`
 	Guests           []string            `json:"guests"`
 	Repos            []string            `json:"repos"`
 	Timezone         string              `json:"timezone"`
@@ -39,7 +38,8 @@ type SetupSpec struct {
 	Email            string              `json:"email"`
 	GitHubOAuthToken string              `json:"githubOAuthToken,omitempty"`
 	Env              []map[string]string `json:"env,omitempty"`
+	BaseDNSName      string              `json:"baseDNSName,omitempty"`
 
 	HumacsVersion string `json:"-"`
-	BaseDNSName   string `json:"-"`
+	UserLowercase string `json:"-"`
 }
