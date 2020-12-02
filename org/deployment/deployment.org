@@ -37,27 +37,6 @@ Set env to pass into Helm set commands
   (getenv "SHARINGIO_PAIR_HOST")
 #+end_src
 
-** Set up Postgres
-Create the database secrets:
-#+begin_src shell :results silent
-  kubectl -n sharingio-pair create secret generic postgres-configuration \
-    --from-literal=POSTGRES_DB=pair \
-    --from-literal=POSTGRES_USER=pair \
-    --from-literal=POSTGRES_PASSWORD=pair \
-    --from-literal=PGUSER=pair \
-    --from-literal=PGPASSWORD=pair \
-    --from-literal=PGDATABASE=pair
-#+end_src
-
-Create the Postgres instance:
-#+begin_src shell :results silent
-  kubectl -n sharingio-pair apply -f postgres.yaml
-#+end_src
-
-Notes:
-- this Postgres instance does not have persistence
-- this Postgres instance is not HA
-
 * Helm
 ** Lint
 #+begin_src bash :dir ../.././ :noweb yes :prologue "(" :epilogue ") 2>&1\n:"
@@ -66,7 +45,6 @@ Notes:
           export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
           export SHARINGIO_PAIR_HOST=<<get-host()>>
   helm lint \
-    --set databaseURL=postgres://pair:pair@postgres.sharingio-pair/pair?sslmode=disable \
     --set sessionSecret=pairpairpairpair \
     --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
     --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
@@ -85,7 +63,6 @@ Notes:
           export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
           export SHARINGIO_PAIR_HOST=<<get-host()>>
   helm install sharingio-pair -n sharingio-pair \
-    --set databaseURL=postgres://pair:pair@postgres.sharingio-pair/pair?sslmode=disable \
     --set sessionSecret=pairpairpairpair \
     --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
     --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
@@ -104,14 +81,15 @@ Notes:
           export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
           export SHARINGIO_PAIR_HOST=<<get-host()>>
   helm upgrade sharingio-pair -n sharingio-pair \
-    --set databaseURL=postgres://pair:pair@postgres.sharingio-pair/pair?sslmode=disable \
     --set sessionSecret=pairpairpairpair \
     --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
     --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
     --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
     --set ingress.enabled=true \
-    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
+    --set ingress.hosts[0].host=ii.sharing.io \
     --set ingress.hosts[0].paths[0]='/' \
+    --set ingress.hosts[1].host=$SHARINGIO_PAIR_HOST \
+    --set ingress.hosts[1].paths[0]='/' \
     --set ingress.certmanager.enabled=true \
     charts/sharingio-pair
 #+end_src
@@ -122,8 +100,7 @@ Notes:
 #+end_src
 
 ** Frontend REPL
-Setup DNS endpoints
-
+#+NAME: Setup DNS endpoints
 #+begin_src yaml :tangle dev-endpoints.yaml
 apiVersion: externaldns.k8s.io/v1alpha1
 kind: DNSEndpoint
@@ -138,12 +115,85 @@ spec:
     - 139.178.68.219
 #+end_src
 
+#+NAME: Certs
+#+begin_src yaml :tangle ./frontend-repl-certs.yaml
+# Source: sharingio-pair/templates/cert.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pair-dev-sharingio-pair-letsencrypt
+spec:
+  secretName: pair-dev-sharingio-pair-letsencrypt
+  issuerRef:
+    name: pair-dev-sharingio-pair-letsencrypt
+    kind: ClusterIssuer
+    group: cert-manager.io
+  dnsNames:
+    - "pair-dev.sharing.io"
+---
+# Source: sharingio-pair/templates/cluster-issuer.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: pair-dev-sharingio-pair-letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: sharingio@ii.coop
+    privateKeySecretRef:
+      name: pair-dev-sharingio-pair-letsencrypt
+    solvers:
+      - http01:
+          ingress:
+            class: nginx
+        selector:
+          dnsNames:
+            - "pair-dev.sharing.io"
+#+end_src
+
+#+NAME: Service
+#+begin_src yaml :tangle ./frontend-repl-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: humacs
+spec:
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+  selector:
+    app.kubernetes.io/instance: zz-humacs
+#+end_src
+
+#+NAME: Ingress
+#+begin_src yaml :tangle ./frontend-repl-ingress.yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: pair-dev-sharing-io
+spec:
+  rules:
+  - host: pair-dev.sharing.io
+    http:
+      paths:
+      - backend:
+          serviceName: humacs
+          servicePort: 5000
+        path: /
+  tls:
+  - hosts:
+    - pair-dev.sharing.io
+    secretName: pair-dev-sharingio-pair-letsencrypt
+#+end_src
+
 #+begin_src shell :results silent
   kubectl apply -f dev-endpoints.yaml
 #+end_src
 
 #+begin_src bash :results silent
   kubectl -n sharingio-pair apply \
+    -f frontend-repl-certs.yaml \
     -f frontend-repl-service.yaml \
     -f frontend-repl-ingress.yaml
 #+end_src
