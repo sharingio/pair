@@ -22,7 +22,7 @@ rules:
     resources:
       - packetmachinetemplates
       - packetclusters
-      - packetmachinetemplates
+      - packetmachines
     verbs:
       - create
       - get
