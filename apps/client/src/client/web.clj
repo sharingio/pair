@@ -12,6 +12,7 @@
             [client.github :as gh]
             [client.packet :as packet]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]])
+  (:import [org.eclipse.jetty.server.handler.gzip GzipHandler])
   (:gen-class))
 
 (defroutes app-routes
@@ -34,9 +35,12 @@
           (assoc (res/redirect (str "/instances/id/"instance-id))
                  :session (merge session {:instance instance}))))
 
-  (GET "/instances/id/:id" {{{:keys [username admin-member] :as user} :user
-                            {:keys [owner guests] :as instance} :instance} :session}
-       (let [owner-or-guest (some #{username} (conj guests owner))]
+  (GET "/instances/id/:id" {uri :uri
+                            {:keys [user instance] :as session} :session}
+
+       (let [{:keys [username admin-member]} user
+             {:keys [owner guests]} instance
+             owner-or-guest (some #{username} (conj guests owner))]
          (if (or admin-member owner-or-guest)
            (views/instance instance user)
            (res/redirect "/instances"))))
@@ -77,27 +81,29 @@
     (handler
      (if (= "/instances" (:uri req))
        (let [instances (packet/get-all-instances (-> req :session :user))]
-         (assoc-in req [:session :instances] instances))
-       (do (println "No Instances Found" (-> req :session)) req)))))
+         (assoc req :session (merge (:session req) {:instances instances})))
+       req))))
 
 (defn wrap-update-instance
   [handler]
   (fn [req]
-    (handler (if-let [instance-id (second (re-find #"/instances/id/([a-zA-Z0-9-]*)"
-                                               (:uri req)))]
-               (let [instance (packet/get-instance instance-id)
-                     non-nil-instance (select-keys instance (for [[k v] instance :when (not (nil? v))] k))]
-                 (assoc-in req [:session :instance] non-nil-instance))
-                 req))))
+    (if-let [instance-id (second (re-find #"/instances/id/([a-zA-Z0-9-]*)" (:uri req)))]
+       (let [instance (packet/get-instance instance-id)
+             non-nil-instance (select-keys instance (for [[k v] instance :when (not (nil? v))] k))
+             response (handler (assoc-in req [:session :instance] instance))]
+         response)
+      (handler req))))
 
 (defn wrap-login
   [handler]
   (fn [req]
+    (println "LOGIN" (-> req :session keys))
+    (handler
     (if (or (#{"/" "/about" "/faq" "/404" "/oauth" "/logout"} (:uri req))
             (re-find #"/public-instances/[A-Za-z0-9-]*/[a-zA-Z0-9-]*" (:uri req))
             (-> req :session :user :permitted-member))
-      (handler req)
-      {:status 401 :body "You Must be Logged in"})))
+      req
+      {:status 401 :body "You Must be Logged in"}))))
 
 (defn wrap-logging
   [handler]
@@ -109,14 +115,31 @@
       )
     (handler req)))
 
+
+(defn- add-gzip-handler [server]
+  (.setHandler server
+               (doto (GzipHandler.)
+                 (.setIncludedMimeTypes (into-array ["text/css"
+                                                     "text/plain"
+                                                     "text/javascript"
+                                                     "application/javascript"
+                                                     "application/json"
+                                                     "image/svg+xml"]))
+                 (.setMinGzipSize 1024)
+                 (.setHandler (.getHandler server)))))
+
 (def app
   (let [store (cookie/cookie-store {:key (env :session-secret)})]
     (-> app-routes
-        (wrap-login)
-        (wrap-get-all-instances)
-        (wrap-update-instance)
-        (wrap-logging)
+        ;; wrap-logging
+        wrap-get-all-instances
+        wrap-update-instance
+        wrap-login
         (wrap-defaults (assoc site-defaults :session {:store store})))))
 
 (defn -main [& args]
-  (run-jetty app {:port (Integer/valueOf (or (System/getenv "PORT") "5000"))}))
+  (run-jetty
+   app {
+        :port (Integer/valueOf (or (System/getenv "PORT") "5000"))
+        :join? false
+        :configurator add-gzip-handler}))
