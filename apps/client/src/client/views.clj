@@ -60,7 +60,7 @@
    user))
 
 (defn new-box-form
-  [{:keys [fullname email username]}]
+  [{:keys [fullname email username admin-member]}]
   (form/form-to {:id "new-box"}
    [:post "/instances/new"]
    (util/anti-forgery-field)
@@ -106,6 +106,13 @@
                 :id "envvars"
                 :placeholder "PAIR=sharing\nSHARE=pairing"}]
     [:p.helper "Add env vars as KEY=value, with each new variable on its own line."]]
+   (when admin-member
+     [:div.form-group
+      [:label {:form "name"} "Custom Name for Instance"]
+      [:input {:name "name"
+                  :id "name"
+                  :placeholder "coolbox-123"}]
+      [:p.helper "You can set a custom name for your box, which will be used in dns."]])
    [:input {:type :submit :value "launch"}]))
 
 (defn new
