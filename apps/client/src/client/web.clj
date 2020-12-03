@@ -100,7 +100,7 @@
     (println "LOGIN" (-> req :session keys))
     (handler
     (if (or (#{"/" "/about" "/faq" "/404" "/oauth" "/logout"} (:uri req))
-            (re-find #"/public-instances/[A-Za-z0-9-]*/[a-zA-Z0-9-]*" (:uri req))
+            (re-find #"/public-instances/([A-Za-z0-9-]*)/([A-Za-z0-9-])" (:uri req))
             (-> req :session :user :permitted-member))
       req
       {:status 401 :body "You Must be Logged in"}))))

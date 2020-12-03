@@ -12,7 +12,7 @@
 
 (defn header
   [{:keys [avatar username permitted-member] :as user}]
-  (if (and user (not (= (:username user) "guest")))
+  (if (and user (not (= username "guest")))
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
@@ -23,7 +23,8 @@
       [:p [:img {:width "50px" :src avatar :alt (str "avatar icon for "username)}]
        [:a.logout {:href "/logout"} "logout"]]]]
   [:header#top
-   [:h1 [:a.home {:href "/"} "sharing.io"]]
+   [:h1 [:a.home {:href "/"} "sharing.io"]
+    (when (= "guest" username)[:sup "public link"])]
    [:nav
     (when (nil? user) [:a {:href login-url} "login with github"])]]))
 
@@ -136,8 +137,8 @@
      [:p "you can attach to the cluster immediately with this command"
       [:pre
        (str
-        "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -O $KUBECONFIG "
-        "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig"
+        "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
+        "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > $KUBECONFIG"
         " ; kubectl api-resources")]]
   [:details
    [:summary "See Full Kubeconfig"]
@@ -174,11 +175,15 @@
 
 
 (defn instance
-  [{:keys [guests repos timezone created-at age] :as instance} {:keys [username admin-member] :as user}]
+  [{:keys [guests uid instance-id repos timezone created-at age] :as instance} {:keys [username admin-member] :as user}]
   (layout
    [:main#instance
    [:header
-    [:h2 "Status for "(:instance-id instance)]
+    [:h2 "Status for "instance-id
+     (when (not (= "guest" username))
+     [:a.btn.action {:href (str "/public-instances/"uid"/"instance-id)
+          :target "_blank"
+          :rel "noreferrer nofollower"} "Get Public Link"])]
     [:div.info
      [:em age]
      (when (> (count (filter (complement empty?) guests)) 0)
@@ -200,8 +205,12 @@
      (status instance)
     (kubeconfig-box instance)
     (when (or (= (:owner instance) username) admin-member)
+      [:section.admin-actions
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
-       "Delete Instance"])]]
+       "Delete Instance"]
+       [:h3 "SOS ssh:"]
+       [:pre (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
+       ])]]
    user true))
 
 (defn delete-instance
@@ -223,6 +232,13 @@
                             :value (str "Delete " instance-id)}])]]
    user))
 
+(defn instance-li
+  "used in all instances page, short list of info about instance!"
+  [{:keys [instance-id phase age]}]
+  [:li.instance [:a {:href (str "/instances/id/"instance-id)}
+        instance-id] [:em.phase phase]
+   [:p.age age]])
+
 
 (defn all-instances
   [instances {:keys [username admin-member] :as user}]
@@ -233,24 +249,22 @@
       [:header
        [:h2 "Your Instances"]]
       [:article
+       (when owner
       [:section#owner
        [:h3 "Created by You"]
        [:ul
         (for [instance owner]
-          [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-           (:instance-id instance)] [:em (:phase instance)]])]]
+          (instance-li instance))]])
       (when guest
       [:section#guest
        [:h3 "Shared with You"]
        [:ul
        (for [instance guest]
-         [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-               (:instance-id instance)] [:em (:phase instance)]])]])
+         (instance-li instance))]])
        (when (and admin-member other)
          [:section#admin
           [:h3 "All Other Instances"]
           [:ul
            (for [instance other]
-             [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-                   (:instance-id instance)] [:em (:phase instance)]])]])]]
+             (instance-li instance))]])]]
      user)))

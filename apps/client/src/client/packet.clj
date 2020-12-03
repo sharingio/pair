@@ -64,19 +64,9 @@
            (str (pluralize hours"hour")", "))
          (pluralize minutes"minute"))))
 
-(defn get-backend
-  "wrapper for fetching from backend and timing out if response takes longer than 2 seconds"
-  [endpoint]
-  (try+
-   (-> (http/get endpoint {:socket-timeout 4000 :connection-timeout 4000})
-       :body (json/decode true))
-   (catch Object _
-     (log/warn (str "Call to " endpoint "took too long or other error"))
-     nil)))
-
 (defn fetch-from-backend
   [url]
-  (client/get url {:timeout 4000}
+  (client/get url {:timeout 5000}
               (fn [{:keys [status headers body error]}] ;; asynchronous response handling
                 (if error
                   (do (println "Failed, exception is " error) nil)
@@ -152,7 +142,7 @@
      :facility (-> instance :spec :facility)
      :type (-> instance :spec :type)
      :phase (-> instance :status :phase)
-     :uid (-> instance :status :resources :MachineStatus :nodeRef :uid)
+     :uid (-> instance :status :resources :PacketMachineUID)
      :timezone (-> instance :setup :timezone)
      :kubeconfig (-> kubeconfig :spec)
      :tmate-ssh (-> tmate-ssh :spec)
@@ -172,6 +162,8 @@
         instances (map (fn [{:keys [spec status]}]
                          {:instance-id (:name spec)
                           :phase (:phase status )
+                          :created-at (status->created-at status)
+                          :age (if (nil? (status->created-at status)) nil (relative-age (status->created-at status)))
                           :owner (-> spec :setup :user)
                           :guests (-> spec :setup :guests)
                           :repos (-> spec :setup :repos)
@@ -184,4 +176,3 @@
 (defn delete-instance
   [instance-id]
   (http/delete (str backend-address"/api/instance/kubernetes/"instance-id)))
-

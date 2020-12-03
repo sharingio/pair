@@ -35,9 +35,9 @@ p, a, ul, li, h1, h2, h3, h4 {
 
 pre {
     background: var(--color_code);
-    padding: 0.5rem;
+    padding: 1.25rem;
     font-size: 0.8rem;
-    width: 32rem;
+    max-width: 42rem;
     overflow-x: scroll;
 }
 
@@ -50,6 +50,11 @@ header#top {
     justify-content: space-between;
     align-items: center;
     padding: 1rem;
+}
+
+header#top sup {
+    font-size: 0.8rem;
+    font-weight: 200;
 }
 
 header#top a {
@@ -264,6 +269,17 @@ main section {
     margin-bottom: 1.5rem;
 }
 
+main#instance header h2 {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+main#instance header a.btn {
+    font-size: 0.8rem;
+    margin-left: 1rem;
+}
+
 main#instance article {
     display: grid;
     grid-template-columns: 1fr 400px;
@@ -323,9 +339,34 @@ main#all-instances ul {
     margin-bottom: 3rem;
 }
 
+main#all-instances li.instance {
+    margin-bottom: 1.5rem;
+}
+
+li.instance p.age {
+    font-size: 0.75rem;
+}
+
+li.instance em.phase {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+}
+
+
 section#kubeconfig h3 {
     margin-bottom: 0;
 }
+
+section.admin-actions {
+    background: ghostwhite;
+}
+
+section.admin-actions h3 {
+    margin: 0;
+    font-size: 1rem;
+    margin-top: 1.5rem;
+}
+
 
 @media (max-width: 667px) {
     main#instance article {
