@@ -3,6 +3,7 @@
   (:require [cheshire.core :as json]
             [clojure.tools.logging :as log]
             [clj-http.client :as http]
+            [org.httpkit.client :as client]
             [clojure.spec.alpha :as s]
             [java-time :as time]
             [clojure.string :as str]
@@ -33,11 +34,7 @@
   (let [last-transition-time
         (->> status :resources :MachineStatus :conditions
              (filter #(= "Ready" (:type %))) first :lastTransitionTime)]
-    ; when box is first made, there won't be a transition time avialble.
-    ; in this instant, return the current time
-    (if (nil? last-transition-time)
-      (time/format (time/instant))
-      last-transition-time)))
+    last-transition-time))
 
 (s/fdef k8stime->unix-timestamp
   :args (s/cat :k8s-time string?)
@@ -48,10 +45,8 @@
   (time/to-millis-from-epoch k8stime))
 
 (defn pluralize
-  [n s]
-  (if (= 1 n)
-    (str n" "s)
-    (str n" "s"s")))
+  [num unit]
+  (str num" "unit(if(= 1 num)"""s")))
 
 (defn relative-age
   "return string of hours,minutes,seconds difference between k8stime and now."
@@ -73,21 +68,32 @@
   "wrapper for fetching from backend and timing out if response takes longer than 2 seconds"
   [endpoint]
   (try+
-   (-> (http/get endpoint {:socket-timeout 2000 :connection-timeout 2000})
+   (-> (http/get endpoint {:socket-timeout 4000 :connection-timeout 4000})
        :body (json/decode true))
    (catch Object _
      (log/warn (str "Call to " endpoint "took too long or other error"))
      nil)))
 
+(defn fetch-from-backend
+  [url]
+  (client/get url {:timeout 4000}
+              (fn [{:keys [status headers body error]}] ;; asynchronous response handling
+                (if error
+                  (do (println "Failed, exception is " error) nil)
+                  (json/decode body true)))))
+
 (defn fetch-instance
   "Fetch raw data for each of our main instance endpoints"
   [instance-id]
-  (let [endpoint (str backend-address "/api/instance/kubernetes/"instance-id)]
-    {:instance (get-backend endpoint)
-     :kubeconfig (get-backend (str endpoint "/kubeconfig"))
-     :tmate-ssh (get-backend (str endpoint "/tmate/ssh"))
-     :tmate-web (get-backend (str endpoint "/tmate/web"))
-     :ingresses (get-backend (str endpoint "/ingresses"))}))
+  (let [endpoint (str backend-address "/api/instance/kubernetes/"instance-id)
+        urls [[:instance endpoint]
+              [:kubeconfig (str endpoint "/kubeconfig")]
+              [:tmate-ssh (str endpoint "/tmate/ssh")]
+              [:tmate-web (str endpoint "/tmate/web")]
+              [:ingresses (str endpoint "/ingresses")]]
+        futures (doall (map (fn [[name url]] [name (fetch-from-backend url)]) urls))
+        results (doall (map (fn [[name future]] [name (deref future)]) futures))]
+    (into {} results)))
 
 (defn get-sites
   [ingresses]
@@ -100,10 +106,11 @@
              (str "http://"addr))) rules)))
 
 (defn launch
-  [{:keys [username token]} {:keys [project timezone envvars facility type guests fullname email repos] :as params}]
+  [{:keys [username token]} {:keys [name project timezone envvars facility type guests fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
+                       :name name
                        :setup {:user username
                                :guests (if (empty? guests)
                                          [ ]
@@ -136,7 +143,8 @@
 
 (defn get-instance
   [instance-id]
-  (let [{:keys [instance kubeconfig tmate-ssh tmate-web ingresses]} (fetch-instance instance-id)]
+  (let [{:keys [instance kubeconfig tmate-ssh tmate-web ingresses]} (fetch-instance instance-id)
+        created-at (status->created-at (:status instance))]
     {:instance-id (or (-> instance :spec :name) instance-id)
      :owner (-> instance :setup :user)
      :guests (-> instance :setup :guests)
@@ -151,9 +159,8 @@
      :tmate-web (-> tmate-web :spec)
      :ingresses (-> ingresses :spec)
      :sites (get-sites (-> ingresses :spec))
-     :created-at (status->created-at (:status instance))
-     :age (relative-age (status->created-at (:status instance)))
-     :spec (:spec instance)}))
+     :created-at created-at
+     :age (if (nil? created-at) nil (relative-age created-at))}))
 
 (defn get-all-instances
   [{:keys [username admin-member]}]
@@ -178,13 +185,3 @@
   [instance-id]
   (http/delete (str backend-address"/api/instance/kubernetes/"instance-id)))
 
-(comment
-  (def ztel(fetch-instance "zachmandeville-ztel"))
-
-  (:uid (get-instance "zachmandeville-ztel"))
-
-
-  (def insts (-> (http/get (str backend-address"/api/instance/kubernetes"))
-                                :body (json/decode true) :list))
-
- )
