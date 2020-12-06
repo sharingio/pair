@@ -148,7 +148,7 @@
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
-  (if(= "Not ready to fetch tmate session" tmate-web)
+  (if(or (= "Not ready to fetch tmate session" tmate-web) (empty? tmate-ssh))
     [:section#tmate
      [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
@@ -157,17 +157,17 @@
                        :target "_blank"
                        :rel "noreferrer noopener"} "Join Pair"]
      [:aside
-      [:p "Or join via ssh:"
-      [:pre tmate-ssh]]]]))
+      [:p "Join via ssh:"
+      [:pre#tmate-ssh tmate-ssh]]]]))
 
 (defn status
   [{:keys [facility type phase sites]}]
   [:section#status
-   [:h3 "Status: " phase]
-    [:p  type " instance"]
-   [:p "deployed at " facility]
+   [:h3#phase "Status: " phase]
+    [:p#type  type " instance"]
+   [:p#facility "deployed at " facility]
    [:h3 "Sites Available"]
-   [:ul
+   [:ul#sites-available
     (for [site sites]
       [:li [:a {:href site
                 :target "_blank"
@@ -185,7 +185,7 @@
           :target "_blank"
           :rel "noreferrer nofollower"} "Get Public Link"])]
     [:div.info
-     [:em age]
+     [:em#age age]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
