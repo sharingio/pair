@@ -86,9 +86,9 @@ Set env to pass into Helm set commands
     --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
     --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
     --set ingress.enabled=true \
-    --set ingress.hosts[0].host=ii.sharing.io \
+    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
     --set ingress.hosts[0].paths[0]='/' \
-    --set ingress.hosts[1].host=$SHARINGIO_PAIR_HOST \
+    --set ingress.hosts[1].host=ii.sharing.io \
     --set ingress.hosts[1].paths[0]='/' \
     --set ingress.certmanager.enabled=true \
     charts/sharingio-pair
