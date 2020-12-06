@@ -10,6 +10,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// ValidateInstance ...
+// ensure an Instance is valid
 func ValidateInstance(instance InstanceSpec) (err error) {
 	fmt.Println(instance)
 	if instance.Type == "" ||
@@ -52,10 +54,14 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	return err
 }
 
+// Get ...
+// get an instance
 func Get(name string) (err error, instance Instance) {
 	return err, instance
 }
 
+// List ...
+// list all instances
 func List(dynamicClient dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
 	switch options.Filter.Type {
 	case InstanceTypeKubernetes:
@@ -72,6 +78,8 @@ func List(dynamicClient dynamic.Interface, options InstanceListOptions) (err err
 	return err, instances
 }
 
+// Create ...
+// create an instance
 func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	err = ValidateInstance(instance)
 	if err != nil {
@@ -126,10 +134,14 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	return err, instanceCreated
 }
 
+// Update ...
+// update an instance
 func Update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
 	return err, instanceUpdated
 }
 
+// Delete ...
+// delete an instance
 func Delete(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err error) {
 	switch instance.Type {
 	case InstanceTypeKubernetes:

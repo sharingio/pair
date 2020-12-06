@@ -36,6 +36,8 @@ import (
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
 
+// KubernetesCluster ...
+// resources required for Cluster-API to provision a Kubernetes cluster on Packet
 type KubernetesCluster struct {
 	KubeadmControlPlane         clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
 	Cluster                     clusterAPIv1alpha3.Cluster
@@ -46,7 +48,8 @@ type KubernetesCluster struct {
 	PacketMachineTemplateWorker clusterAPIPacketv1alpha3.PacketMachineTemplate
 }
 
-// ExecOptions passed to ExecWithOptions
+// ExecOptions ...
+// passed to ExecWithOptions
 type ExecOptions struct {
 	Command       []string
 	Namespace     string
@@ -60,13 +63,20 @@ type ExecOptions struct {
 	TTY                bool
 }
 
+// Int32ToInt32Pointer ...
+// helper function to make int32 into a pointer
 func Int32ToInt32Pointer(input int32) *int32 {
 	return &input
 }
 
-var defaultMachineOS = "ubuntu_20_04"
-var defaultKubernetesVersion = "1.19.4"
+// misc vars
+var (
+	defaultMachineOS = "ubuntu_20_04"
+	defaultKubernetesVersion = "1.19.4"
+)
 
+// KubernetesGet ...
+// Get a Kubernetes instance
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
@@ -195,6 +205,8 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	return err, instance
 }
 
+// KubernetesList ...
+// list all Kubernetes instances
 func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
 	targetNamespace := common.GetTargetNamespace()
 
@@ -349,6 +361,8 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	return err, instances
 }
 
+// KubernetesCreate ...
+// create a Kubernetes Instance
 func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
@@ -508,10 +522,14 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	return err, instanceCreated
 }
 
+// KubernetesUpdate ...
+// update a Kubernetes instance
 func KubernetesUpdate(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
 	return err, instanceUpdated
 }
 
+// KubernetesDelete ...
+// delete a Kubernetes instance
 func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err error) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
@@ -572,6 +590,8 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	return err
 }
 
+// KubernetesTemplateResources ...
+// given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
@@ -1467,6 +1487,8 @@ EOF
 	return err, newInstance
 }
 
+// KubernetesGetKubeconfigBytes ...
+// given an instance name and clientset, return the instance's kubeconfig as bytes
 func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) (err error, kubeconfigBytes []byte) {
 	targetNamespace := common.GetTargetNamespace()
 	secret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
@@ -1478,6 +1500,8 @@ func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) 
 	return err, kubeconfigBytes
 }
 
+// KubernetesGetKubeconfigYAML ...
+// given an instance name and clientset, return the instance's kubeconfig as YAML
 func KubernetesGetKubeconfigYAML(name string, clientset *kubernetes.Clientset) (err error, kubeconfig string) {
 	err, kubeconfigBytes := KubernetesGetKubeconfigBytes(name, clientset)
 	if err != nil {
@@ -1486,6 +1510,8 @@ func KubernetesGetKubeconfigYAML(name string, clientset *kubernetes.Clientset) (
 	return err, string(kubeconfigBytes)
 }
 
+// KubernetesDynamicGetKubeconfigBytes ...
+// given an instance name and dynamic client, return the instance's kubeconfig as bytes
 func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig []byte) {
 	targetNamespace := common.GetTargetNamespace()
 	groupVersionResource := schema.GroupVersionResource{Version: "v1", Group: "", Resource: "secrets"}
@@ -1504,12 +1530,16 @@ func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynami
 	return err, kubeconfigBytes
 }
 
+// KubernetesGetKubeconfig ...
+// given an instance name and clientset, return a kubeconfig for clientset
 func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (err error, kubeconfig *clientcmdapi.Config) {
 	err, valueBytes := KubernetesGetKubeconfigBytes(name, clientset)
 	kubeconfig, err = clientcmd.Load(valueBytes)
 	return err, kubeconfig
 }
 
+// KubernetesExec ...
+// exec a command in an Instance Kubernetes Pod
 func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, options ExecOptions) (err error, stdout string, stderr string) {
 	req := clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
@@ -1549,6 +1579,8 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 	// https://github.com/kubernetes/kubectl/blob/e65caf964573fbf671c4648032da4b7df7c7eaf0/pkg/cmd/exec/exec.go#L357
 }
 
+// KubernetesGetTmateSSHSession ...
+// given a clienset, instancename, and username, get the tmate SSH session for the Humacs Pod
 func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
 	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
@@ -1587,6 +1619,8 @@ func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName 
 	return err, stdout
 }
 
+// KubernetesGetTmateWebSession ...
+// given a clienset, instancename, and username, get the tmate web session for the Humacs Pod
 func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
 	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
@@ -1625,6 +1659,8 @@ func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName 
 	return err, stdout
 }
 
+// KubernetesGetInstanceIngresses ...
+// given a clienset and instance name, return the Ingresses available on the instance
 func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceName string) (err error, ingresses *networkingv1.IngressList) {
 	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
@@ -1639,6 +1675,8 @@ func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceNam
 	return err, ingresses
 }
 
+// KubernetesClientsetFromKubeconfigBytes ...
+// given an kubeconfig as a slice of bytes return a clientset
 func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, clientset *kubernetes.Clientset) {
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 	if err != nil {
@@ -1648,6 +1686,8 @@ func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, 
 	return err, clientset
 }
 
+// KubernetesWaitForInstanceKubeconfig ...
+// given a local clientset and instance name, wait for the instance kubeconfig to populate locally
 func KubernetesWaitForInstanceKubeconfig(clientset *kubernetes.Clientset, instanceName string) {
 	targetNamespace := common.GetTargetNamespace()
 	kubeconfigName := fmt.Sprintf("%s-kubeconfig", instanceName)
@@ -1665,6 +1705,9 @@ pollInstanceNamespace:
 	}
 }
 
+// KubernetesAddMachineIPToDNS ...
+// given a dynamicClient, instance name, and subdomain,
+// wait for machine IP and upsert the DNS endpoint with the external provider
 func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, subdomain string) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 	var ipAddress string
@@ -1718,6 +1761,8 @@ machineWatchChannel:
 	return err
 }
 
+// KubernetesGetInstanceWildcardTLSCert ...
+// given an instance clientset and instance name, return a TLS wildcard cert
 func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instanceName string) (err error, secret *corev1.Secret) {
 	targetNamespace := "powerdns"
 	templatedSecretName := "letsencrypt-prod"
@@ -1734,6 +1779,8 @@ func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, insta
 	return err, secret
 }
 
+// KubernetesGetLocalInstanceWildcardTLSCert ...
+// given a local clientset and instance name, return the local TLS wildcard cert
 func KubernetesGetLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string) (err error, secret *corev1.Secret) {
 	targetNamespace := common.GetTargetNamespace()
 	templatedSecretName := fmt.Sprintf("%v-tls", username)
@@ -1745,6 +1792,9 @@ func KubernetesGetLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, 
 	return err, secret
 }
 
+// KubernetesUpsertLocalInstanceWildcardTLSCert ...
+// given a local clientset, username, and secret,
+// locally upsert the secret
 func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string, secret *corev1.Secret) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 	templatedSecretName := fmt.Sprintf("%v-tls", username)
@@ -1779,6 +1829,9 @@ func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientse
 	return err
 }
 
+// KubernetesUpsertInstanceWildcardTLSCert ...
+// given an instance clientset, username, and secert,
+// upsert the secret to the instance
 func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string, secret *corev1.Secret) (err error) {
 	targetNamespace := "powerdns"
 	templatedSecretName := "letsencrypt-prod"
@@ -1815,6 +1868,9 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 	return err
 }
 
+// KubernetesAddCertToMachine ...
+// given a clientset, dynamic client, and instance name,
+// manage the lifecycle of a cert on an instance
 func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instanceName string) (err error) {
 	// if cert secret for user name exists locally
 	namespace := "powerdns"

@@ -15,11 +15,15 @@ import (
 	"github.com/sharingio/pair/common"
 )
 
+// Entry ...
+// a basic DNS record
 type Entry struct {
 	Subdomain string   `json:"subdomain"`
 	Values    []string `json:"values"`
 }
 
+// ReverseDomain ...
+// convert domain name into reverse domain name
 func ReverseDomain(name string) (output string) {
 	nameSplit := strings.Split(name, ".")
 	reverseDomainSplit := common.ReverseStringArray(nameSplit)
@@ -27,12 +31,16 @@ func ReverseDomain(name string) (output string) {
 	return reverseDomain
 }
 
+// FormatAsName ...
+// tidy a domain name
 func FormatAsName(name string) (output string) {
 	nameSplit := strings.Split(name, ".")
-	reverseDomain := strings.Join(nameSplit, "-")
-	return reverseDomain
+	output = strings.Join(nameSplit, "-")
+	return output
 }
 
+// UpsertDNSEndpoint ...
+// create or update (if it already exists) a DNS endpoint (managed by external-dns) in the managed zone
 func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instanceName string) (err error) {
 	targetNamespace := common.GetTargetNamespace()
 

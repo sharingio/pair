@@ -6,8 +6,11 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// user agent for Kubernetes APIServer
 var defaultKubeClientUserAgent = "sharingio/pair/cluster-api-manager"
 
+// Client ...
+// return a clientset
 func Client() (err error, clientset *kubernetes.Clientset) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -18,6 +21,8 @@ func Client() (err error, clientset *kubernetes.Clientset) {
 	return err, clientset
 }
 
+// DynamicClient ...
+// return a dynamic client
 func DynamicClient() (err error, clientset dynamic.Interface) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -28,6 +33,8 @@ func DynamicClient() (err error, clientset dynamic.Interface) {
 	return err, clientset
 }
 
+// RestClient ...
+// return a rest client
 func RestClient() (err error, config *rest.Config) {
 	config, err = rest.InClusterConfig()
 	config.UserAgent = defaultKubeClientUserAgent

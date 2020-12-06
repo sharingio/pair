@@ -23,6 +23,8 @@ import (
 	"github.com/sharingio/pair/types"
 )
 
+// GetInstanceKubernetes ...
+// handler for getting a kubernetes instance type
 func GetInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
@@ -66,6 +68,8 @@ func GetInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+// ListInstances ...
+// handler for all instances
 func ListInstances(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all instances"
@@ -105,6 +109,8 @@ func ListInstances(dynamicClient dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+// ListInstancesKubernetes ...
+// handler for listing Kubernetes instances
 func ListInstancesKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all Kubernetes instances"
@@ -142,6 +148,8 @@ func ListInstancesKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+// PostInstance ...
+// handler for creating an instance
 func PostInstance(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
@@ -181,6 +189,8 @@ func PostInstance(dynamicClient dynamic.Interface, clientset *kubernetes.Clients
 	}
 }
 
+// DeleteInstanceKubernetes ...
+// handler for deleting a Kubernetes instance type
 func DeleteInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
@@ -238,6 +248,8 @@ func DeleteInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc 
 	}
 }
 
+// DeleteInstance ...
+// handler for deleting an instance
 func DeleteInstance(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
@@ -271,6 +283,8 @@ func DeleteInstance(dynamicClient dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+// GetKubernetesKubeconfig ...
+// handler for getting an instance's KubeConfig as YAML
 func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Fetched Kubeconfig for instance"
@@ -313,6 +327,8 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 	}
 }
 
+// GetKubernetesTmateSSHSession ...
+// handler for getting an instance's tmate SSH session
 func GetKubernetesTmateSSHSession(clientset *kubernetes.Clientset, restConfig *rest.Config, dynamicClientSet dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Fetched Tmate session for instance"
@@ -372,6 +388,8 @@ func GetKubernetesTmateSSHSession(clientset *kubernetes.Clientset, restConfig *r
 	}
 }
 
+// GetKubernetesTmateWebSession ...
+// handler for getting an instance's tmate web session
 func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *rest.Config, dynamicClientSet dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Fetched Tmate session for instance"
@@ -430,7 +448,8 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}
 }
-
+// GetKubernetesIngresses ...
+// handler for getting an instance's ingresse mappings
 func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Fetched Kubeconfig for instance"
@@ -473,6 +492,8 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 	}
 }
 
+// PostKubernetesDNSManage ...
+// handler for initiating DNS management for an instance
 func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Failed to initiate DNS management"
@@ -520,6 +541,8 @@ func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
 	}
 }
 
+// PostKubernetesCertManage ...
+// handler for initiating certificate management for an instance
 func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Failed to initiate cert management"
@@ -567,8 +590,9 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 	}
 }
 
-func APIroot(w http.ResponseWriter, r *http.Request) {
-	// root of API
+// GetRoot ...
+// get root of API
+func GetRoot(w http.ResponseWriter, r *http.Request) {
 	JSONresp := types.JSONMessageResponse{
 		Metadata: types.JSONResponseMetadata{
 			Response: "Hit root of webserver",
@@ -577,8 +601,9 @@ func APIroot(w http.ResponseWriter, r *http.Request) {
 	common.JSONResponse(r, w, http.StatusOK, JSONresp)
 }
 
+// GetAPIHello ...
+// example request
 func GetAPIHello(w http.ResponseWriter, r *http.Request) {
-	// root of API
 	JSONresp := types.JSONMessageResponse{
 		Metadata: types.JSONResponseMetadata{
 			Response: "hello",
@@ -587,8 +612,9 @@ func GetAPIHello(w http.ResponseWriter, r *http.Request) {
 	common.JSONResponse(r, w, http.StatusOK, JSONresp)
 }
 
+// GetTeapot ...
+// who's a little teapot?
 func GetTeapot(w http.ResponseWriter, r *http.Request) {
-	// root of API
 	JSONresp := types.JSONMessageResponse{
 		Metadata: types.JSONResponseMetadata{
 			Response: "I'm a little teapot",
@@ -597,6 +623,8 @@ func GetTeapot(w http.ResponseWriter, r *http.Request) {
 	common.JSONResponse(r, w, http.StatusTeapot, JSONresp)
 }
 
+// APIUnknownEndpoint ...
+// generic unknown endpoint response
 func APIUnknownEndpoint(w http.ResponseWriter, r *http.Request) {
 	common.JSONResponse(r, w, http.StatusNotFound, types.JSONMessageResponse{
 		Metadata: types.JSONResponseMetadata{

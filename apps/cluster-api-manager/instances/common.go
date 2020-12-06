@@ -10,20 +10,27 @@ import (
 	"github.com/sharingio/pair/common"
 )
 
-const (
+// misc default vars
+var (
 	instanceDefaultNodeSize      = "c1.small.x86"
 	instanceDefaultTimezone      = "Pacific/Auckland"
 	instanceDefaultHumacsVersion = "2020.11.26"
 )
 
+// GetHumacsVersion ...
+// get the version to deploy of the Humacs container
 func GetHumacsVersion() string {
 	return common.GetEnvOrDefault("APP_HUMACS_VERSION", instanceDefaultHumacsVersion)
 }
 
+// GetInstanceDefaultNodeSize ...
+// get the size of node to create
 func GetInstanceDefaultNodeSize() string {
 	return instanceDefaultNodeSize
 }
 
+// GenerateName ...
+// given a username, append a 4 byte string to the end
 func GenerateName(instance InstanceSpec) (name string) {
 	rand.Seed(time.Now().UnixNano())
 	randomString := common.RandomSequence(4)
@@ -33,6 +40,8 @@ func GenerateName(instance InstanceSpec) (name string) {
 	return name
 }
 
+// TemplateFuncMap ...
+// helpers for go templating
 func TemplateFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"add": func(n ...int) (output int) {

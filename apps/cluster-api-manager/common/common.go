@@ -19,6 +19,7 @@ import (
 	"github.com/sharingio/pair/types"
 )
 
+// misc vars
 var (
 	AppBuildVersion = "0.0.0"
 	AppBuildHash    = "???"
@@ -27,6 +28,8 @@ var (
 	letters         = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 )
 
+// GetEnvOrDefault ...
+// return env value or default to value
 func GetEnvOrDefault(envName string, defaultValue string) (output string) {
 	output = os.Getenv(envName)
 	if output == "" {
@@ -35,26 +38,32 @@ func GetEnvOrDefault(envName string, defaultValue string) (output string) {
 	return output
 }
 
+// GetAppPort ...
+// the port to bind to
 func GetAppPort() (output string) {
 	return GetEnvOrDefault("APP_PORT", ":8080")
 }
 
+// GetPacketProjectID ...
+// the project ID to create instances in
 func GetPacketProjectID() (id string) {
 	return GetEnvOrDefault("APP_PACKET_PROJECT_ID", "")
 }
 
+// GetTargetNamespace ...
+// the namespace to write Kubernetes objects to
 func GetTargetNamespace() (namespace string) {
 	return GetEnvOrDefault("APP_TARGET_NAMESPACE", "sharingio-pair-instances")
 }
 
+// GetBaseHost ...
+// the host where the frontend will be served
 func GetBaseHost() (host string) {
 	return GetEnvOrDefault("APP_BASE_HOST", "")
 }
 
-func GetKubernetesSecretName() (secretName string) {
-	return GetEnvOrDefault("APP_KUBERNETES_SECRET_NAME", "")
-}
-
+// Logging ...
+// basic request logging middleware
 func Logging(next http.Handler) http.Handler {
 	// log all requests
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +72,8 @@ func Logging(next http.Handler) http.Handler {
 	})
 }
 
+// JSONResponse ....
+// generic JSON response handler
 func JSONResponse(r *http.Request, w http.ResponseWriter, code int, output types.JSONMessageResponse) {
 	// simpilify sending a JSON response
 	output.Metadata.URL = r.RequestURI
@@ -75,11 +86,15 @@ func JSONResponse(r *http.Request, w http.ResponseWriter, code int, output types
 	w.Write(response)
 }
 
+// EncodeObject ...
+// encode any object as JSON, returning as bytes
 func EncodeObject(obj interface{}) (err error, data []byte) {
 	data, err = json.Marshal(obj)
 	return err, data
 }
 
+// ObjectToUnstructured ...
+// convert an object into an unstructured Kubernetes resource
 func ObjectToUnstructured(obj interface{}) (err error, unstr *unstructured.Unstructured) {
 	err, data := EncodeObject(obj)
 	if err != nil {
@@ -90,6 +105,8 @@ func ObjectToUnstructured(obj interface{}) (err error, unstr *unstructured.Unstr
 	return err, &unstructured.Unstructured{Object: unstrBody}
 }
 
+// AddRepoGitHubPrefix ...
+// add a HTTPS GitHub prefix to a repo link if it's not a valid URL
 func AddRepoGitHubPrefix(repos []string) (reposModified []string) {
 	for _, repo := range repos {
 		if govalidator.IsURL(repo) != true {
@@ -100,6 +117,8 @@ func AddRepoGitHubPrefix(repos []string) (reposModified []string) {
 	return reposModified
 }
 
+// ReverseStringArray ...
+// reverse the array order
 func ReverseStringArray(input []string) []string {
 	output := make([]string, 0, len(input))
 	for i := len(input) - 1; i >= 0; i-- {
@@ -108,6 +127,8 @@ func ReverseStringArray(input []string) []string {
 	return output
 }
 
+// RandomSequence ...
+// generate random string from a set of characters
 func RandomSequence(n int) string {
 	b := make([]rune, n)
 	for i := range b {

@@ -9,6 +9,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+// GetEndpoints ...
+// returns endpoints to register
 func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, restConfig *rest.Config) types.Endpoints {
 	return types.Endpoints{
 		{

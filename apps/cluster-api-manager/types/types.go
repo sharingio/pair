@@ -8,6 +8,8 @@ import (
 	"net/http"
 )
 
+// JSONResponseMetadata ...
+// metadata fields in responses
 type JSONResponseMetadata struct {
 	URL       string `json:"selfLink"`
 	Version   string `json:"version"`
@@ -16,6 +18,8 @@ type JSONResponseMetadata struct {
 	Response  string `json:"response"`
 }
 
+// JSONMessageResponse ...
+// generic JSON response
 type JSONMessageResponse struct {
 	Metadata JSONResponseMetadata `json:"metadata"`
 	Spec     interface{}          `json:"spec,omitempty"`
@@ -23,12 +27,16 @@ type JSONMessageResponse struct {
 	Status   interface{}          `json:"status,omitempty"`
 }
 
+// Endpoints ...
+// endpoint slices
 type Endpoints []struct {
 	EndpointPath string
 	HandlerFunc  http.HandlerFunc
 	HttpMethods  []string
 }
 
+// SetupSpec ...
+// fields for provisioning an instance
 type SetupSpec struct {
 	User             string              `json:"user"`
 	Guests           []string            `json:"guests"`

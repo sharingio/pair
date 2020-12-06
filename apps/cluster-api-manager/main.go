@@ -1,3 +1,22 @@
+// clusterapimanager ...
+// backend for pair
+//
+// Package classification for clusterapimanager.
+//
+//     Schemes: http
+//     Host: localhost
+//     BasePath: /api
+//     Version: 0.0.1
+//     License: Apache 2.0 https://www.apache.org/licenses/LICENSE-2.0.html
+//     Contact: Sharingio Pair <sharingio-pair@ii.coop>
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//
+// swagger:meta
 package main
 
 import (
@@ -12,6 +31,8 @@ import (
 	"github.com/sharingio/pair/routes"
 )
 
+// handleWebserver ...
+// register routes, clients. Service HTTP webserver
 func handleWebserver() {
 	// bring up the API
 	port := common.GetAppPort()
@@ -41,8 +62,8 @@ func handleWebserver() {
 	}
 
 	router.HandleFunc(apiEndpointPrefix+"/{.*}", routes.APIUnknownEndpoint)
-	router.HandleFunc(apiEndpointPrefix, routes.APIroot)
-	router.HandleFunc("/", routes.APIroot)
+	router.HandleFunc(apiEndpointPrefix, routes.GetRoot)
+	router.HandleFunc("/", routes.GetRoot)
 	router.Use(common.Logging)
 
 	c := cors.New(cors.Options{
