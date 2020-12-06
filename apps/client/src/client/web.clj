@@ -45,6 +45,17 @@
            (views/instance instance user)
            (res/redirect "/instances"))))
 
+  (GET "/instances/id/:id/status" {uri :uri
+                            {:keys [user instance] :as session} :session}
+       (let [{:keys [username admin-member]} user
+             {:keys [owner guests]} instance
+             owner-or-guest (some #{username} (conj guests owner))]
+         (if (or admin-member owner-or-guest)
+           {:status 200
+            :headers {"Content-Type" "application/json"}
+            :body (json/encode instance)}
+           (res/redirect "/instances"))))
+
   (GET "/instances/id/:id/delete" {{:keys [user instance]} :session}
        (views/delete-instance instance user))
 

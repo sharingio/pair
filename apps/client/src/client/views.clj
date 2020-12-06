@@ -33,7 +33,7 @@
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
-    (when refresh? [:meta {:http-equiv "refresh" :content "15"}])
+    (when refresh? [:noscript [:meta {:http-equiv "refresh" :content "15"}]])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
     [:link {:rel "stylesheet"
@@ -210,7 +210,8 @@
        "Delete Instance"]
        [:h3 "SOS ssh:"]
        [:pre (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
-       ])]]
+       ])]
+    [:script {:src "/status.js"}]]
    user true))
 
 (defn delete-instance
