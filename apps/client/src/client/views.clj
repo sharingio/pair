@@ -12,7 +12,7 @@
 
 (defn header
   [{:keys [avatar username permitted-member] :as user}]
-  (if user
+  (if (and user (not (= username "guest")))
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
@@ -23,16 +23,17 @@
       [:p [:img {:width "50px" :src avatar :alt (str "avatar icon for "username)}]
        [:a.logout {:href "/logout"} "logout"]]]]
   [:header#top
-   [:h1 [:a.home {:href "/"} "sharing.io"]]
+   [:h1 [:a.home {:href "/"} "sharing.io"]
+    (when (= "guest" username)[:sup "public link"])]
    [:nav
-    [:a {:href login-url} "login with github"]]]))
+    (when (nil? user) [:a {:href login-url} "login with github"])]]))
 
 (defn layout
   [body user &[refresh?]]
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
-    (when refresh? [:meta {:http-equiv "refresh" :content "10"}])
+    (when refresh? [:meta {:http-equiv "refresh" :content "15"}])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
     [:link {:rel "stylesheet"
@@ -49,7 +50,7 @@
   (layout
    [:main#splash
     [:section#cta
-     [:p.tagline "Sharing is Pairing!!"]
+     [:p.tagline "Sharing is Pairing"]
      (if permitted-member
      [:div
       [:a {:href "/instances/new"} "New"]
@@ -60,7 +61,7 @@
    user))
 
 (defn new-box-form
-  [{:keys [fullname email username]}]
+  [{:keys [fullname email username admin-member]}]
   (form/form-to {:id "new-box"}
    [:post "/instances/new"]
    (util/anti-forgery-field)
@@ -76,6 +77,10 @@
    [:input {:type :hidden
             :name "email"
             :value email}]
+   [:input {:type :hidden
+            :id "timezone"
+            :name "timezone"
+            :value "Pacific/Auckland"}]
    [:div.form-group
    [:label {:for "repos"} "Repos to include"]
    [:input {:type :text
@@ -102,6 +107,13 @@
                 :id "envvars"
                 :placeholder "PAIR=sharing\nSHARE=pairing"}]
     [:p.helper "Add env vars as KEY=value, with each new variable on its own line."]]
+   (when admin-member
+     [:div.form-group
+      [:label {:form "name"} "Custom Name for Instance"]
+      [:input {:name "name"
+                  :id "name"
+                  :placeholder "coolbox-123"}]
+      [:p.helper "You can set a custom name for your box, which will be used in dns."]])
    [:input {:type :submit :value "launch"}]))
 
 (defn new
@@ -110,14 +122,24 @@
    [:main
     [:header
      [:h2 "Create a new Pairing Box"]]
-    (new-box-form user)]
+    (new-box-form user)
+    ;; This will set the timezone field to the timezone of the client browser.  If js disabled, timezone is Pacific/Auckland
+    [:script "document.querySelector('input#timezone').value=(new Intl.DateTimeFormat).resolvedOptions().timeZone;"]]
    user))
 
 (defn kubeconfig-box
-  [kubeconfig]
+  [{:keys [kubeconfig uid instance-id]}]
   (if kubeconfig
     [:section#kubeconfig
-    [:h3 "Kubeconfig available"]
+     [:h3 "Kubeconfig available "]
+     [:a {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
+                                       :download (str instance-id"-kubeconfig")} "download"]
+     [:p "you can attach to the cluster immediately with this command"
+      [:pre
+       (str
+        "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
+        "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > $KUBECONFIG"
+        " ; kubectl api-resources")]]
   [:details
    [:summary "See Full Kubeconfig"]
    [:pre kubeconfig]]]
@@ -153,13 +175,17 @@
 
 
 (defn instance
-  [{:keys [guests repos] :as instance} {:keys [username admin-member] :as user}]
-  (println "REPO" repos)
+  [{:keys [guests uid instance-id repos timezone created-at age] :as instance} {:keys [username admin-member] :as user}]
   (layout
    [:main#instance
    [:header
-    [:h2 "Status for "(:instance-id instance)]
+    [:h2 "Status for "instance-id
+     (when (not (= "guest" username))
+     [:a.btn.action {:href (str "/public-instances/"uid"/"instance-id)
+          :target "_blank"
+          :rel "noreferrer nofollower"} "Get Public Link"])]
     [:div.info
+     [:em age]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
@@ -177,10 +203,14 @@
     [:article
     (tmate instance)
      (status instance)
-    (kubeconfig-box (:kubeconfig instance))
+    (kubeconfig-box instance)
     (when (or (= (:owner instance) username) admin-member)
+      [:section.admin-actions
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
-       "Delete Instance"])]]
+       "Delete Instance"]
+       [:h3 "SOS ssh:"]
+       [:pre (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
+       ])]]
    user true))
 
 (defn delete-instance
@@ -202,6 +232,13 @@
                             :value (str "Delete " instance-id)}])]]
    user))
 
+(defn instance-li
+  "used in all instances page, short list of info about instance!"
+  [{:keys [instance-id phase age]}]
+  [:li.instance [:a {:href (str "/instances/id/"instance-id)}
+        instance-id] [:em.phase phase]
+   [:p.age age]])
+
 
 (defn all-instances
   [instances {:keys [username admin-member] :as user}]
@@ -212,24 +249,22 @@
       [:header
        [:h2 "Your Instances"]]
       [:article
+       (when owner
       [:section#owner
        [:h3 "Created by You"]
        [:ul
         (for [instance owner]
-          [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-           (:instance-id instance)] [:em (:phase instance)]])]]
+          (instance-li instance))]])
       (when guest
       [:section#guest
        [:h3 "Shared with You"]
        [:ul
        (for [instance guest]
-         [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-               (:instance-id instance)] [:em (:phase instance)]])]])
+         (instance-li instance))]])
        (when (and admin-member other)
          [:section#admin
           [:h3 "All Other Instances"]
           [:ul
            (for [instance other]
-             [:li [:a {:href (str "/instances/id/"(:instance-id instance))}
-                   (:instance-id instance)] [:em (:phase instance)]])]])]]
+             (instance-li instance))]])]]
      user)))

@@ -2,6 +2,7 @@
   (:require
    [clojure.spec.alpha :as s]
    [clojure.spec.test.alpha :as test]
+   [java-time :as time]
    [com.gfredericks.test.chuck :as chuck]
    [com.gfredericks.test.chuck.generators :as gen']))
 
@@ -58,3 +59,6 @@
 (s/def ::profile string?)
 
 (s/def ::user (s/keys :req-un [::username ::fullname ::email ::permitted-member ::avatar ::profile ::admin-member]))
+
+;; TODO: proper spec for 2020-11-30T21:32:44Z
+(s/def :cluster/timestamp string?)
