@@ -15,16 +15,13 @@ function updateTmate (instance) {
         tmateSection.classList.remove('hidden');
         ssh.textContent = instance['tmate-ssh'];
         web.href = instance["tmate-web"];
-    } else {
-        console.log('no data for tmate!!!');
-        console.log({instance});
     }
 };
 
 function updateInstanceInfo (instance) {
-    let phase = document.querySelector('h3#phase');
-    let type = document.querySelector('p#type');
-    let facility = document.querySelector('p#facility');
+    const phase = document.querySelector('h3#phase');
+    const type = document.querySelector('p#type');
+    const facility = document.querySelector('p#facility');
     if (instance.phase) {
         phase.textContent = `Status: ${instance.phase}`;
     } else {
@@ -46,15 +43,14 @@ function updateInstanceInfo (instance) {
 
 function updateSitesAvailable (instance) {
     const sitesList = document.querySelector('ul#sites-available');
-    let sites = instance.sites;
+    const sites = instance.sites;
     if (sites.count > 0) {
-        console.log({ sites });
         while (sitesList.firstChild) {
             sitesList.removeChild(sitesList.firstChild);
         }
         sites.forEach(s => {
             const site = document.createElement('li');
-            site.innerHTML = `<a href="${s}">${s}</a>`
+            site.innerHTML = `<a href="${s}">${s}</a>`;
             sitesList.appendChild(site);
         });
     }
@@ -62,7 +58,6 @@ function updateSitesAvailable (instance) {
 
 function updateSOS (instance) {
     const sos = document.querySelector('pre#sos-ssh');
-    console.log({instance});
     if (instance.facility && instance.uid) {
         sos.textContent = `ssh ${instance.uid}@sos.${instance.facility}.platformequinix.com`;
     }
@@ -81,7 +76,7 @@ function updateKubeconfig (instance) {
 };
 
 function updatePublicLink (instance) {
-    let link = document.querySelector('a#public-link');
+    const link = document.querySelector('a#public-link');
     if (instance.uid) {
         const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}`
         link.href=publicLink;
@@ -101,7 +96,7 @@ function updateElements (instance) {
 
 function updateStatus () {
     if (!document.hidden) {// only do this if site is active tab
-        let instance = window.location.href;
+        const instance = window.location.href;
         fetch(`${instance}/status`)
             .then(res => res.json())
             .then(data => updateElements(data));
