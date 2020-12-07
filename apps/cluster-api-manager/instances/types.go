@@ -4,15 +4,18 @@ import (
 	"github.com/sharingio/pair/types"
 
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
 
 // Instance ...
 // generic instance
+// swagger:response instance
 type Instance struct {
-	Spec   InstanceSpec   `json:"spec"`
-	Status InstanceStatus `json:"status"`
+	Metadata types.JSONResponseMetadata `json:"metadata"`
+	Spec     InstanceSpec               `json:"spec"`
+	Status   InstanceStatus             `json:"status"`
 }
 
 // InstanceSpec ...
@@ -40,6 +43,38 @@ type InstanceResourceStatus struct {
 type InstanceStatus struct {
 	Phase     InstanceStatusPhase    `json:"phase"`
 	Resources InstanceResourceStatus `json:"resources"`
+}
+
+// InstanceList ...
+// generic instance list
+// swagger:response instanceList
+type InstanceList struct {
+	Metadata types.JSONResponseMetadata `json:"metadata"`
+	List     []InstanceSpec             `json:"list"`
+}
+
+// InstanceIngressList ...
+// instance ingress list
+// swagger:response instanceIngresses
+type InstanceIngressList struct {
+	Metadata types.JSONResponseMetadata `json:"metadata"`
+	// TODO why does this line uncommented cause go-swagger to not work?
+	// List     []networkingv1.Ingress     `json:"list"`
+}
+
+// InstanceInitiateTask ...
+// response for task initated
+// swagger:response instanceInitiated
+type InstanceInitiateTask struct {
+	Metadata types.JSONResponseMetadata `json:"metadata"`
+}
+
+// InstanceKubeconfig ...
+// kubeconfig response
+// swagger:response instanceData
+type InstanceKubeconfig struct {
+	Metadata types.JSONResponseMetadata `json:"metadata"`
+	Spec     string                     `json:"spec"`
 }
 
 // InstanceStatusPhase ...

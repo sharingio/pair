@@ -1,0 +1,1244 @@
+{
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "schemes": [
+    "http"
+  ],
+  "swagger": "2.0",
+  "info": {
+    "description": "Package classification for clusterapimanager.",
+    "title": "clusterapimanager ...\nbackend for pair",
+    "contact": {
+      "name": "Sharingio Pair",
+      "email": "sharingio-pair@ii.coop"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "version": "0.0.1"
+  },
+  "host": "localhost",
+  "basePath": "/api",
+  "paths": {
+    "/hello": {
+      "get": {
+        "description": "Say hello",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "hello"
+        ],
+        "operationId": "getHello",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/helloResponse"
+          }
+        }
+      }
+    },
+    "/instance": {
+      "get": {
+        "description": "List all instances",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "listInstances",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceList"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      },
+      "post": {
+        "description": "creates an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "postInstance",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instance"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      },
+      "delete": {
+        "description": "delete an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "deleteInstance",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instance"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes": {
+      "get": {
+        "description": "List all Kubernetes instances",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "listInstancesKubernetes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceList"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}": {
+      "get": {
+        "description": "get a Kubernetes instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instance"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      },
+      "delete": {
+        "description": "delete a Kubernetes instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "deleteInstanceKubernetes",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instance"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/certmanage": {
+      "post": {
+        "description": "initiate certificate management for an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesCertmanage",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceInitiated"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/dnsmanage": {
+      "post": {
+        "description": "initiate DNS management for an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesDNSmanage",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceInitiated"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/ingresses": {
+      "get": {
+        "description": "get available ingresses for a Kubernetes instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesIngresses",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceIngresses"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/kubeconfig": {
+      "get": {
+        "description": "get a kubeconfig for a Kubernetes instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesKubeconfig",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceData"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/tmate": {
+      "get": {
+        "description": "get a tmate SSH sesion for an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesTmate",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceData"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/tmate/ssh": {
+      "get": {
+        "description": "get a tmate SSH sesion for an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesTmateSSH",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceData"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/instance/kubernetes/{name}/tmate/web": {
+      "get": {
+        "description": "get a tmate web sesion for an instance",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "instance"
+        ],
+        "operationId": "getInstanceKubernetesTmateWeb",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/instanceData"
+          },
+          "500": {
+            "$ref": "#/responses/failure"
+          }
+        }
+      }
+    },
+    "/teapot": {
+      "get": {
+        "description": "I'm a little teapot",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "http"
+        ],
+        "tags": [
+          "teapot"
+        ],
+        "operationId": "getTeapot",
+        "responses": {
+          "418": {
+            "$ref": "#/responses/helloResponse"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ClusterStatus": {
+      "description": "ClusterStatus defines the observed state of Cluster",
+      "type": "object",
+      "properties": {
+        "conditions": {
+          "$ref": "#/definitions/Conditions"
+        },
+        "controlPlaneInitialized": {
+          "description": "ControlPlaneInitialized defines if the control plane has been initialized.\n+optional",
+          "type": "boolean",
+          "x-go-name": "ControlPlaneInitialized"
+        },
+        "controlPlaneReady": {
+          "description": "ControlPlaneReady defines if the control plane is ready.\n+optional",
+          "type": "boolean",
+          "x-go-name": "ControlPlaneReady"
+        },
+        "failureDomains": {
+          "$ref": "#/definitions/FailureDomains"
+        },
+        "failureMessage": {
+          "description": "FailureMessage indicates that there is a fatal problem reconciling the\nstate, and will be set to a descriptive error message.\n+optional",
+          "type": "string",
+          "x-go-name": "FailureMessage"
+        },
+        "failureReason": {
+          "$ref": "#/definitions/ClusterStatusError"
+        },
+        "infrastructureReady": {
+          "description": "InfrastructureReady is the state of the infrastructure provider.\n+optional",
+          "type": "boolean",
+          "x-go-name": "InfrastructureReady"
+        },
+        "observedGeneration": {
+          "description": "ObservedGeneration is the latest generation observed by the controller.\n+optional",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ObservedGeneration"
+        },
+        "phase": {
+          "description": "Phase represents the current phase of cluster actuation.\nE.g. Pending, Running, Terminating, Failed etc.\n+optional",
+          "type": "string",
+          "x-go-name": "Phase"
+        }
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "ClusterStatusError": {
+      "type": "string",
+      "x-go-package": "sigs.k8s.io/cluster-api/errors"
+    },
+    "Condition": {
+      "type": "object",
+      "title": "Condition defines an observation of a Cluster API resource operational state.",
+      "properties": {
+        "lastTransitionTime": {
+          "$ref": "#/definitions/Time"
+        },
+        "message": {
+          "description": "A human readable message indicating details about the transition.\nThis field may be empty.\n+optional",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "reason": {
+          "description": "The reason for the condition's last transition in CamelCase.\nThe specific API may choose whether or not this field is considered a guaranteed API.\nThis field may not be empty.\n+optional",
+          "type": "string",
+          "x-go-name": "Reason"
+        },
+        "severity": {
+          "$ref": "#/definitions/ConditionSeverity"
+        },
+        "status": {
+          "$ref": "#/definitions/ConditionStatus"
+        },
+        "type": {
+          "$ref": "#/definitions/ConditionType"
+        }
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "ConditionSeverity": {
+      "type": "string",
+      "title": "ConditionSeverity expresses the severity of a Condition Type failing.",
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "ConditionStatus": {
+      "type": "string",
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "ConditionType": {
+      "type": "string",
+      "title": "ConditionType is a valid value for Condition.Type.",
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "Conditions": {
+      "type": "array",
+      "title": "Conditions provide observations of the operational state of a Cluster API resource.",
+      "items": {
+        "$ref": "#/definitions/Condition"
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "ContainerState": {
+      "description": "Only one of its members may be specified.\nIf none of them is specified, the default one is ContainerStateWaiting.",
+      "type": "object",
+      "title": "ContainerState holds a possible state of container.",
+      "properties": {
+        "running": {
+          "$ref": "#/definitions/ContainerStateRunning"
+        },
+        "terminated": {
+          "$ref": "#/definitions/ContainerStateTerminated"
+        },
+        "waiting": {
+          "$ref": "#/definitions/ContainerStateWaiting"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "ContainerStateRunning": {
+      "type": "object",
+      "title": "ContainerStateRunning is a running state of a container.",
+      "properties": {
+        "startedAt": {
+          "$ref": "#/definitions/Time"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "ContainerStateTerminated": {
+      "type": "object",
+      "title": "ContainerStateTerminated is a terminated state of a container.",
+      "properties": {
+        "containerID": {
+          "description": "Container's ID in the format 'docker://\u003ccontainer_id\u003e'\n+optional",
+          "type": "string",
+          "x-go-name": "ContainerID"
+        },
+        "exitCode": {
+          "description": "Exit status from the last termination of the container",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "ExitCode"
+        },
+        "finishedAt": {
+          "$ref": "#/definitions/Time"
+        },
+        "message": {
+          "description": "Message regarding the last termination of the container\n+optional",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "reason": {
+          "description": "(brief) reason from the last termination of the container\n+optional",
+          "type": "string",
+          "x-go-name": "Reason"
+        },
+        "signal": {
+          "description": "Signal from the last termination of the container\n+optional",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Signal"
+        },
+        "startedAt": {
+          "$ref": "#/definitions/Time"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "ContainerStateWaiting": {
+      "type": "object",
+      "title": "ContainerStateWaiting is a waiting state of a container.",
+      "properties": {
+        "message": {
+          "description": "Message regarding why the container is not yet running.\n+optional",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "reason": {
+          "description": "(brief) reason the container is not yet running.\n+optional",
+          "type": "string",
+          "x-go-name": "Reason"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "ContainerStatus": {
+      "type": "object",
+      "title": "ContainerStatus contains details for the current status of this container.",
+      "properties": {
+        "containerID": {
+          "description": "Container's ID in the format 'docker://\u003ccontainer_id\u003e'.\n+optional",
+          "type": "string",
+          "x-go-name": "ContainerID"
+        },
+        "image": {
+          "description": "The image the container is running.\nMore info: https://kubernetes.io/docs/concepts/containers/images\nTODO(dchen1107): Which image the container is running with?",
+          "type": "string",
+          "x-go-name": "Image"
+        },
+        "imageID": {
+          "description": "ImageID of the container's image.",
+          "type": "string",
+          "x-go-name": "ImageID"
+        },
+        "lastState": {
+          "$ref": "#/definitions/ContainerState"
+        },
+        "name": {
+          "description": "This must be a DNS_LABEL. Each container in a pod must have a unique name.\nCannot be updated.",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "ready": {
+          "description": "Specifies whether the container has passed its readiness probe.",
+          "type": "boolean",
+          "x-go-name": "Ready"
+        },
+        "restartCount": {
+          "description": "The number of times the container has been restarted, currently based on\nthe number of dead containers that have not yet been removed.\nNote that this is calculated from dead containers. But those containers are subject to\ngarbage collection. This value will get capped at 5 by GC.",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "RestartCount"
+        },
+        "started": {
+          "description": "Specifies whether the container has passed its startup probe.\nInitialized as false, becomes true after startupProbe is considered successful.\nResets to false when the container is restarted, or if kubelet loses state temporarily.\nIs always true when no startupProbe is defined.\n+optional",
+          "type": "boolean",
+          "x-go-name": "Started"
+        },
+        "state": {
+          "$ref": "#/definitions/ContainerState"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "FailureDomainSpec": {
+      "description": "It allows controllers to understand how many failure domains a cluster can optionally span across.",
+      "type": "object",
+      "title": "FailureDomainSpec is the Schema for Cluster API failure domains.",
+      "properties": {
+        "attributes": {
+          "description": "Attributes is a free form map of attributes an infrastructure provider might use or require.\n+optional",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-go-name": "Attributes"
+        },
+        "controlPlane": {
+          "description": "ControlPlane determines if this failure domain is suitable for use by control plane machines.\n+optional",
+          "type": "boolean",
+          "x-go-name": "ControlPlane"
+        }
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "FailureDomains": {
+      "type": "object",
+      "title": "FailureDomains is a slice of FailureDomains.",
+      "additionalProperties": {
+        "$ref": "#/definitions/FailureDomainSpec"
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "InstanceResourceStatus": {
+      "description": "various status fields for an instance",
+      "type": "object",
+      "title": "InstanceResourceStatus ...",
+      "properties": {
+        "Cluster": {
+          "$ref": "#/definitions/ClusterStatus"
+        },
+        "HumacsPod": {
+          "$ref": "#/definitions/PodStatus"
+        },
+        "KubeadmControlPlane": {
+          "$ref": "#/definitions/KubeadmControlPlaneStatus"
+        },
+        "MachineStatus": {
+          "$ref": "#/definitions/MachineStatus"
+        },
+        "PacketMachineUID": {
+          "type": "string"
+        }
+      },
+      "x-go-package": "github.com/sharingio/pair/instances"
+    },
+    "InstanceSpec": {
+      "description": "specification for an instance",
+      "type": "object",
+      "title": "InstanceSpec ...",
+      "properties": {
+        "facility": {
+          "type": "string",
+          "x-go-name": "Facility"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "nodeSize": {
+          "type": "string",
+          "x-go-name": "NodeSize"
+        },
+        "setup": {
+          "$ref": "#/definitions/SetupSpec"
+        },
+        "type": {
+          "$ref": "#/definitions/InstanceType"
+        }
+      },
+      "x-go-package": "github.com/sharingio/pair/instances"
+    },
+    "InstanceStatus": {
+      "description": "status fields",
+      "type": "object",
+      "title": "InstanceStatus ...",
+      "properties": {
+        "phase": {
+          "$ref": "#/definitions/InstanceStatusPhase"
+        },
+        "resources": {
+          "$ref": "#/definitions/InstanceResourceStatus"
+        }
+      },
+      "x-go-package": "github.com/sharingio/pair/instances"
+    },
+    "InstanceStatusPhase": {
+      "description": "Instance phase status definitions",
+      "type": "string",
+      "title": "InstanceStatusPhase ...",
+      "x-go-package": "github.com/sharingio/pair/instances"
+    },
+    "InstanceType": {
+      "description": "types of valid instances",
+      "type": "string",
+      "title": "InstanceType ...",
+      "x-go-package": "github.com/sharingio/pair/instances"
+    },
+    "JSONResponseMetadata": {
+      "description": "metadata fields in responses",
+      "type": "object",
+      "title": "JSONResponseMetadata ...",
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "x-go-name": "RequestId"
+        },
+        "response": {
+          "type": "string",
+          "x-go-name": "Response"
+        },
+        "selfLink": {
+          "type": "string",
+          "x-go-name": "URL"
+        },
+        "timestamp": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Timestamp"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "github.com/sharingio/pair/types"
+    },
+    "KubeadmControlPlaneStatus": {
+      "type": "object",
+      "title": "KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.",
+      "properties": {
+        "conditions": {
+          "$ref": "#/definitions/Conditions"
+        },
+        "failureMessage": {
+          "description": "ErrorMessage indicates that there is a terminal problem reconciling the\nstate, and will be set to a descriptive error message.\n+optional",
+          "type": "string",
+          "x-go-name": "FailureMessage"
+        },
+        "failureReason": {
+          "$ref": "#/definitions/KubeadmControlPlaneStatusError"
+        },
+        "initialized": {
+          "description": "Initialized denotes whether or not the control plane has the\nuploaded kubeadm-config configmap.\n+optional",
+          "type": "boolean",
+          "x-go-name": "Initialized"
+        },
+        "observedGeneration": {
+          "description": "ObservedGeneration is the latest generation observed by the controller.\n+optional",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ObservedGeneration"
+        },
+        "ready": {
+          "description": "Ready denotes that the KubeadmControlPlane API Server is ready to\nreceive requests.\n+optional",
+          "type": "boolean",
+          "x-go-name": "Ready"
+        },
+        "readyReplicas": {
+          "description": "Total number of fully running and ready control plane machines.\n+optional",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "ReadyReplicas"
+        },
+        "replicas": {
+          "description": "Total number of non-terminated machines targeted by this control plane\n(their labels match the selector).\n+optional",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "Replicas"
+        },
+        "selector": {
+          "description": "Selector is the label selector in string format to avoid introspection\nby clients, and is used to provide the CRD-based integration for the\nscale subresource and additional integrations for things like kubectl\ndescribe.. The string will be in the same format as the query-param syntax.\nMore info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors\n+optional",
+          "type": "string",
+          "x-go-name": "Selector"
+        },
+        "unavailableReplicas": {
+          "description": "Total number of unavailable machines targeted by this control plane.\nThis is the total number of machines that are still required for\nthe deployment to have 100% available capacity. They may either\nbe machines that are running but not yet ready or machines\nthat still have not been created.\n+optional",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "UnavailableReplicas"
+        },
+        "updatedReplicas": {
+          "description": "Total number of non-terminated machines targeted by this control plane\nthat have the desired template spec.\n+optional",
+          "type": "integer",
+          "format": "int32",
+          "x-go-name": "UpdatedReplicas"
+        }
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+    },
+    "KubeadmControlPlaneStatusError": {
+      "type": "string",
+      "x-go-package": "sigs.k8s.io/cluster-api/errors"
+    },
+    "MachineAddress": {
+      "type": "object",
+      "title": "MachineAddress contains information for the node's address.",
+      "properties": {
+        "address": {
+          "description": "The machine address.",
+          "type": "string",
+          "x-go-name": "Address"
+        },
+        "type": {
+          "$ref": "#/definitions/MachineAddressType"
+        }
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "MachineAddressType": {
+      "type": "string",
+      "title": "MachineAddressType describes a valid MachineAddress type.",
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "MachineAddresses": {
+      "type": "array",
+      "title": "MachineAddresses is a slice of MachineAddress items to be used by infrastructure providers.",
+      "items": {
+        "$ref": "#/definitions/MachineAddress"
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "MachineStatus": {
+      "description": "MachineStatus defines the observed state of Machine",
+      "type": "object",
+      "properties": {
+        "addresses": {
+          "$ref": "#/definitions/MachineAddresses"
+        },
+        "bootstrapReady": {
+          "description": "BootstrapReady is the state of the bootstrap provider.\n+optional",
+          "type": "boolean",
+          "x-go-name": "BootstrapReady"
+        },
+        "conditions": {
+          "$ref": "#/definitions/Conditions"
+        },
+        "failureMessage": {
+          "description": "FailureMessage will be set in the event that there is a terminal problem\nreconciling the Machine and will contain a more verbose string suitable\nfor logging and human consumption.\n\nThis field should not be set for transitive errors that a controller\nfaces that are expected to be fixed automatically over\ntime (like service outages), but instead indicate that something is\nfundamentally wrong with the Machine's spec or the configuration of\nthe controller, and that manual intervention is required. Examples\nof terminal errors would be invalid combinations of settings in the\nspec, values that are unsupported by the controller, or the\nresponsible controller itself being critically misconfigured.\n\nAny transient errors that occur during the reconciliation of Machines\ncan be added as events to the Machine object and/or logged in the\ncontroller's output.\n+optional",
+          "type": "string",
+          "x-go-name": "FailureMessage"
+        },
+        "failureReason": {
+          "$ref": "#/definitions/MachineStatusError"
+        },
+        "infrastructureReady": {
+          "description": "InfrastructureReady is the state of the infrastructure provider.\n+optional",
+          "type": "boolean",
+          "x-go-name": "InfrastructureReady"
+        },
+        "lastUpdated": {
+          "$ref": "#/definitions/Time"
+        },
+        "nodeRef": {
+          "$ref": "#/definitions/ObjectReference"
+        },
+        "observedGeneration": {
+          "description": "ObservedGeneration is the latest generation observed by the controller.\n+optional",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ObservedGeneration"
+        },
+        "phase": {
+          "description": "Phase represents the current phase of machine actuation.\nE.g. Pending, Running, Terminating, Failed etc.\n+optional",
+          "type": "string",
+          "x-go-name": "Phase"
+        },
+        "version": {
+          "description": "Version specifies the current version of Kubernetes running\non the corresponding Node. This is meant to be a means of bubbling\nup status from the Node to the Machine.\nIt is entirely optional, but useful for end-user UX if it’s present.\n+optional",
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "sigs.k8s.io/cluster-api/api/v1alpha3"
+    },
+    "MachineStatusError": {
+      "description": "Instead share the same constant for all versioned packages",
+      "type": "string",
+      "title": "Constants aren't automatically generated for unversioned packages.",
+      "x-go-package": "sigs.k8s.io/cluster-api/errors"
+    },
+    "ObjectReference": {
+      "description": "New uses of this type are discouraged because of difficulty describing its usage when embedded in APIs.\n1. Ignored fields.  It includes many fields which are not generally honored.  For instance, ResourceVersion and FieldPath are both very rarely valid in actual usage.\n2. Invalid usage help.  It is impossible to add specific help for individual usage.  In most embedded usages, there are particular\nrestrictions like, \"must refer only to types A and B\" or \"UID not honored\" or \"name must be restricted\".\nThose cannot be well described when embedded.\n3. Inconsistent validation.  Because the usages are different, the validation rules are different by usage, which makes it hard for users to predict what will happen.\n4. The fields are both imprecise and overly precise.  Kind is not a precise mapping to a URL. This can produce ambiguity\nduring interpretation and require a REST mapping.  In most cases, the dependency is on the group,resource tuple\nand the version of the actual struct is irrelevant.\n5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type\nwill affect numerous schemas.  Don't make new APIs embed an underspecified API type they do not control.\nInstead of using this type, create a locally provided and used type that is well-focused on your reference.\nFor example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .\n+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object",
+      "type": "object",
+      "title": "ObjectReference contains enough information to let you inspect or modify the referred object.",
+      "properties": {
+        "apiVersion": {
+          "description": "API version of the referent.\n+optional",
+          "type": "string",
+          "x-go-name": "APIVersion"
+        },
+        "fieldPath": {
+          "description": "If referring to a piece of an object instead of an entire object, this string\nshould contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].\nFor example, if the object reference is to a container within a pod, this would take on a value like:\n\"spec.containers{name}\" (where \"name\" refers to the name of the container that triggered\nthe event) or if no container name is specified \"spec.containers[2]\" (container with\nindex 2 in this pod). This syntax is chosen only to have some well-defined way of\nreferencing a part of an object.\nTODO: this design is not final and this field is subject to change in the future.\n+optional",
+          "type": "string",
+          "x-go-name": "FieldPath"
+        },
+        "kind": {
+          "description": "Kind of the referent.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds\n+optional",
+          "type": "string",
+          "x-go-name": "Kind"
+        },
+        "name": {
+          "description": "Name of the referent.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names\n+optional",
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "namespace": {
+          "description": "Namespace of the referent.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/\n+optional",
+          "type": "string",
+          "x-go-name": "Namespace"
+        },
+        "resourceVersion": {
+          "description": "Specific resourceVersion to which this reference is made, if any.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency\n+optional",
+          "type": "string",
+          "x-go-name": "ResourceVersion"
+        },
+        "uid": {
+          "$ref": "#/definitions/UID"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "PodCondition": {
+      "type": "object",
+      "title": "PodCondition contains details for the current condition of this pod.",
+      "properties": {
+        "lastProbeTime": {
+          "$ref": "#/definitions/Time"
+        },
+        "lastTransitionTime": {
+          "$ref": "#/definitions/Time"
+        },
+        "message": {
+          "description": "Human-readable message indicating details about last transition.\n+optional",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "reason": {
+          "description": "Unique, one-word, CamelCase reason for the condition's last transition.\n+optional",
+          "type": "string",
+          "x-go-name": "Reason"
+        },
+        "status": {
+          "$ref": "#/definitions/ConditionStatus"
+        },
+        "type": {
+          "$ref": "#/definitions/PodConditionType"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "PodConditionType": {
+      "description": "PodConditionType is a valid value for PodCondition.Type",
+      "type": "string",
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "PodIP": {
+      "description": "Each entry includes:\nIP: An IP address allocated to the pod. Routable at least within the cluster.",
+      "type": "object",
+      "title": "IP address information for entries in the (plural) PodIPs field.",
+      "properties": {
+        "ip": {
+          "description": "ip is an IP address (IPv4 or IPv6) assigned to the pod",
+          "type": "string",
+          "x-go-name": "IP"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "PodPhase": {
+      "type": "string",
+      "title": "PodPhase is a label for the condition of a pod at the current time.",
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "PodQOSClass": {
+      "type": "string",
+      "title": "PodQOSClass defines the supported qos classes of Pods.",
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "PodStatus": {
+      "description": "PodStatus represents information about the status of a pod. Status may trail the actual\nstate of a system, especially if the node that hosts the pod cannot contact the control\nplane.",
+      "type": "object",
+      "properties": {
+        "conditions": {
+          "description": "Current service state of pod.\nMore info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions\n+optional\n+patchMergeKey=type\n+patchStrategy=merge",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PodCondition"
+          },
+          "x-go-name": "Conditions"
+        },
+        "containerStatuses": {
+          "description": "The list has one entry per container in the manifest. Each entry is currently the output\nof `docker inspect`.\nMore info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-and-container-status\n+optional",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerStatus"
+          },
+          "x-go-name": "ContainerStatuses"
+        },
+        "ephemeralContainerStatuses": {
+          "description": "Status for any ephemeral containers that have run in this pod.\nThis field is alpha-level and is only populated by servers that enable the EphemeralContainers feature.\n+optional",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerStatus"
+          },
+          "x-go-name": "EphemeralContainerStatuses"
+        },
+        "hostIP": {
+          "description": "IP address of the host to which the pod is assigned. Empty if not yet scheduled.\n+optional",
+          "type": "string",
+          "x-go-name": "HostIP"
+        },
+        "initContainerStatuses": {
+          "description": "The list has one entry per init container in the manifest. The most recent successful\ninit container will have ready = true, the most recently started container will have\nstartTime set.\nMore info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-and-container-status",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContainerStatus"
+          },
+          "x-go-name": "InitContainerStatuses"
+        },
+        "message": {
+          "description": "A human readable message indicating details about why the pod is in this condition.\n+optional",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "nominatedNodeName": {
+          "description": "nominatedNodeName is set only when this pod preempts other pods on the node, but it cannot be\nscheduled right away as preemption victims receive their graceful termination periods.\nThis field does not guarantee that the pod will be scheduled on this node. Scheduler may decide\nto place the pod elsewhere if other nodes become available sooner. Scheduler may also decide to\ngive the resources on this node to a higher priority pod that is created after preemption.\nAs a result, this field may be different than PodSpec.nodeName when the pod is\nscheduled.\n+optional",
+          "type": "string",
+          "x-go-name": "NominatedNodeName"
+        },
+        "phase": {
+          "$ref": "#/definitions/PodPhase"
+        },
+        "podIP": {
+          "description": "IP address allocated to the pod. Routable at least within the cluster.\nEmpty if not yet allocated.\n+optional",
+          "type": "string",
+          "x-go-name": "PodIP"
+        },
+        "podIPs": {
+          "description": "podIPs holds the IP addresses allocated to the pod. If this field is specified, the 0th entry must\nmatch the podIP field. Pods may be allocated at most 1 value for each of IPv4 and IPv6. This list\nis empty if no IPs have been allocated yet.\n+optional\n+patchStrategy=merge\n+patchMergeKey=ip",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PodIP"
+          },
+          "x-go-name": "PodIPs"
+        },
+        "qosClass": {
+          "$ref": "#/definitions/PodQOSClass"
+        },
+        "reason": {
+          "description": "A brief CamelCase message indicating details about why the pod is in this state.\ne.g. 'Evicted'\n+optional",
+          "type": "string",
+          "x-go-name": "Reason"
+        },
+        "startTime": {
+          "$ref": "#/definitions/Time"
+        }
+      },
+      "x-go-package": "k8s.io/api/core/v1"
+    },
+    "SetupSpec": {
+      "description": "fields for provisioning an instance",
+      "type": "object",
+      "title": "SetupSpec ...",
+      "properties": {
+        "baseDNSName": {
+          "type": "string",
+          "x-go-name": "BaseDNSName"
+        },
+        "email": {
+          "type": "string",
+          "x-go-name": "Email"
+        },
+        "env": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "x-go-name": "Env"
+        },
+        "fullname": {
+          "type": "string",
+          "x-go-name": "Fullname"
+        },
+        "githubOAuthToken": {
+          "type": "string",
+          "x-go-name": "GitHubOAuthToken"
+        },
+        "guests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Guests"
+        },
+        "repos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Repos"
+        },
+        "timezone": {
+          "type": "string",
+          "x-go-name": "Timezone"
+        },
+        "user": {
+          "type": "string",
+          "x-go-name": "User"
+        }
+      },
+      "x-go-package": "github.com/sharingio/pair/types"
+    },
+    "Time": {
+      "description": "+protobuf.options.marshal=false\n+protobuf.as=Timestamp\n+protobuf.options.(gogoproto.goproto_stringer)=false",
+      "type": "object",
+      "title": "Time is a wrapper around time.Time which supports correct\nmarshaling to YAML and JSON.  Wrappers are provided for many\nof the factory methods that the time package offers.",
+      "x-go-package": "k8s.io/apimachinery/pkg/apis/meta/v1"
+    },
+    "UID": {
+      "description": "UID is a type that holds unique ID values, including UUIDs.  Because we\ndon't ONLY use UUIDs, this is an alias to string.  Being a type captures\nintent and helps make sure that UIDs and names do not get conflated.",
+      "type": "string",
+      "x-go-package": "k8s.io/apimachinery/pkg/types"
+    }
+  },
+  "responses": {
+    "failure": {
+      "description": "JSONFailure ...\ngeneric JSON for failure",
+      "schema": {
+        "$ref": "#/definitions/JSONResponseMetadata"
+      },
+      "headers": {
+        "metadata": {}
+      }
+    },
+    "instance": {
+      "description": "Instance ...\ngeneric instance",
+      "schema": {
+        "$ref": "#/definitions/InstanceStatus"
+      },
+      "headers": {
+        "metadata": {},
+        "spec": {},
+        "status": {}
+      }
+    },
+    "instanceData": {
+      "description": "InstanceKubeconfig ...\nkubeconfig response",
+      "schema": {
+        "$ref": "#/definitions/JSONResponseMetadata"
+      },
+      "headers": {
+        "metadata": {},
+        "spec": {
+          "type": "string"
+        }
+      }
+    },
+    "instanceIngresses": {
+      "description": "InstanceIngressList ...\ninstance ingress list",
+      "schema": {
+        "$ref": "#/definitions/JSONResponseMetadata"
+      },
+      "headers": {
+        "metadata": {}
+      }
+    },
+    "instanceInitiated": {
+      "description": "InstanceInitiateTask ...\nresponse for task initated",
+      "schema": {
+        "$ref": "#/definitions/JSONResponseMetadata"
+      },
+      "headers": {
+        "metadata": {}
+      }
+    },
+    "instanceList": {
+      "description": "InstanceList ...\ngeneric instance list",
+      "schema": {
+        "$ref": "#/definitions/JSONResponseMetadata"
+      },
+      "headers": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/InstanceSpec"
+          }
+        },
+        "metadata": {}
+      }
+    }
+  }
+}

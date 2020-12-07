@@ -68,7 +68,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//
 		//     Responses:
 		//       200: instanceList
-		//       500: instanceFailure
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance",
 			HandlerFunc:  ListInstances(dynamicClient),
@@ -89,7 +89,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//
 		//     Responses:
 		//       200: instanceList
-		//       500: instanceFailure
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes",
 			HandlerFunc:  ListInstancesKubernetes(dynamicClient),
@@ -110,7 +110,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//
 		//     Responses:
 		//       200: instance
-		//       500: instanceFailure
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
 			HandlerFunc:  GetInstanceKubernetes(dynamicClient),
@@ -130,8 +130,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceKubeconfig
-		//       500: instanceFailure
+		//       200: instanceData
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/kubeconfig",
 			HandlerFunc:  GetKubernetesKubeconfig(clientset),
@@ -152,7 +152,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//
 		//     Responses:
 		//       200: instanceIngresses
-		//       500: instanceFailure
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/ingresses",
 			HandlerFunc:  GetKubernetesIngresses(clientset),
@@ -173,7 +173,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//
 		//     Responses:
 		//       200: instanceInitiated
-		//       500: instanceFailure
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/certmanage",
 			HandlerFunc:  PostKubernetesCertManage(clientset, dynamicClient),
@@ -194,7 +194,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//
 		//     Responses:
 		//       200: instanceInitiated
-		//       500: instanceFailure
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/dnsmanage",
 			HandlerFunc:  PostKubernetesDNSManage(dynamicClient),
@@ -214,8 +214,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceTmate
-		//       500: instanceFailure
+		//       200: instanceData
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate",
 			HandlerFunc:  GetKubernetesTmateSSHSession(clientset, restConfig, dynamicClient),
@@ -235,8 +235,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceTmate
-		//       500: instanceFailure
+		//       200: instanceData
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate/ssh",
 			HandlerFunc:  GetKubernetesTmateSSHSession(clientset, restConfig, dynamicClient),
@@ -256,8 +256,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceTmate
-		//       500: instanceFailure
+		//       200: instanceData
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate/web",
 			HandlerFunc:  GetKubernetesTmateWebSession(clientset, restConfig, dynamicClient),
@@ -277,8 +277,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceCreated
-		//       500: instanceFailure
+		//       200: instance
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance",
 			HandlerFunc:  PostInstance(dynamicClient, clientset),
@@ -298,8 +298,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceDeleted
-		//       500: instanceFailure
+		//       200: instance
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
 			HandlerFunc:  DeleteInstanceKubernetes(dynamicClient),
@@ -319,8 +319,8 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceDeleted
-		//       500: instanceFailure
+		//       200: instance
+		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance",
 			HandlerFunc:  DeleteInstance(dynamicClient),

@@ -486,7 +486,7 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 			Metadata: types.JSONResponseMetadata{
 				Response: response,
 			},
-			Spec: ingresses,
+			List: ingresses,
 		}
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}

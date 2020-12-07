@@ -27,6 +27,13 @@ type JSONMessageResponse struct {
 	Status   interface{}          `json:"status,omitempty"`
 }
 
+// JSONFailure ...
+// generic JSON for failure
+// swagger:response failure
+type JSONFailure struct {
+	Metadata JSONResponseMetadata `json:"metadata"`
+}
+
 // Endpoints ...
 // endpoint slices
 type Endpoints []struct {
