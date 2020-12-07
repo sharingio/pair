@@ -58,3 +58,10 @@ type SetupSpec struct {
 	HumacsVersion string `json:"-"`
 	UserLowercase string `json:"-"`
 }
+
+// MetaResponse ...
+// response for task initated
+// swagger:response metaResponse
+type MetaResponse struct {
+	Metadata JSONResponseMetadata `json:"metadata"`
+}

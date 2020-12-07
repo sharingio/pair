@@ -4,7 +4,7 @@ import (
 	"github.com/sharingio/pair/types"
 
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
+	// networkingv1 "k8s.io/api/networking/v1"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 )
@@ -60,13 +60,6 @@ type InstanceIngressList struct {
 	Metadata types.JSONResponseMetadata `json:"metadata"`
 	// TODO why does this line uncommented cause go-swagger to not work?
 	// List     []networkingv1.Ingress     `json:"list"`
-}
-
-// InstanceInitiateTask ...
-// response for task initated
-// swagger:response instanceInitiated
-type InstanceInitiateTask struct {
-	Metadata types.JSONResponseMetadata `json:"metadata"`
 }
 
 // InstanceKubeconfig ...

@@ -27,7 +27,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: helloResponse
+		//       200: metaResponse
 		{
 			EndpointPath: endpointPrefix + "/hello",
 			HandlerFunc:  GetAPIHello,
@@ -47,7 +47,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       418: helloResponse
+		//       418: metaResponse
 		{
 			EndpointPath: endpointPrefix + "/teapot",
 			HandlerFunc:  GetTeapot,
@@ -172,7 +172,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceInitiated
+		//       200: metaResponse
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/certmanage",
@@ -193,7 +193,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//     Schemes: http
 		//
 		//     Responses:
-		//       200: instanceInitiated
+		//       200: metaResponse
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/dnsmanage",

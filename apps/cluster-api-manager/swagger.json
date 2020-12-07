@@ -43,7 +43,7 @@
         "operationId": "getHello",
         "responses": {
           "200": {
-            "$ref": "#/responses/helloResponse"
+            "$ref": "#/responses/metaResponse"
           }
         }
       }
@@ -216,7 +216,7 @@
         "operationId": "getInstanceKubernetesCertmanage",
         "responses": {
           "200": {
-            "$ref": "#/responses/instanceInitiated"
+            "$ref": "#/responses/metaResponse"
           },
           "500": {
             "$ref": "#/responses/failure"
@@ -242,7 +242,7 @@
         "operationId": "getInstanceKubernetesDNSmanage",
         "responses": {
           "200": {
-            "$ref": "#/responses/instanceInitiated"
+            "$ref": "#/responses/metaResponse"
           },
           "500": {
             "$ref": "#/responses/failure"
@@ -398,7 +398,7 @@
         "operationId": "getTeapot",
         "responses": {
           "418": {
-            "$ref": "#/responses/helloResponse"
+            "$ref": "#/responses/metaResponse"
           }
         }
       }
@@ -1216,15 +1216,6 @@
         "metadata": {}
       }
     },
-    "instanceInitiated": {
-      "description": "InstanceInitiateTask ...\nresponse for task initated",
-      "schema": {
-        "$ref": "#/definitions/JSONResponseMetadata"
-      },
-      "headers": {
-        "metadata": {}
-      }
-    },
     "instanceList": {
       "description": "InstanceList ...\ngeneric instance list",
       "schema": {
@@ -1237,6 +1228,15 @@
             "$ref": "#/definitions/InstanceSpec"
           }
         },
+        "metadata": {}
+      }
+    },
+    "metaResponse": {
+      "description": "MetaResponse ...\nresponse for task initated",
+      "schema": {
+        "$ref": "#/definitions/JSONResponseMetadata"
+      },
+      "headers": {
         "metadata": {}
       }
     }
