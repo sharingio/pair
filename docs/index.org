@@ -1,6 +1,7 @@
-#+TITLE: Index
+#+TITLE: Introduction
+#+FIRN_ORDER: 0
 
-* Sharing.io: Sharing is Pairing!
+* Sharing is Pairing!
 
 sharing.io is a service, inspired by [[https://github.com/technomancy/syme][Syme]], for creating collaborative coding environments.
 
