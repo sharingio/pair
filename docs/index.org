@@ -6,7 +6,7 @@ sharing.io is a service, inspired by [[https://github.com/technomancy/syme][Syme
 
 Each sharing.io instance includes a full kubernetes cluster, a pair-focused text-editor, and a tmate instance.  This lets you work directly inside the cluster and in a shared session.
 
-You can check it out at https://pair.sharing.io
+You can check it out at [[https://pair.sharing.io]]
 
 ** Getting Started
 To use pair.sharing.io, you must have a github account and be a part of one of the following github organizations:
