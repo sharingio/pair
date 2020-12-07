@@ -1,15 +1,4 @@
-console.log("Hello from status.js");
-
-const POLL_INTERVAL = 7000;
-
-// const statuses = ["age", "tmate-ssh", "tmate-web"]
-
-// const statusElements = {
-//     age: "em#age",
-//     tmate: "section#tmate",
-//     "tmate-ssh": "pre#tmate-ssh",
-//     "tmate-web": "a.tmate"
-// }
+const POLL_INTERVAL = 4000;
 
 function updateAge (instance) {
     let age = document.querySelector("em#age");
@@ -71,15 +60,47 @@ function updateSitesAvailable (instance) {
     }
 };
 
+function updateSOS (instance) {
+    const sos = document.querySelector('pre#sos-ssh');
+    console.log({instance});
+    if (instance.facility && instance.uid) {
+        sos.textContent = `ssh ${instance.uid}@sos.${instance.facility}.platformequinix.com`;
+    }
+};
+
+function updateKubeconfig (instance) {
+    const dl = document.querySelector('a#kc-dl');
+    const command = document.querySelector('pre#kc-command');
+    const config = document.querySelector('pre#kc');
+    if (instance.kubeconfig && instance.uid) {
+        const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}/kubeconfig`
+        dl.href = publicLink;
+        command.textContent = `export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s ${publicLink} > $KUBECONFIG"  ; kubectl api-resources`
+        config.textContent = instance.kubeconfig;
+    }
+};
+
+function updatePublicLink (instance) {
+    let link = document.querySelector('a#public-link');
+    if (instance.uid) {
+        const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}`
+        link.href=publicLink;
+        link.classList.remove('hidden');
+    }
+}
+
 function updateElements (instance) {
     updateAge(instance);
     updateTmate(instance);
     updateInstanceInfo(instance);
     updateSitesAvailable(instance);
+    updateSOS(instance);
+    updateKubeconfig(instance);
+    updatePublicLink(instance);
 }
 
 function updateStatus () {
-    if (!document.hidden) {
+    if (!document.hidden) {// only do this if site is active tab
         let instance = window.location.href;
         fetch(`${instance}/status`)
             .then(res => res.json())

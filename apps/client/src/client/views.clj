@@ -132,23 +132,23 @@
   (if kubeconfig
     [:section#kubeconfig
      [:h3 "Kubeconfig available "]
-     [:a {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
+     [:a#kc-dl {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
                                        :download (str instance-id"-kubeconfig")} "download"]
      [:p "you can attach to the cluster immediately with this command"
-      [:pre
+      [:pre#kc-command
        (str
         "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
         "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > $KUBECONFIG"
         " ; kubectl api-resources")]]
   [:details
    [:summary "See Full Kubeconfig"]
-   [:pre kubeconfig]]]
+   [:pre#kc kubeconfig]]]
     [:section#kubeconfig
      [:h3 "Kubeconfig not yet available"]]))
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
-  (if(or (= "Not ready to fetch tmate session" tmate-web) (empty? tmate-ssh))
+  (if(or (= "Not ready to fetch tmate session" tmate-web) (nil? tmate-ssh))
     [:section#tmate
      [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
@@ -181,9 +181,13 @@
    [:header
     [:h2 "Status for "instance-id
      (when (not (= "guest" username))
-     [:a.btn.action {:href (str "/public-instances/"uid"/"instance-id)
-          :target "_blank"
-          :rel "noreferrer nofollower"} "Get Public Link"])]
+       (if (nil? uid)
+         [:a#public-link.btn.action.hidden {:href (str "/public-instances/"uid"/"instance-id)
+                                            :target "_blank"
+                                            :rel "noreferrer nofollower"} "Get Public Link"]
+         [:a#public-link.btn.action {:href (str "/public-instances/"uid"/"instance-id)
+                                            :target "_blank"
+                                            :rel "noreferrer nofollower"} "Get Public Link"]))]
     [:div.info
      [:em#age age]
      (when (> (count (filter (complement empty?) guests)) 0)
@@ -209,7 +213,7 @@
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"]
        [:h3 "SOS ssh:"]
-       [:pre (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
+       [:pre#sos-ssh (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
        ])]
     [:script {:src "/status.js"}]]
    user true))
