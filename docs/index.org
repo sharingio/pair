@@ -1,0 +1,39 @@
+#+TITLE: Index
+
+* Sharing.io: Sharing is Pairing!
+
+sharing.io is a service, inspired by [[https://github.com/technomancy/syme][Syme]], for creating collaborative coding environments.
+
+Each sharing.io instance includes a full kubernetes cluster, a pair-focused text-editor, and a tmate instance.  This lets you work directly inside the cluster and in a shared session.
+
+You can check it out at https://pair.sharing.io
+
+** Getting Started
+To use pair.sharing.io, you must have a github account and be a part of one of the following github organizations:
+- [[https://github.com/sharingio][sharingio]]
+- [[https://github.com/kubernetes/][kubernetes]]
+- [[https://github.com/cncf][cncf]]
+
+  After logging in with your github account, you will see the options "New" and "All".  New lets you create a new sharing instance.  "All" lists all the instances you've created, or that have been shared with you.
+
+** Creating a New Instance
+The New page lets you specify exactly how you want your sharing.io instance set up.
+*** General
+All instances are made as a kubernetes cluster on an Equinix machine.
+*** Repos
+In the repo field, you can specify any public git repos to be cloned and ready on your sharing instance.  If these are github repos, you can just add the org/repo.  For any other forge, you will want to add the entire url.  Add additional repos by separating them with whitespace.
+*** Guests
+In the guest field, you can add multiple other github users, by adding their usernames separated by whitespace.  These users will be added to your instance, with their public keys downloaded from their github profile.
+*** Env Vars
+You can specify any global environment variables to include in your instance.  This can be helpful when used in combination with a .sharing.io init script, to quickly boot up personalized applications on your cluster.
+** The Instance Status Page
+After creating an instance, you'll be redirected to its status page.  This page will continually poll our backend server to check when your instance is ready.
+
+There are two main stages in an instance being ready: the kubernetes cluster being provisioned, and the pairing environment configured.
+
+The provisioning of a cluster happens fairly quickly, and when ready, will give you a kubeconfig that you can download to directly interact with the cluster yourself, using kubectl.
+
+After the cluster is ready, our backend runs through a number of steps to get pairing ready and can take several minutes.  When done, you will have a tmate instance setup, with a session already started and open to a humacs editor.  You can join the tmate session using the ssh command given, or through the web using the provided link.
+
+** Viewing all Instances
+on the All page, you can see all instnaces you created and any that others created with you added as a guest.  Clicking on the link to one will bring you to its status page.
