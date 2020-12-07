@@ -1,0 +1,3 @@
+#+TITLE: Making a New Instance
+#+FIRN_ORDER: 2
+#+FIRN_UNDER:  "Getting Started"
