@@ -33,7 +33,7 @@
   (html5
    [:head
     [:meta {:charset 'utf-8'}]
-    (when refresh? [:meta {:http-equiv "refresh" :content "15"}])
+    (when refresh? [:noscript [:meta {:http-equiv "refresh" :content "15"}]])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
     [:link {:rel "stylesheet"
@@ -132,23 +132,23 @@
   (if kubeconfig
     [:section#kubeconfig
      [:h3 "Kubeconfig available "]
-     [:a {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
+     [:a#kc-dl {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
                                        :download (str instance-id"-kubeconfig")} "download"]
      [:p "you can attach to the cluster immediately with this command"
-      [:pre
+      [:pre#kc-command
        (str
         "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
         "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > $KUBECONFIG"
         " ; kubectl api-resources")]]
   [:details
    [:summary "See Full Kubeconfig"]
-   [:pre kubeconfig]]]
+   [:pre#kc kubeconfig]]]
     [:section#kubeconfig
      [:h3 "Kubeconfig not yet available"]]))
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
-  (if(= "Not ready to fetch tmate session" tmate-web)
+  (if(or (= "Not ready to fetch tmate session" tmate-web) (nil? tmate-ssh))
     [:section#tmate
      [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
@@ -157,17 +157,17 @@
                        :target "_blank"
                        :rel "noreferrer noopener"} "Join Pair"]
      [:aside
-      [:p "Or join via ssh:"
-      [:pre tmate-ssh]]]]))
+      [:p "Join via ssh:"
+      [:pre#tmate-ssh tmate-ssh]]]]))
 
 (defn status
   [{:keys [facility type phase sites]}]
   [:section#status
-   [:h3 "Status: " phase]
-    [:p  type " instance"]
-   [:p "deployed at " facility]
+   [:h3#phase "Status: " phase]
+    [:p#type  type " instance"]
+   [:p#facility "deployed at " facility]
    [:h3 "Sites Available"]
-   [:ul
+   [:ul#sites-available
     (for [site sites]
       [:li [:a {:href site
                 :target "_blank"
@@ -181,11 +181,15 @@
    [:header
     [:h2 "Status for "instance-id
      (when (not (= "guest" username))
-     [:a.btn.action {:href (str "/public-instances/"uid"/"instance-id)
-          :target "_blank"
-          :rel "noreferrer nofollower"} "Get Public Link"])]
+       (if (nil? uid)
+         [:a#public-link.btn.action.hidden {:href (str "/public-instances/"uid"/"instance-id)
+                                            :target "_blank"
+                                            :rel "noreferrer nofollower"} "Get Public Link"]
+         [:a#public-link.btn.action {:href (str "/public-instances/"uid"/"instance-id)
+                                            :target "_blank"
+                                            :rel "noreferrer nofollower"} "Get Public Link"]))]
     [:div.info
-     [:em age]
+     [:em#age age]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
@@ -209,8 +213,9 @@
       [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
        "Delete Instance"]
        [:h3 "SOS ssh:"]
-       [:pre (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
-       ])]]
+       [:pre#sos-ssh (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
+       ])]
+    [:script {:src "/status.js"}]]
    user true))
 
 (defn delete-instance

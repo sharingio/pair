@@ -41,6 +41,10 @@ pre {
     overflow-x: scroll;
 }
 
+.hidden {
+    display: none;
+}
+
 .action.delete {
     background: var(--color_action_alert);
 }
