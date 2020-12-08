@@ -1,3 +1,17 @@
 #+TITLE: Making a New Instance
-#+FIRN_ORDER: 2
 #+FIRN_UNDER:  "Getting Started"
+#+FIRN_ORDER: 0
+
+The New page lets you specify exactly how you want your sharing.io instance set up. All forms are optional;  if you immediately click submit it will make a new, default instance named after your github username.
+
+[[file:data/new-box-form.png][the new box form, showing the optional guests, repos, and env var fields]]
+
+
+** Description of Fields
+
+Each field customizes the setup of your instance, and what's available upon logging in.
+
+- repos :: you can add a whitespace separated list of public repos from multiple git forges (e.g. github, gitlab, sourcehut, or your own self-hosted forge).  sharing.io will clone down each repo to your new instance, and run any init file if available.
+  NOTE: If using a github repo, you can just add the =org/repo=.  Otherwise, you want to include the full url.
+- Guests :: You can add a whitespace separated list of github users as guests to your instance.  Sharingio will create directories for them in your instance and copy down the public keys available on their github profile.  If these guests are also using sharing.io, they will see your instance when visiting their 'All' page.
+- Environment Variables :: You can specify any global environment variables to include in your instance, each seperated by a new line.  This can be helpful when used in combination with a .sharing.io init script, to quickly boot up personalized applications on your cluster.
