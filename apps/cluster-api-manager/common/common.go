@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -135,4 +136,11 @@ func RandomSequence(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+// ValidateName ...
+// validates a name string
+func ValidateName(input string) bool {
+	re := regexp.MustCompile(`^([a-z0-9]([-a-z0-9]*[a-z0-9])?([a-z0-9]([-a-z0-9]*[a-z0-9])?)*)$`)
+	return re.MatchString(input)
 }
