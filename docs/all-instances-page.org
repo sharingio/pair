@@ -1,0 +1,9 @@
+#+TITLE: Seeing All Instances
+#+FIRN_UNDER:  "Getting Started"
+#+FIRN_ORDER: 1
+
+on the All page, you can see all the instances you created, or that others shared with you (by adding you as a guest when creating the instance).
+
+[[file:data/all-instances.png][Listing of All instances for user zachmandeville]]
+
+From here, you can see the current status of the instance and how long it has been up.  Clicking on any instance brings you to its status page.

@@ -1,0 +1,27 @@
+#+TITLE: The Instance Page
+#+FIRN_UNDER: "Getting Started"
+#+FIRN_ORDER: 2
+
+After creating an instance, you'll be redirected to its own page. The instance page gives you the current status of an instance and a bevy of useful links for accessing,sharing, and deleting this instance.
+
+** Instance Status
+There are two main stages in an instance being ready: the kubernetes cluster being provisioned, and the pairing environment configured.
+
+The provisioning of a cluster happens fairly quickly, and when ready, will give you a kubeconfig that you can download to directly interact with the cluster yourself, using kubectl.
+
+After the cluster is ready, our backend runs through a number of steps to get pairing ready and can take several minutes.  When done, you will have a tmate instance setup, with a session already started and open to a humacs editor.  You can join the tmate session using the ssh command given, or through the web using the provided link.
+
+** Instance Actions
+A number of actions will appear on your page when they're available.
+*** Kubeconfig
+As soon as a kubeconfig is available for your instance cluster, you will be able to read it, download it, or run a command to attach to the cluster with this config.
+*** Public Link
+As soon as an ID has been given to your instance from the backend manager, then you can grab a public link to give to anyone above and beyond your invited guests.
+*** Tmate links
+As the last step of creation, we will setup tmate and create a session loaded up with the humacs text editor.  When this is available, you can join the session either through SSH or through its weblink.
+*** Delete Instance
+If you are the owner of the instance, or an admin of sharing.io, then you can delete the instance at any time.
+
+
+*** SOS SSH
+If you are an admin, then you can also get a read-only terminal of the instance as its being created, to help troubleshoot if needed.
