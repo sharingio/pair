@@ -9,6 +9,31 @@
 (def login-url (str "https://github.com/login/oauth/authorize?"
                     "client_id=" (env :oauth-client-id)
                     "&scope=read:user user:email read:org repo"))
+(defn loginURL
+  [rw?]
+  (str "https://github.com/login/oauth/authorize?"
+                    "client_id=" (env :oauth-client-id)
+                    "&scope=read:user user:email read:org"
+                    (when rw? " repo")))
+
+(defn login
+  [user]
+  (layout
+   [:main
+    [:header
+     [:h2 "Login"]]
+    [:nav#login-options
+     [:ul
+      [:li
+       [:a.button.action {:href (loginURL false)}"login"]
+       [:em.helper "Login with minimal github permissions. We request access to your org and emails, to see if you are a permitted member and an admin member."]]
+      [:li
+       [:a.button.action.strong.long {:href (loginURL true)} "login with read/write"]
+       [:em.helper "Elevated permissions, with full read/write on any of your repos.  This permission is passed to the cluster, letting you easily push and pull from within it."]]
+      [:li
+       [:a.button.action.alert {:href "/logout"} "Logout"]
+       [:em.helper "Logout from sharing.io"]]]]]
+   user))
 
 (defn header
   [{:keys [avatar username permitted-member] :as user}]
@@ -26,7 +51,7 @@
    [:h1 [:a.home {:href "/"} "sharing.io"]
     (when (= "guest" username)[:sup "public link"])]
    [:nav
-    (when (nil? user) [:a {:href login-url} "login with github"])]]))
+    (when (nil? user) [:a {:href "/login"} "login with github"])]]))
 
 (defn layout
   [body user &[refresh?]]

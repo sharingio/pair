@@ -27,6 +27,9 @@
          (views/new user)
          (res/redirect views/login-url)))
 
+  (GET "/login" {{:keys [user]} :session}
+       (views/login user))
+
   (POST "/instances/new" {{:keys [user] :as session} :session
                           {:keys [project] :as params} :params}
         (when-not (:username user)
@@ -110,7 +113,7 @@
   (fn [req]
     (println "LOGIN" (-> req :session keys))
     (handler
-    (if (or (#{"/" "/about" "/faq" "/404" "/oauth" "/logout"} (:uri req))
+    (if (or (#{"/" "/about" "/faq" "/404" "/oauth" "/logout" "/login"} (:uri req))
             (re-find #"/public-instances/([A-Za-z0-9-]*)/([A-Za-z0-9-])" (:uri req))
             (-> req :session :user :permitted-member))
       req

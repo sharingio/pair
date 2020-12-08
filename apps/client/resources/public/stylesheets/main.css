@@ -45,6 +45,14 @@ pre {
     display: none;
 }
 
+.action.strong {
+    background: var(--color_action_secondary);
+}
+
+.action.alert {
+    background: var(--color_action_alert);
+}
+
 .action.delete {
     background: var(--color_action_alert);
 }
@@ -89,7 +97,8 @@ header#top nav img {
     max-width: 2rem;
 }
 
-main#splash {
+main#splash ,
+nav#login-options {
     margin-top: 3rem;
     width: 100%;
     display: flex;
@@ -369,6 +378,33 @@ section.admin-actions h3 {
     margin: 0;
     font-size: 1rem;
     margin-top: 1.5rem;
+}
+
+
+nav#login-options ul {
+    display: flex;
+    flex-flow: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 50%;
+    margin: auto;
+}
+
+nav#login-options li {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+nav#login-options a.long {
+    font-size: 1.25rem;
+    width: 15rem;
+}
+
+nav#login-options em.helper {
+    font-size: 0.8rem;
+    margin-left: 1rem;
 }
 
 
