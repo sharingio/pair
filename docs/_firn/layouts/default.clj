@@ -6,7 +6,7 @@
       (nav "Sharing.io" "docs")
       [:main
        [:aside.sidebar
-        (render :sitemap)]
+        (render :sitemap {:sort-by :firn-order})]
        [:article.content
         ;; [:div (render :toc)] ;; Optional; add a table of contents
         [:h1 title]
