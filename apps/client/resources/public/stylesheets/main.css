@@ -406,6 +406,40 @@ nav#login-options em.helper {
     font-size: 0.8rem;
     margin-left: 1rem;
 }
+div.code-box {
+    display: flex;
+    position: relative;
+}
+div.code-box button {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    position: relative;
+    cursor: pointer;
+}
+
+div.code-box button:focus {
+    background: lavenderblush;
+}
+
+div.code-box button:active:after {
+    content: "Copied!";
+    display: block;
+    position: absolute;
+    right: 0;
+    font-size: 1rem;
+    animation-name: fadeout;
+    animation-duration: 2s;
+}
+
+@keyframes fadeout {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
 
 
 @media (max-width: 667px) {

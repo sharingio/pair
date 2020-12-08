@@ -25,7 +25,7 @@
   (GET "/instances/new" {{:keys [username user] :as session} :session}
        (if (:username user)
          (views/new user)
-         (res/redirect views/login-url)))
+         (res/redirect "/login")))
 
   (GET "/login" {{:keys [user]} :session}
        (views/login user))
