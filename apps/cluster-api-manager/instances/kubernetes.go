@@ -72,7 +72,7 @@ func Int32ToInt32Pointer(input int32) *int32 {
 // misc vars
 var (
 	defaultMachineOS = "ubuntu_20_04"
-	defaultKubernetesVersion = "1.19.4"
+	defaultKubernetesVersion = "1.20.0"
 )
 
 // KubernetesGet ...
