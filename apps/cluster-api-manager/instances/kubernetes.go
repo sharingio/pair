@@ -72,7 +72,7 @@ func Int32ToInt32Pointer(input int32) *int32 {
 // misc vars
 var (
 	defaultMachineOS = "ubuntu_20_04"
-	defaultKubernetesVersion = "1.19.4"
+	defaultKubernetesVersion = "1.20.0"
 )
 
 // KubernetesGet ...
@@ -612,6 +612,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 							KubeletExtraArgs: map[string]string{
 								"cloud-provider": "external",
 							},
+							CRISocket: "/var/run/containerd/containerd.sock",
 						},
 					},
 					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
@@ -637,6 +638,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 							KubeletExtraArgs: map[string]string{
 								"cloud-provider": "external",
 							},
+							CRISocket: "/var/run/containerd/containerd.sock",
 						},
 					},
 					PreKubeadmCommands: []string{
@@ -674,7 +676,7 @@ EOF`,
 						"apt-key fingerprint 0EBFCD88",
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo git",
 						`cat <<EOF > /etc/docker/daemon.json
 {
   "log-driver": "json-file",
@@ -684,10 +686,23 @@ EOF`,
   }
 }
 EOF`,
-						"systemctl daemon-reload",
-						"systemctl enable docker",
-						"systemctl start docker",
-						"chgrp users /var/run/docker.sock",
+						`cat <<EOF | tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF | tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sysctl --system
+`,
+						"mkdir -p /etc/containerd",
+						"rm /etc/containerd/config.toml",
+						"systemctl restart containerd",
+						"export CONTAINER_RUNTIME_ENDPOINT=/var/run/containerd/containerd.sock",
 						"ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo",
 					},
 					PostKubeadmCommands: []string{
@@ -1000,7 +1015,6 @@ EOF
 	  helm install "{{ $.Setup.UserLowercase }}" -n "{{ $.Setup.UserLowercase }}" \
             --set image.repository=registry.gitlab.com/humacs/humacs/ii \
             --set image.tag="{{ $.Setup.HumacsVersion }}" \
-            --set options.hostDockerSocket=true \
             --set options.hostTmp=true \
             --set options.timezone="{{ $.Setup.Timezone }}" \
             --set options.gitName="{{ $.Setup.Fullname }}" \
@@ -1256,17 +1270,40 @@ EOF
 							"apt-key fingerprint 0EBFCD88",
 							"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 							"apt-get update -y",
-							"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl",
-							"systemctl daemon-reload",
-							"systemctl enable docker",
-							"systemctl start docker",
-							"chgrp users /var/run/docker.sock",
+							"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo git",
+							`cat <<EOF > /etc/docker/daemon.json
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "500m",
+    "max-file": "3"
+  }
+}
+EOF`,
+							`cat <<EOF | tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF | tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sysctl --system
+`,
+							"mkdir -p /etc/containerd",
+							"rm /etc/containerd/config.toml",
+							"systemctl restart containerd",
+							"export CONTAINER_RUNTIME_ENDPOINT=/var/run/containerd/containerd.sock",
 						},
 						JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 							NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 								KubeletExtraArgs: map[string]string{
 									"cloud-provider": "external",
 								},
+								CRISocket: "/var/run/containerd/containerd.sock",
 							},
 						},
 					},
