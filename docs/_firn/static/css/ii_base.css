@@ -66,6 +66,10 @@ h2 {
     font-size: 1.5rem;
 }
 
+h3 {
+    font-size: 1.2rem;
+}
+
 span.firn-img-with-caption {
     max-width: 100%;
     display: flex;
