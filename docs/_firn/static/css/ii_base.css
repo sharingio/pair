@@ -1,29 +1,59 @@
+:root {
+    --colour_border: gray;
+    --border: 1px solid var(--colour_border);
+}
 body {
     font-family: 'Manrope';
     font-size: 20px;
 }
 
 main {
+    padding: 0;
     display: grid;
-    grid-template-columns: minmax(200px, 300px) 1fr;
+    grid-template-columns: minmax(200px, 250px) 1fr;
 }
 
-nav {
+nav#top {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
+    padding: 1rem;
+    border-bottom: var(--border);
+}
+
+nav#top div.ext-links {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+div.ext-links a {
+    display: block;
+    margin-right: 1.5rem;
 }
 
 nav a.title {
     font-size: 2.5rem;
     color: unset;
     text-decoration: none;
+    font-weight: 200;
+}
+
+aside.sidebar {
+    margin-top: 0;
+    border-right: var(--border);
 }
 
 ul.firn-sitemap {
+    padding-top: 1.5rem;
     list-style-type: none;
     padding-left: 0;
-    margin-left: 2rem;
+    margin-left: 1rem;
+    font-size: 1rem;
+}
+
+article {
+    padding: 1.5rem;
 }
 
 h1 {
@@ -50,4 +80,17 @@ span.firn-img-with-caption img {
     max-width: 100%;
     margin: auto;
     border: 1px solid darkgray;
+}
+
+@media (max-width: 667px) {
+    main {
+        display: flex;
+        flex-flow: column;
+        flex-direction: column-reverse;
+    }
+    aside {
+        border-right: none;
+        border-top: var(--border);
+    }
+
 }
