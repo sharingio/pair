@@ -1,4 +1,4 @@
 #+TITLE: the .sharingio folder
 #+FIRN_ORDER: 2
 
-When you create an instance with repos pre-installed, one of the steps we take during creation ios to check if that repo has a =.sharing.io= folder, with any init files contained in it.  You can use this to create bootstrapping scripts as part of instance creation.
+When you create an instance with repos pre-installed, one of the steps we take during creation ios to check if that repo has a =.sharing.io= folder.  This folder would contain init files that detail any bootstrapping that occurs during instance creation.
