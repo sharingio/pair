@@ -12,15 +12,22 @@ import (
 
 // misc default vars
 var (
-	instanceDefaultNodeSize      = "c1.small.x86"
-	instanceDefaultTimezone      = "Pacific/Auckland"
-	instanceDefaultHumacsVersion = "2020.11.26"
+	instanceDefaultNodeSize          = "c1.small.x86"
+	instanceDefaultTimezone          = "Pacific/Auckland"
+	instanceDefaultHumacsVersion     = "2020.11.26"
+	instanceDefaultKubernetesVersion = "1.20.0"
 )
 
 // GetHumacsVersion ...
 // get the version to deploy of the Humacs container
 func GetHumacsVersion() string {
 	return common.GetEnvOrDefault("APP_HUMACS_VERSION", instanceDefaultHumacsVersion)
+}
+
+// GetKubernetesVersion ...
+// get the version of Kubernetes to use in the cluster
+func GetKubernetesVersion() string {
+	return common.GetEnvOrDefault("APP_INSTANCE_KUBERNETES_VERSION", instanceDefaultKubernetesVersion)
 }
 
 // GetInstanceDefaultNodeSize ...

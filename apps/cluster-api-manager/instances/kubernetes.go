@@ -72,7 +72,6 @@ func Int32ToInt32Pointer(input int32) *int32 {
 // misc vars
 var (
 	defaultMachineOS = "ubuntu_20_04"
-	defaultKubernetesVersion = "1.20.0"
 )
 
 // KubernetesGet ...
@@ -593,6 +592,8 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
+	defaultKubernetesVersion := GetKubernetesVersion()
+
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
