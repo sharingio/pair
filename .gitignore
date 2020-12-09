@@ -16,3 +16,5 @@ pom.xml
 **/.lein-repl-history
 **/target/*
 **/sharingio-*.yaml
+**/docs/**/*.html
+**/docs/**/*.xml
