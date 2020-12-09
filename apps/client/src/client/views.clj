@@ -6,9 +6,17 @@
             [clojure.string :as str]
             [environ.core :refer [env]]))
 
-(def login-url (str "https://github.com/login/oauth/authorize?"
+(defn loginURL
+  [rw?]
+  (str "https://github.com/login/oauth/authorize?"
                     "client_id=" (env :oauth-client-id)
-                    "&scope=read:user user:email read:org repo"))
+                    "&scope=read:user user:email read:org" (when rw? " repo")))
+
+(defn code-box
+  [id val]
+  [:div.code-box
+   [:pre {:id id} val]
+   [:button {:id (str "copy-"id)} "&#128203;"]])
 
 (defn header
   [{:keys [avatar username permitted-member] :as user}]
@@ -26,7 +34,7 @@
    [:h1 [:a.home {:href "/"} "sharing.io"]
     (when (= "guest" username)[:sup "public link"])]
    [:nav
-    (when (nil? user) [:a {:href login-url} "login with github"])]]))
+    (when (nil? user) [:a {:href "/login"} "login with github"])]]))
 
 (defn layout
   [body user &[refresh?]]
@@ -44,6 +52,26 @@
    [:body
     (header user)
     body]))
+
+(defn login
+  [user]
+  (layout
+   [:main
+    [:header
+     [:h2 "Login"]]
+    [:nav#login-options
+     [:ul
+      [:li
+       [:a.button.action {:href (loginURL false)}"login"]
+       [:em.helper "Login with minimal github permissions. We request access to your org and emails, to see if you are a permitted member and an admin member."]]
+      [:li
+       [:a.button.action.strong.long {:href (loginURL true)} "login with read/write"]
+       [:em.helper "Elevated permissions, with full read/write on any of your repos.  This permission is passed to the cluster, letting you easily push and pull from within it."]]
+      [:li
+       [:a.button.action.alert {:href "/logout"} "Logout"]
+       [:em.helper "Logout from sharing.io"]]]]]
+   user))
+
 
 (defn splash
   [{:keys [permitted-member] :as user}]
@@ -134,21 +162,21 @@
      [:h3 "Kubeconfig available "]
      [:a#kc-dl {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
                                        :download (str instance-id"-kubeconfig")} "download"]
-     [:p "you can attach to the cluster immediately with this command"
-      [:pre#kc-command
-       (str
-        "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
-        "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > $KUBECONFIG"
-        " ; kubectl api-resources")]]
+     [:p "you can attach to the cluster immediately with this command: "]
+      (code-box "kc-command"
+                (str
+                 "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
+                 "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > \"$KUBECONFIG\""
+                 " ; kubectl api-resources"))
   [:details
    [:summary "See Full Kubeconfig"]
-   [:pre#kc kubeconfig]]]
+   (code-box "kc" kubeconfig)]]
     [:section#kubeconfig
      [:h3 "Kubeconfig not yet available"]]))
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
-  (if(or (= "Not ready to fetch tmate session" tmate-web) (nil? tmate-ssh))
+  (if(or (= "Not ready to fetch tmate session" tmate-web) (empty? tmate-ssh))
     [:section#tmate
      [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
@@ -157,8 +185,8 @@
                        :target "_blank"
                        :rel "noreferrer noopener"} "Join Pair"]
      [:aside
-      [:p "Join via ssh:"
-      [:pre#tmate-ssh tmate-ssh]]]]))
+      [:p "Join via ssh:"]
+      (code-box "tmate-ssh" tmate-ssh)]]))
 
 (defn status
   [{:keys [facility type phase sites]}]
@@ -173,11 +201,8 @@
                 :target "_blank"
                 :rel "noreferrer noopener"} site]])]])
 
-
-(defn instance
-  [{:keys [guests uid instance-id repos timezone created-at age] :as instance} {:keys [username admin-member] :as user}]
-  (layout
-   [:main#instance
+(defn instance-header
+  [{:keys [guests uid instance-id repos age]} {:keys [username]}]
    [:header
     [:h2 "Status for "instance-id
      (when (not (= "guest" username))
@@ -203,19 +228,33 @@
         [:ul.repos
          (for [repo repos]
            [:li [:a {:href (if (re-find #"^(http)(.)+//" repo) repo (str "https://github.com/" repo))}
-                 repo]])]])]]
+                 repo]])]])]])
+
+(defn instance-admin
+  [{:keys [owner facility uid instance-id]} {:keys [admin-member username]}]
+  (when (or (= owner username) admin-member)
+    [:section.admin-actions
+     [:a.action.delete
+      {:href (str "/instances/id/"instance-id"/delete")}
+      "Delete Instance"]
+     [:h3 "SOS ssh:"]
+     (code-box "sos-ssh" (str "ssh "uid"@sos."facility".platformequinix.com"))]))
+
+(defn instance
+  [instance user]
+  (layout
+   (list
+   [:main#instance
+    (instance-header instance user)
     [:article
+     [:section.status
     (tmate instance)
+    (kubeconfig-box instance)]
+    [:aside
      (status instance)
-    (kubeconfig-box instance)
-    (when (or (= (:owner instance) username) admin-member)
-      [:section.admin-actions
-      [:a.action.delete {:href (str "/instances/id/"(:instance-id instance)"/delete")}
-       "Delete Instance"]
-       [:h3 "SOS ssh:"]
-       [:pre#sos-ssh (str "ssh " (:uid instance)"@sos."(:facility instance)".platformequinix.com")]
-       ])]
-    [:script {:src "/status.js"}]]
+     (instance-admin instance user)]]]
+    [:script {:src "/status.js"}]
+    [:script {:src "/clipboard.js" :type "module"}])
    user true))
 
 (defn delete-instance

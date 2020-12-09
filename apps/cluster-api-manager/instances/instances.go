@@ -14,6 +14,9 @@ import (
 // ensure an Instance is valid
 func ValidateInstance(instance InstanceSpec) (err error) {
 	fmt.Println(instance)
+	if common.ValidateName(instance.Name) == false {
+		return fmt.Errorf("Invalid instance name '%v'", instance.Name)
+	}
 	if instance.Type == "" ||
 		!(instance.Type == InstanceTypeKubernetes || instance.Type == InstanceTypePlain) {
 		return fmt.Errorf("Invalid instance type")
