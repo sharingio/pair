@@ -154,7 +154,7 @@ func PostInstance(dynamicClient dynamic.Interface, clientset *kubernetes.Clients
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
-		var instance instances.InstanceSpec
+		var instance instances.Instance
 		body, _ := ioutil.ReadAll(r.Body)
 		json.Unmarshal(body, &instance)
 
@@ -351,7 +351,7 @@ func GetKubernetesTmateSSHSession(clientset *kubernetes.Clientset, restConfig *r
 			return
 		}
 
-		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User.Username)
 		err, session := instances.KubernetesGetTmateSSHSession(clientset, name, instance.Spec.Setup.UserLowercase)
 		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
 			strings.Contains(err.Error(), "not found"))
@@ -412,7 +412,7 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 			return
 		}
 
-		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User.Username)
 		err, session := instances.KubernetesGetTmateWebSession(clientset, name, instance.Spec.Setup.UserLowercase)
 		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
 			strings.Contains(err.Error(), "not found"))
@@ -527,7 +527,7 @@ func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
 			return
 		}
 
-		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User.Username)
 
 		_ = instances.KubernetesAddMachineIPToDNS(dynamicClient, name, instance.Spec.Setup.UserLowercase)
 		response = "Initiated DNS management"
@@ -576,7 +576,7 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 			return
 		}
 
-		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User.Username)
 
 		go instances.KubernetesAddCertToMachine(clientset, dynamicClient, name)
 		response = "Initiated cert management"

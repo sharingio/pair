@@ -53,3 +53,11 @@ func TemplateFuncMap() template.FuncMap {
 		},
 	}
 }
+
+// SanitiseInstanceStruct ...
+// remove up an instance struct's sensitive data
+func SanitiseInstanceStruct(instance Instance) (instanceOut Instance) {
+	instanceOut = instance
+	instanceOut.Spec.Setup.GitHubOAuthToken = ""
+	return instanceOut
+}

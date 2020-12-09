@@ -21,7 +21,7 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 		!(instance.Type == InstanceTypeKubernetes || instance.Type == InstanceTypePlain) {
 		return fmt.Errorf("Invalid instance type")
 	}
-	if instance.Setup.User == "" {
+	if instance.Setup.User.Name == "" {
 		return fmt.Errorf("No user declared")
 	}
 	if instance.Type == InstanceTypePlain {
@@ -30,8 +30,8 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 		}
 		invalidGuests := []string{}
 		for _, guest := range instance.Setup.Guests {
-			if guest == "" {
-				invalidGuests = append(invalidGuests, guest)
+			if guest.Username == "" {
+				invalidGuests = append(invalidGuests, guest.Username)
 			}
 		}
 		if len(invalidGuests) > 0 {
@@ -48,10 +48,10 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	if len(invalidRepos) > 0 {
 		return fmt.Errorf("Invalid repos, %s", invalidRepos)
 	}
-	if govalidator.IsEmail(instance.Setup.Email) != true || instance.Setup.Email == "" {
+	if govalidator.IsEmail(instance.Setup.User.Email) != true || instance.Setup.User.Email == "" {
 		return fmt.Errorf("Invalid user email")
 	}
-	if instance.Setup.Fullname == "" {
+	if instance.Setup.User.Name == "" {
 		return fmt.Errorf("Invalid name, name must not be empty")
 	}
 	return err
@@ -83,47 +83,47 @@ func List(dynamicClient dynamic.Interface, options InstanceListOptions) (err err
 
 // Create ...
 // create an instance
-func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
-	err = ValidateInstance(instance)
-	if err != nil {
-		return err, instanceCreated
-	}
+func Create(instance Instance, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	err, instancesOfUser := List(dynamicClient, InstanceListOptions{
 		Filter: InstanceFilter{
-			Username: instance.Setup.User,
+			Username: instance.Spec.Setup.User.Username,
 		},
 	})
 	if err != nil {
 		return err, instanceCreated
 	}
-	instance.Setup.UserLowercase = strings.ToLower(instance.Setup.User)
+	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User.Username)
 	// uses instance.Name if specified
 	// if no other instances exist
-	if len(instancesOfUser) == 0 && instance.Name == "" {
-		instance.Name = instance.Setup.UserLowercase
+	if len(instancesOfUser) == 0 && instance.Spec.Name == "" {
+		instance.Spec.Name = instance.Spec.Setup.UserLowercase
 		options.NameScheme = InstanceNameSchemeSpecified
-	} else if len(instancesOfUser) > 0 && instance.Name == "" {
+	} else if len(instancesOfUser) > 0 && instance.Spec.Name == "" {
 		// if other instances exist
-		instance.Name = GenerateName(instance)
+		instance.Spec.Name = GenerateName(instance.Spec)
 		options.NameScheme = InstanceNameSchemeGenerateFromUsername
-	} else if instance.Name != "" {
+	} else if instance.Spec.Name != "" {
 		options.NameScheme = InstanceNameSchemeSpecified
 	}
 
 	if options.NameScheme == InstanceNameSchemeSpecified {
 		for _, existingInstance := range instancesOfUser {
-			if instance.Name == existingInstance.Spec.Name {
+			if instance.Spec.Name == existingInstance.Spec.Name {
 				return fmt.Errorf("An instance with the provided name already exists"), instanceCreated
 			}
 		}
 	}
-	instance.Name = strings.ToLower(instance.Name)
+	instance.Spec.Name = strings.ToLower(instance.Spec.Name)
 
-	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
-	if instance.Setup.Timezone == "" {
-		instance.Setup.Timezone = instanceDefaultTimezone
+	instance.Spec.Setup.Repos = common.AddRepoGitHubPrefix(instance.Spec.Setup.Repos)
+	if instance.Spec.Setup.Timezone == "" {
+		instance.Spec.Setup.Timezone = instanceDefaultTimezone
 	}
-	switch instance.Type {
+	err = ValidateInstance(instance.Spec)
+	if err != nil {
+		return err, instanceCreated
+	}
+	switch instance.Spec.Type {
 	case InstanceTypeKubernetes:
 		err, instanceCreated = KubernetesCreate(instance, dynamicClient, clientset, options)
 		break

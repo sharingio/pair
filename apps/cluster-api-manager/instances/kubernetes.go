@@ -71,7 +71,7 @@ func Int32ToInt32Pointer(input int32) *int32 {
 
 // misc vars
 var (
-	defaultMachineOS = "ubuntu_20_04"
+	defaultMachineOS         = "ubuntu_20_04"
 	defaultKubernetesVersion = "1.20.0"
 )
 
@@ -162,8 +162,8 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		}
 	}
 
-	instance.Spec.Setup.User = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
-	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
+	instance.Spec.Setup.User.Username = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user-username"]
+	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User.Username)
 
 	err, kubeconfigBytes := KubernetesDynamicGetKubeconfigBytes(name, kubernetesClientset)
 	if err != nil {
@@ -188,18 +188,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		instance.Status.Phase = InstanceStatusPhaseProvisioned
 	}
 
-	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
-	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
-	instance.Spec.Facility = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
-	instance.Spec.Setup.Guests = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
-	instance.Spec.Setup.Repos = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
-	instance.Spec.Setup.Timezone = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
-	instance.Spec.Setup.Fullname = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"]
-	instance.Spec.Setup.Email = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"]
-	var env []map[string]string
-	json.Unmarshal([]byte(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-env"]), &env)
-	instance.Spec.Setup.Env = env
-	instance.Spec.Setup.BaseDNSName = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-baseDNSName"]
+	json.Unmarshal([]byte(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-instance"]), &instance)
 
 	err = nil
 	return err, instance
@@ -330,18 +319,19 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 		}
 	instances3:
 		for i := range instances {
-			if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
+			if itemRestructured.ObjectMeta.Annotations["io.sharing.pair-instance"] != "" {
+				json.Unmarshal([]byte(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-instance"]), &instances[i])
+			} else	if instances[i].Spec.Name == itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"] {
 				instances[i].Spec.Type = InstanceTypeKubernetes
 				instances[i].Status.Resources.Cluster = itemRestructured.Status
 				instances[i].Spec.Name = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
 				instances[i].Spec.NodeSize = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
 				instances[i].Spec.Facility = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
-				instances[i].Spec.Setup.User = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
-				instances[i].Spec.Setup.Guests = strings.Split(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
+				instances[i].Spec.Setup.User.Username = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user-username"]
 				instances[i].Spec.Setup.Repos = strings.Split(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
 				instances[i].Spec.Setup.Timezone = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
-				instances[i].Spec.Setup.Fullname = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"]
-				instances[i].Spec.Setup.Email = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"]
+				instances[i].Spec.Setup.User.Name = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user-name"]
+				instances[i].Spec.Setup.User.Email = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user-email"]
 				var env []map[string]string
 				json.Unmarshal([]byte(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-env"]), &env)
 				instances[i].Spec.Setup.Env = env
@@ -363,14 +353,14 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 
 // KubernetesCreate ...
 // create a Kubernetes Instance
-func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
+func KubernetesCreate(instance Instance, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 	err, newInstance := KubernetesTemplateResources(instance, targetNamespace)
 	if err != nil {
 		return err, instanceCreated
 	}
-	instanceCreated.Name = instance.Name
+	instanceCreated.Name = instance.Spec.Name
 
 	log.Printf("%#v\n", newInstance)
 
@@ -510,9 +500,9 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	}
 	log.Println("[pre] adding Kubernetes Instance IP to DNS")
 
-	go KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Name)
+	go KubernetesAddMachineIPToDNS(dynamicClient, instance.Spec.Name, instance.Spec.Name)
 	if options.NameScheme == InstanceNameSchemeSpecified || options.NameScheme == InstanceNameSchemeUsername {
-		go KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name)
+		go KubernetesAddCertToMachine(clientset, dynamicClient, instance.Spec.Name)
 	}
 	log.Println("[post] adding Kubernetes Instance IP to DNS")
 
@@ -592,7 +582,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
-func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
+func KubernetesTemplateResources(instance Instance, namespace string) (err error, newInstance KubernetesCluster) {
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -713,9 +703,9 @@ EOF
         )
 `,
 						`(
-          sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
+          sudo -iu ii ssh-import-id gh:{{ $.Setup.User.Username }}
           {{ range $.Setup.Guests }}
-          sudo -iu ii ssh-import-id gh:{{ . }}
+          sudo -iu ii ssh-import-id gh:{{ .Username }}
           {{ end }}
 )`,
 						"kubectl -n default get configmap sharingio-pair-init-complete && exit 0",
@@ -773,7 +763,7 @@ export LOAD_BALANCER_IP="{{ .controlPlaneEndpoint }}"
   kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/docs/contributing/crd-source/crd-manifest.yaml
   kubectl -n external-dns create secret generic external-dns-pdns \
     --from-literal=domain-filter={{ $.Setup.BaseDNSName }} \
-    --from-literal=txt-owner-id={{ $.Setup.User }} \
+    --from-literal=txt-owner-id={{ $.Setup.User.Username }} \
     --from-literal=pdns-server=http://powerdns-service-api.powerdns:8081 \
     --from-literal=pdns-api-key=pairingissharing
 
@@ -1003,12 +993,12 @@ EOF
             --set options.hostDockerSocket=true \
             --set options.hostTmp=true \
             --set options.timezone="{{ $.Setup.Timezone }}" \
-            --set options.gitName="{{ $.Setup.Fullname }}" \
-            --set options.gitEmail="{{ $.Setup.Email }}" \
+            --set options.gitName="{{ $.Setup.User.Name }}" \
+            --set options.gitEmail="{{ $.Setup.User.Email }}" \
             --set extraEnvVars[0].name="SHARINGIO_PAIR_NAME" \
             --set extraEnvVars[0].value="{{ $.Name }}" \
             --set extraEnvVars[1].name="SHARINGIO_PAIR_USER" \
-            --set extraEnvVars[1].value="{{ $.Setup.User }}" \
+            --set extraEnvVars[1].value="{{ $.Setup.User.Username }}" \
             --set extraEnvVars[2].name="HUMACS_DEBUG" \
             --set-string extraEnvVars[2].value="true" \
             --set extraEnvVars[3].name="REINIT_HOME_FOLDER" \
@@ -1032,7 +1022,7 @@ EOF
 
 Co-Authored-By: ${COAUTHOR_NAME:-Pair is Sharing} <${COAUTHOR_EMAIL:-pair@sharing.io}>
 EOF
-              git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
+              git clone --depth=1 git://github.com/{{ $.Setup.User.Username }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
               (
                 ./.sharing.io/init || true
@@ -1119,7 +1109,7 @@ metadata:
 spec:
   acme:
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: {{ $.Setup.Email }}
+    email: {{ $.Setup.User.Email }}
     privateKeySecretRef:
       name: letsencrypt-prod
     solvers:
@@ -1314,31 +1304,41 @@ EOF
 		},
 	}
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
-	instance.NodeSize = instanceDefaultNodeSize
-	instance.Setup.HumacsVersion = GetHumacsVersion()
-	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
+	instance.Spec.NodeSize = instanceDefaultNodeSize
+	instance.Spec.Setup.HumacsVersion = GetHumacsVersion()
+	instance.Spec.Setup.BaseDNSName = instance.Spec.Name + "." + common.GetBaseHost()
+
+	instanceSanitised := SanitiseInstanceStruct(instance)
+	instanceBytes, err := json.Marshal(instanceSanitised)
+	if err != nil {
+		return fmt.Errorf("Error marshalling an instance object: %#v", err), newInstance
+	}
+	guestsJSONBytes, err := json.Marshal(instance.Spec.Setup.Guests)
+	if err != nil {
+		return fmt.Errorf("Error marshalling an instance object: %#v", err), newInstance
+	}
+	instance.Spec.Setup.GuestsJSON = strings.Replace(string(guestsJSONBytes), "\"", "\\\\\\\"", -1)
 	newInstance = defaultKubernetesClusterConfig
-	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
+	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Spec.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations = map[string]string{}
-	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
-	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
+	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
+	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Spec.Name + "-control-plane"
 
-	tmpl, err := template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[7])
+	tmpl, err := template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Spec.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[7])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
 	templatedBuffer := new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
+	err = tmpl.Execute(templatedBuffer, instance.Spec)
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[7] = templatedBuffer.String()
 
-	tmpl, err = template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[10])
+	tmpl, err = template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%v", instance.Spec.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[10])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
@@ -1346,7 +1346,7 @@ EOF
 	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
 		"PacketProjectID": common.GetPacketProjectID(),
-		"InstanceName":    instance.Name,
+		"InstanceName":    instance.Spec.Name,
 		// NOTE I could find a way to ignore this field during templating, here's a neat little hack to ignore it ;)
 		"apiKey": "{{ .apiKey }}",
 	})
@@ -1356,56 +1356,56 @@ EOF
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[10] = templatedBuffer.String()
 
-	fmt.Printf("\n\n\nTemplate name: external-dns-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("external-dns-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24])
+	fmt.Printf("\n\n\nTemplate name: external-dns-%v\nInstance: %#v\n\n\n", instance.Spec.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("external-dns-%s-%v", instance.Spec.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating External DNS install command: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
+	err = tmpl.Execute(templatedBuffer, instance.Spec)
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating External DNS install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24] = templatedBuffer.String()
 
-	fmt.Printf("\n\n\nTemplate name: powerdns%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("powerdns-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25])
+	fmt.Printf("\n\n\nTemplate name: powerdns%v\nInstance: %#v\n\n\n", instance.Spec.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("powerdns-%s-%v", instance.Spec.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
+	err = tmpl.Execute(templatedBuffer, instance.Spec)
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25] = templatedBuffer.String()
 
-	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Funcs(TemplateFuncMap()).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26])
+	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Spec.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Spec.Name, time.Now().Unix())).Funcs(TemplateFuncMap()).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
+	err = tmpl.Execute(templatedBuffer, instance.Spec)
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
 	}
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[26] = templatedBuffer.String()
 
-	fmt.Printf("\n\n\nTemplate name: certs-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("certs-%v-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[27])
+	fmt.Printf("\n\n\nTemplate name: certs-%s-%v\nInstance: %#v\n\n\n", instance.Spec.Name, time.Now().Unix(), instance)
+	tmpl, err = template.New(fmt.Sprintf("certs-%v-%v", instance.Spec.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[27])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating certs command: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
+	err = tmpl.Execute(templatedBuffer, instance.Spec)
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating certs command: %#v", err), newInstance
@@ -1415,72 +1415,52 @@ EOF
 	templatedBuffer = nil
 	tmpl = nil
 
-	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
+	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Spec.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
 	newInstance.PacketMachineTemplate.ObjectMeta.Annotations = map[string]string{}
-	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+
+	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = instanceDefaultNodeSize
 
-	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Spec.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = namespace
 	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations = map[string]string{}
-	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
-	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Name + "-worker-a"
-	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Name
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["cluster.x-k8s.io/cluster-name"] = instance.Spec.Name
+	newInstance.MachineDeploymentWorker.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
+	newInstance.MachineDeploymentWorker.Spec.ClusterName = instance.Spec.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.Bootstrap.ConfigRef.Name = instance.Spec.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.Spec.Selector.MatchLabels["cluster.x-k8s.io/cluster-name"] = instance.Spec.Name
 	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations = map[string]string{}
-	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["cluster.x-k8s.io/cluster-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
-	newInstance.MachineDeploymentWorker.Spec.Template.Spec.InfrastructureRef.Name = instance.Name + "-worker-a"
-	newInstance.MachineDeploymentWorker.Spec.Template.Spec.ClusterName = instance.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["cluster.x-k8s.io/cluster-name"] = instance.Spec.Name
+	newInstance.MachineDeploymentWorker.Spec.Template.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.InfrastructureRef.Name = instance.Spec.Name + "-worker-a"
+	newInstance.MachineDeploymentWorker.Spec.Template.Spec.ClusterName = instance.Spec.Name
 
-	newInstance.PacketCluster.ObjectMeta.Name = instance.Name
+	newInstance.PacketCluster.ObjectMeta.Name = instance.Spec.Name
 	newInstance.PacketCluster.ObjectMeta.Namespace = namespace
 	newInstance.PacketCluster.ObjectMeta.Annotations = map[string]string{}
-	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.PacketCluster.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketCluster.Spec.ProjectID = common.GetPacketProjectID()
-	newInstance.PacketCluster.Spec.Facility = instance.Facility
+	newInstance.PacketCluster.Spec.Facility = instance.Spec.Facility
 
-	newInstance.Cluster.ObjectMeta.Name = instance.Name
+	newInstance.Cluster.ObjectMeta.Name = instance.Spec.Name
 	newInstance.Cluster.ObjectMeta.Namespace = namespace
 	newInstance.Cluster.ObjectMeta.Annotations = map[string]string{}
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"] = instance.Setup.Timezone
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-fullname"] = instance.Setup.Fullname
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-email"] = instance.Setup.Email
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-baseDNSName"] = instance.Setup.BaseDNSName
-	envJSON, err := json.Marshal(instance.Setup.Env)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return err, newInstance
-	}
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-env"] = string(envJSON)
-	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
-	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Name + "-control-plane"
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
+	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Spec.Name
+	newInstance.Cluster.Spec.ControlPlaneRef.Name = instance.Spec.Name + "-control-plane"
 
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Name = instance.Spec.Name + "-worker-a"
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Namespace = namespace
 	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations = map[string]string{}
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.KubeadmConfigTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
 
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Name + "-worker-a"
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Name = instance.Spec.Name + "-worker-a"
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Namespace = namespace
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations = map[string]string{}
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
-	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
+	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-instance"] = string(instanceBytes)
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = instanceDefaultNodeSize
 

@@ -42,21 +42,26 @@ type Endpoints []struct {
 	HttpMethods  []string
 }
 
+type User struct {
+	Name     string `json:"name"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+}
+
 // SetupSpec ...
 // fields for provisioning an instance
 type SetupSpec struct {
-	User             string              `json:"user"`
-	Guests           []string            `json:"guests"`
+	User             User                `json:"user"`
+	Guests           []User              `json:"guests"`
 	Repos            []string            `json:"repos"`
 	Timezone         string              `json:"timezone"`
-	Fullname         string              `json:"fullname"`
-	Email            string              `json:"email"`
 	GitHubOAuthToken string              `json:"githubOAuthToken,omitempty"`
 	Env              []map[string]string `json:"env,omitempty"`
 	BaseDNSName      string              `json:"baseDNSName,omitempty"`
 
 	HumacsVersion string `json:"-"`
 	UserLowercase string `json:"-"`
+	GuestsJSON    string `json:"-"`
 }
 
 // MetaResponse ...
