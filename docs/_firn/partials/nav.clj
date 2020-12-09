@@ -1,4 +1,4 @@
 (defn nav
   [title subtitle]
-  [:header
-   [:a {:href "/"} title [:sup subtitle]]])
+  [:nav
+   [:a.title {:href "/"} title [:sup subtitle]]])
