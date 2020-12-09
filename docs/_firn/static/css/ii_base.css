@@ -1,0 +1,53 @@
+body {
+    font-family: 'Manrope';
+    font-size: 20px;
+}
+
+main {
+    display: grid;
+    grid-template-columns: minmax(200px, 300px) 1fr;
+}
+
+nav {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+nav a.title {
+    font-size: 2.5rem;
+    color: unset;
+    text-decoration: none;
+}
+
+ul.firn-sitemap {
+    list-style-type: none;
+    padding-left: 0;
+    margin-left: 2rem;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2.25rem;
+    margin-bottom: 2.75rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+span.firn-img-with-caption {
+    max-width: 100%;
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+span.firn-img-with-caption img {
+    max-width: 100%;
+    margin: auto;
+    border: 1px solid darkgray;
+}
