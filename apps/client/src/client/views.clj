@@ -18,25 +18,6 @@
    [:pre {:id id} val]
    [:button {:id (str "copy-"id)} "&#128203;"]])
 
-(defn login
-  [user]
-  (layout
-   [:main
-    [:header
-     [:h2 "Login"]]
-    [:nav#login-options
-     [:ul
-      [:li
-       [:a.button.action {:href (loginURL false)}"login"]
-       [:em.helper "Login with minimal github permissions. We request access to your org and emails, to see if you are a permitted member and an admin member."]]
-      [:li
-       [:a.button.action.strong.long {:href (loginURL true)} "login with read/write"]
-       [:em.helper "Elevated permissions, with full read/write on any of your repos.  This permission is passed to the cluster, letting you easily push and pull from within it."]]
-      [:li
-       [:a.button.action.alert {:href "/logout"} "Logout"]
-       [:em.helper "Logout from sharing.io"]]]]]
-   user))
-
 (defn header
   [{:keys [avatar username permitted-member] :as user}]
   (if (and user (not (= username "guest")))
@@ -71,6 +52,26 @@
    [:body
     (header user)
     body]))
+
+(defn login
+  [user]
+  (layout
+   [:main
+    [:header
+     [:h2 "Login"]]
+    [:nav#login-options
+     [:ul
+      [:li
+       [:a.button.action {:href (loginURL false)}"login"]
+       [:em.helper "Login with minimal github permissions. We request access to your org and emails, to see if you are a permitted member and an admin member."]]
+      [:li
+       [:a.button.action.strong.long {:href (loginURL true)} "login with read/write"]
+       [:em.helper "Elevated permissions, with full read/write on any of your repos.  This permission is passed to the cluster, letting you easily push and pull from within it."]]
+      [:li
+       [:a.button.action.alert {:href "/logout"} "Logout"]
+       [:em.helper "Logout from sharing.io"]]]]]
+   user))
+
 
 (defn splash
   [{:keys [permitted-member] :as user}]
