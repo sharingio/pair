@@ -26,5 +26,6 @@ unzip -qqo "firn-$latest_release-$platform.zip"
 chmod +x firn
 rm "firn-$latest_release-$platform.zip"
 # mv firn /usr/local/bin
-
-echo "Installed Firn to usr/local/bin"
+echo "Building site now"
+./firn build
+echo "Built! well done"
