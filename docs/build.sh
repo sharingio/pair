@@ -10,7 +10,7 @@ echo "BEGINNING!"
 # default_install_dir="/usr/local/bin"
 # install_dir=$default_install_dir
 # download_dir=/tmp
-# latest_release="$(curl -sL https://raw.githubusercontent.com/theiceshelf/firn/master/clojure/resources/FIRN_VERSION)"
+latest_release="$(curl -sL https://raw.githubusercontent.com/theiceshelf/firn/master/clojure/resources/FIRN_VERSION)"
 
 case "$(uname -s)" in
     Linux*)     platform=linux;;
