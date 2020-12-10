@@ -675,9 +675,32 @@ EOF`,
 						"apt-key fingerprint 0EBFCD88",
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo git",
+						`cat <<EOF | tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF | tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sysctl --system
+`,
+						"mkdir -p /etc/containerd",
+						"rm /etc/containerd/config.toml",
+						"systemctl restart containerd",
+						"export CONTAINER_RUNTIME_ENDPOINT=/var/run/containerd/containerd.sock",
+						"echo $HOME",
+						"export HOME=$(getent passwd $(id -u) | cut -d ':' -f6)",
 						`cat <<EOF > /etc/docker/daemon.json
 {
+  "storage-driver": "overlay2",
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "containerd-namespace": "k8s.io",
+  "containerd-plugins-namespace": "k8s.io",
   "log-driver": "json-file",
   "log-opts": {
     "max-size": "500m",
@@ -688,6 +711,12 @@ EOF`,
 						"systemctl daemon-reload",
 						"systemctl enable docker",
 						"systemctl start docker",
+						`
+until systemctl status docker; do
+  echo "Docker not ready"
+  sleep 1s
+done
+`,
 						"chgrp users /var/run/docker.sock",
 						"ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo",
 					},
@@ -1257,11 +1286,39 @@ EOF
 							"apt-key fingerprint 0EBFCD88",
 							"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 							"apt-get update -y",
-							"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl",
+							"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo git",
+							`cat <<EOF > /etc/docker/daemon.json
+{
+  "containerd-namespace": "k8s.io",
+  "containerd-plugins-namespace": "k8s.io",
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "500m",
+    "max-file": "3"
+  }
+}
+EOF`,
 							"systemctl daemon-reload",
 							"systemctl enable docker",
 							"systemctl start docker",
 							"chgrp users /var/run/docker.sock",
+							`cat <<EOF | tee /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+EOF
+modprobe overlay
+modprobe br_netfilter
+cat <<EOF | tee /etc/sysctl.d/99-kubernetes-cri.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+EOF
+sysctl --system
+`,
+							"mkdir -p /etc/containerd",
+							"rm /etc/containerd/config.toml",
+							"systemctl restart containerd",
+							"export CONTAINER_RUNTIME_ENDPOINT=/var/run/containerd/containerd.sock",
 						},
 						JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 							NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
