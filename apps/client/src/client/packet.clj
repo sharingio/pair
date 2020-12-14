@@ -87,7 +87,7 @@
 
 (defn get-sites
   [ingresses]
-  (let [items (-> ingresses  :spec :items)
+  (let [items (-> ingresses  :list :items)
         rules (mapcat #(map :host (-> % :spec :rules)) items)
         tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
     (map (fn [addr]
@@ -147,8 +147,8 @@
      :kubeconfig (-> kubeconfig :spec)
      :tmate-ssh (-> tmate-ssh :spec)
      :tmate-web (-> tmate-web :spec)
-     :ingresses (-> ingresses :spec)
-     :sites (get-sites (-> ingresses :spec))
+     :ingresses (-> ingresses :list)
+     :sites (get-sites ingresses)
      :created-at created-at
      :age (if (nil? created-at) nil (relative-age created-at))}))
 
