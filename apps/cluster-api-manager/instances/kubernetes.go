@@ -1049,7 +1049,9 @@ EOF
             --set-string extraEnvVars[4].value="{{ $.Setup.BaseDNSName }}" \
             --set extraEnvVars[5].name="GITHUB_TOKEN" \
             --set-string extraEnvVars[5].value="{{ $.Setup.GitHubOAuthToken }}" \
-      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}{{ $newIndex := add $index 6 }}
+            --set extraEnvVars[6].name="SHARINGIO_PAIR_GUEST_NAMES" \
+            --set-string extraEnvVars[6].value="{{ $.Setup.GuestsNamesFlat }}" \
+      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}{{ $newIndex := add $index 7 }}
             --set extraEnvVars[{{ $newIndex }}].name='{{ $key }}' \
             --set-string extraEnvVars[{{ $newIndex }}].value='{{ $value }}' \{{ end }}{{ end }}{{- end }}
             --set options.preinitScript='(
@@ -1062,8 +1064,10 @@ EOF
 
 
 
-Co-Authored-By: ${COAUTHOR_NAME:-Pair is Sharing} <${COAUTHOR_EMAIL:-pair@sharing.io}>
 EOF
+              for GUEST_NAME in $SHARINGIO_PAIR_GUEST_NAMES; do
+                echo "Co-Authored-By: $GUEST_NAME <$GUEST_NAME@users.noreply.github.com>" >> $HOME/.git-commit-template
+              done
               git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
                 git clone --depth=1 git://github.com/sharingio/.sharing.io
               (
@@ -1377,6 +1381,7 @@ sysctl --system
 	instance.NodeSize = instanceDefaultNodeSize
 	instance.Setup.HumacsVersion = GetHumacsVersion()
 	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
+	instance.Setup.GuestsNamesFlat = strings.Join(instance.Setup.Guests, " ")
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace

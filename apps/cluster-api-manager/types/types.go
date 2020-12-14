@@ -55,8 +55,9 @@ type SetupSpec struct {
 	Env              []map[string]string `json:"env,omitempty"`
 	BaseDNSName      string              `json:"baseDNSName,omitempty"`
 
-	HumacsVersion string `json:"-"`
-	UserLowercase string `json:"-"`
+	GuestsNamesFlat string `json:"-"`
+	HumacsVersion   string `json:"-"`
+	UserLowercase   string `json:"-"`
 }
 
 // MetaResponse ...
