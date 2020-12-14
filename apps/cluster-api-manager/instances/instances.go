@@ -14,7 +14,7 @@ import (
 // ensure an Instance is valid
 func ValidateInstance(instance InstanceSpec) (err error) {
 	fmt.Println(instance)
-	if common.ValidateName(instance.Name) == false {
+	if common.ValidateName(instance.Name) == false && instance.Name != "" {
 		return fmt.Errorf("Invalid instance name '%v'", instance.Name)
 	}
 	if instance.Type == "" ||
