@@ -675,7 +675,9 @@ EOF`,
 						"apt-key fingerprint 0EBFCD88",
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo git",
+						fmt.Sprintf(`TRIMMED_KUBERNETES_VERSION=$(echo %s | sed 's/\./\\./g' | sed 's/^v//')`, defaultKubernetesVersion),
+						"RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION} '$1~ VERSION { print $1 }' | head -n1)",
+						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION} kubectl=${RESOLVED_KUBERNETES_VERSION} ssh-import-id dnsutils kitty-terminfo git",
 						`cat <<EOF | tee /etc/modules-load.d/containerd.conf
 overlay
 br_netfilter
