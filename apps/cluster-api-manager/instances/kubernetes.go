@@ -752,26 +752,26 @@ EOF
 )`,
 						"kubectl -n default get configmap sharingio-pair-init-complete && exit 0",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
-						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\"}'",
+						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\",\"loadbalancer-configmap\":\"kube-system:packet-cloud-config-loadbalancer\"}'",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
-						"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v2.0.0/deployment.yaml",
+						`
+kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v2.0.0/deployment.yaml
+cat << EOF | kubectl -n kube-system apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: packet-cloud-config-loadbalancer
+data:
+  config: |
+    disabled: true
+EOF
+`,
 						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
 						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
 						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
 						"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
 						"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
 						"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
-						`(
-          helm repo add nginx-ingress https://kubernetes.github.io/ingress-nginx;
-          kubectl create ns nginx-ingress;
-          helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx \
-            --set controller.service.externalTrafficPolicy=Local \
-            --set controller.service.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
-            --set controller.service.externalIPs[0]="{{ .controlPlaneEndpoint }}" \
-            --version 2.16.0
-          kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
-        )
-`,
 						"kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e \"s/strictARP: false/strictARP: true/\" | kubectl apply -f - -n kube-system",
 						`cat <<EOF > /root/metallb-system-config.yaml
 apiVersion: v1
@@ -794,6 +794,17 @@ export LOAD_BALANCER_IP="{{ .controlPlaneEndpoint }}"
           kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
           kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)";
           kubectl apply -f /root/metallb-system-config.yaml
+        )
+`,
+						`(
+          helm repo add nginx-ingress https://kubernetes.github.io/ingress-nginx;
+          kubectl create ns nginx-ingress;
+          helm install nginx-ingress -n nginx-ingress nginx-ingress/ingress-nginx \
+            --set controller.service.externalTrafficPolicy=Local \
+            --set controller.service.annotations."metallb\.universe\.tf\/allow-shared-ip"="nginx-ingress" \
+            --set controller.service.externalIPs[0]="{{ .controlPlaneEndpoint }}" \
+            --version 2.16.0
+          kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
         )
 `,
 						`(
