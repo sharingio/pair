@@ -1369,7 +1369,12 @@ sysctl --system
 				Name:   "",
 				Labels: map[string]string{"io.sharing.pair": "instance"},
 			},
-			Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{},
+			Spec: clusterAPIPacketv1alpha3.PacketClusterSpec{
+				ControlPlaneEndpoint: clusterAPIv1alpha3.APIEndpoint{
+					Host: "sharing.io",
+					Port: 6443,
+				},
+			},
 		},
 		PacketMachineTemplateWorker: clusterAPIPacketv1alpha3.PacketMachineTemplate{
 			ObjectMeta: metav1.ObjectMeta{
