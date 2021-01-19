@@ -109,13 +109,15 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	if err != nil {
 		log.Printf("%#v\n", err)
 	} else {
-		item = &items.Items[0]
-		var itemRestructuredM clusterAPIv1alpha3.Machine
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredM)
-		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructuredM), Instance{}
+		if len(items.Items) > 0 {
+			item = &items.Items[0]
+			var itemRestructuredM clusterAPIv1alpha3.Machine
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredM)
+			if err != nil {
+				return fmt.Errorf("Failed to restructure %T", itemRestructuredM), Instance{}
+			}
+			instance.Status.Resources.MachineStatus = itemRestructuredM.Status
 		}
-		instance.Status.Resources.MachineStatus = itemRestructuredM.Status
 	}
 
 	//   - newInstance.PacketMachine
@@ -126,17 +128,19 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	if err != nil {
 		log.Printf("%#v\n", err)
 	} else {
-		item = &items.Items[0]
-		var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
-		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
-		}
-		log.Printf("%#v\n", itemRestructuredPM.Spec)
-		var providerID string = *itemRestructuredPM.Spec.ProviderID
-		providerIDSplit := strings.Split(providerID, "/")
-		if len(providerIDSplit) == 3 {
-			instance.Status.Resources.PacketMachineUID = &providerIDSplit[2]
+		if len(items.Items) > 0 {
+			item = &items.Items[0]
+			var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
+			if err != nil {
+				return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
+			}
+			log.Printf("%#v\n", itemRestructuredPM.Spec)
+			var providerID string = *itemRestructuredPM.Spec.ProviderID
+			providerIDSplit := strings.Split(providerID, "/")
+			if len(providerIDSplit) == 3 {
+				instance.Status.Resources.PacketMachineUID = &providerIDSplit[2]
+			}
 		}
 	}
 
