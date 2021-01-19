@@ -1444,7 +1444,7 @@ sysctl --system
 	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24] = templatedBuffer.String()
 
 	fmt.Printf("\n\n\nTemplate name: powerdns%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("powerdns-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25])
+	tmpl, err = template.New(fmt.Sprintf("powerdns-%s-%v", instance.Name, time.Now().Unix())).Funcs(TemplateFuncMap()).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25])
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
