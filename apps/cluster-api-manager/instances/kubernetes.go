@@ -752,7 +752,7 @@ EOF
 )`,
 						"kubectl -n default get configmap sharingio-pair-init-complete && exit 0",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
-						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\",\"loadbalancer-configmap\":\"kube-system:packet-cloud-config-loadbalancer\"}'",
+						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\", \"eipTag\": \"cluster-api-provider-packet:cluster-id:{{ .InstanceName }}\"}'",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
 						`
 kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v2.0.0/deployment.yaml
