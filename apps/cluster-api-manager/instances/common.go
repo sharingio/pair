@@ -14,7 +14,7 @@ import (
 var (
 	instanceDefaultNodeSize          = "c1.small.x86"
 	instanceDefaultTimezone          = "Pacific/Auckland"
-	instanceDefaultHumacsVersion     = "2020.11.26"
+	instanceDefaultHumacsVersion     = "2020.01.20.2"
 	instanceDefaultKubernetesVersion = "1.20.0"
 )
 
