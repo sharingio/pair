@@ -46,6 +46,7 @@ build-cluster-api-manager-container:
   script:
     - |
         /kaniko/executor \
+        --snapshotMode=redo \
         --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
         --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
         --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
