@@ -33,7 +33,7 @@ variables:
 build-cluster-api-manager-container:
   stage: build
   image:
-    name: gcr.io/kaniko-project/executor:debug-v1.0.0
+    name: gcr.io/kaniko-project/executor:debug-v1.3.0
     entrypoint: [""]
   retry: 2
   variables:
