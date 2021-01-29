@@ -8,4 +8,10 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n tilt bash
     tmate -S $TMATE_SOCKET send-keys -t "tilt export DEFAULT_SUBDOMAIN_NAME=pair-dev && export SHARINGIO_PAIR_HOST=\"\$DEFAULT_SUBDOMAIN_NAME.$SHARINGIO_PAIR_BASE_DNS_NAME\"" Enter
     tmate -S $TMATE_SOCKET send-keys -t tilt "tilt up --host 0.0.0.0 --hud" Enter
+
+    if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
+        echo "[!] Initialising Cluster-API with the infrastucture provider for Packet"
+        tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n cluster-api-init bash
+        tmate -S $TMATE_SOCKET send-keys -t "clusterctl init --infrastructure packet" Enter
+    fi
 fi
