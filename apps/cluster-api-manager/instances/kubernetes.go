@@ -556,7 +556,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err)
+		return fmt.Errorf("Failed to delete KubeadmConfigTemplate, %#v", err)
 	}
 
 	//   - newInstance.PacketMachineTemplateWorker
@@ -566,7 +566,17 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), fmt.Sprintf("%s-worker-a", name), metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err)
+		return fmt.Errorf("Failed to delete PacketMachineTemplateWorker, %#v", err)
+	}
+
+	//   - newInstance.PacketMachine
+	groupVersion = clusterAPIv1alpha3.GroupVersion
+	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
+	log.Printf("%#v\n", groupVersionResource)
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to delete PacketMachine, %#v", err)
 	}
 
 	//   - newInstance.Machine
@@ -576,7 +586,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketMachine, %#v", err)
+		return fmt.Errorf("Failed to delete PacketMachine, %#v", err)
 	}
 
 	//   - newInstance.Cluster
@@ -586,7 +596,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create Cluster, %#v", err)
+		return fmt.Errorf("Failed to delete Cluster, %#v", err)
 	}
 	err = nil
 
@@ -759,12 +769,20 @@ EOF
 						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\"}'",
 						"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v2.0.0/deployment.yaml",
 						"kubectl taint node --all node-role.kubernetes.io/master-",
-						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
-						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/setup.yaml",
-						"kubectl apply -f https://github.com/packethost/csi-packet/raw/master/deploy/kubernetes/controller.yaml",
+						"kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml",
+						`kubectl patch storageclasses.storage.k8s.io local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`,
 						"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.0.1/cert-manager.yaml",
 						"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
 						"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
+						`
+helm repo add fluxcd https://charts.fluxcd.io
+kubectl apply -f https://raw.githubusercontent.com/fluxcd/helm-operator/1.2.0/deploy/crds.yaml
+helm upgrade -i helm-operator --create-namespace fluxcd/helm-operator \
+    --namespace helm-operator \
+    --set helm.versions=v3
+
+kubectl apply -f https://raw.githubusercontent.com/alexellis/registry-creds/master/manifest.yaml
+`,
 						"kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e \"s/strictARP: false/strictARP: true/\" | kubectl apply -f - -n kube-system",
 						`cat <<EOF > /root/metallb-system-config.yaml
 apiVersion: v1
