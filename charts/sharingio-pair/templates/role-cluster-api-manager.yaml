@@ -31,7 +31,7 @@ rules:
   - apiGroups:
       - "infrastructure.cluster.x-k8s.io"
     resources:
-      - packetmachine
+      - packetmachines
     verbs:
       - deletecollection
   - apiGroups:
