@@ -824,7 +824,7 @@ export LOAD_BALANCER_IP="{{ .controlPlaneEndpoint }}"
 )`,
 						`(
   kubectl create ns external-dns
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/master/docs/contributing/crd-source/crd-manifest.yaml
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/a143a6cd59177f1f72e2f173bc5cfdbe8d723157/docs/contributing/crd-source/crd-manifest.yaml
   kubectl -n external-dns create secret generic external-dns-pdns \
     --from-literal=domain-filter={{ $.Setup.BaseDNSName }} \
     --from-literal=txt-owner-id={{ $.Setup.User }} \
