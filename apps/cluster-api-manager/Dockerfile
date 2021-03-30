@@ -15,7 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH="$GOARCH" go build \
     -X github.com/sharingio/pair/common.AppBuildHash=$AppBuildHash \
     -X github.com/sharingio/pair/common.AppBuildDate=$AppBuildDate \
     -X github.com/sharingio/pair/common.AppBuildMode=$AppBuildMode" \
-  -o cluster-api-manager \
+  -o bin/cluster-api-manager \
   main.go
 
 FROM alpine:3.11 as extras
@@ -24,12 +24,12 @@ RUN adduser -D user
 
 FROM scratch
 WORKDIR /app
-ENV PATH=/app
-COPY --from=api /app/cluster-api-manager .
+ENV PATH=/app/bin
+COPY --from=api /app/bin/cluster-api-manager /app/bin/cluster-api-manager
 COPY --from=extras /etc/passwd /etc/passwd
 COPY --from=extras /etc/group /etc/group
 COPY --from=extras /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=extras /etc/ssl /etc/ssl
 EXPOSE 8080
 USER user
-ENTRYPOINT ["/app/cluster-api-manager"]
+ENTRYPOINT ["/app/bin/cluster-api-manager"]
