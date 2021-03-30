@@ -2,7 +2,7 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "sharingio-pair.fullname" . }}
+  name: {{ include "sharingio-pair.fullname" . }}-clusterapimanager
   labels:
     app: clusterapimanager
     app.kubernetes.io/part-of: sharingio-pair
@@ -11,7 +11,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "sharingio-pair.fullname" . }}
+    name: {{ include "sharingio-pair.fullname" . }}-clusterapimanager
   minReplicas: {{ .Values.clusterapimanager.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.clusterapimanager.autoscaling.maxReplicas }}
   metrics:
