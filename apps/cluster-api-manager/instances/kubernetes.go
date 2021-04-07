@@ -1118,6 +1118,7 @@ spec:
       timezone: {{ $.Setup.Timezone }}
       gitName: {{ $.Setup.Fullname }}
       gitEmail: {{ $.Setup.Email }}
+      profile: ""
       repos:
         {{ range $.Setup.Repos}}- {{ . }}
         {{ end }}
