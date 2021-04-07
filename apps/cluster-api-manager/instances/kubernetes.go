@@ -1177,38 +1177,6 @@ spec:
         mountPath: /home/ii
 EOF
 
-kubectl -n "{{ $.Setup.UserLowercase }}" apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: humacs-tilt
-spec:
-  ports:
-    - name: http
-      port: 10350
-      targetPort: 10350
-  selector:
-    app.kubernetes.io/name: humacs
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: humacs-tilt
-spec:
-  tls:
-    - hosts:
-        - "tilt.{{ $.Setup.BaseDNSName }}"
-      secretName: letsencrypt-prod
-  rules:
-  - host: "tilt.{{ $.Setup.BaseDNSName }}"
-    http:
-      paths:
-      - backend:
-          serviceName: humacs-tilt
-          servicePort: 10350
-        path: /
-EOF
-
 export BASE_DNS_NAME={{ $.Setup.BaseDNSName }}
 `,
 						`
