@@ -14,9 +14,16 @@ import (
 var (
 	instanceDefaultNodeSize          = "c1.small.x86"
 	instanceDefaultTimezone          = "Pacific/Auckland"
-	instanceDefaultHumacsVersion     = "2021.04.08-1"
+	instanceDefaultHumacsRepository  = "registry.gitlab.com/humacs/humacs/ii"
+	instanceDefaultHumacsVersion     = "2021.04.16"
 	instanceDefaultKubernetesVersion = "1.20.4"
 )
+
+// GetHumacsRepository ...
+// get the container repository of where humacs is
+func GetHumacsRepository() string {
+	return common.GetEnvOrDefault("APP_HUMACS_VERSION", instanceDefaultHumacsVersion)
+}
 
 // GetHumacsVersion ...
 // get the version to deploy of the Humacs container

@@ -1110,7 +1110,7 @@ spec:
     path: chart/humacs
   values:
     image:
-      repository: registry.gitlab.com/humacs/humacs/ii
+      repository: {{ $.Setup.HumacsRepository }}
       tag: {{ $.Setup.HumacsVersion }}
     options:
       hostDockerSocket: true
