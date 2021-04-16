@@ -22,7 +22,7 @@ var (
 // GetHumacsRepository ...
 // get the container repository of where humacs is
 func GetHumacsRepository() string {
-	return common.GetEnvOrDefault("APP_HUMACS_VERSION", instanceDefaultHumacsVersion)
+	return common.GetEnvOrDefault("APP_HUMACS_REPOSITORY", instanceDefaultHumacsRepository)
 }
 
 // GetHumacsVersion ...
