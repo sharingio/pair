@@ -3,21 +3,21 @@
 # Declare variables to be passed into your templates.
 
 sessionSecret: ""
-
 githubOAuth:
   id: ""
   secret: ""
-
 equinixMetal:
   projectID: ""
-
 aws:
   accessKeyID: ""
   secretAccessKey: ""
-
 targetNamespace: ""
-
 timezone: Pacific/Auckland
+
+instance:
+  kubernetesVersion: ""
+  humacsVersion: ""
+  humacsRepository: ""
 
 imagePullSecrets: []
 

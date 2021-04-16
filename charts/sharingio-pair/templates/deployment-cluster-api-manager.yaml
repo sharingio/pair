@@ -57,6 +57,18 @@ spec:
               value: {{ include "sharingio-pair.fullname" . }}
             - name: TZ
               value: {{ .Values.timezone }}
+            {{- if .Values.instance.humacsVersion }}
+            - name: APP_HUMACS_VERSION
+              value: {{ .Values.instance.humacsVersion
+            {{- end }}
+            {{- if .Values.instance.humacsRepository }}
+            - name: APP_HUMACS_REPOSITORY
+              value: {{ .Values.instance.humacsRepository
+            {{- end }}
+            {{- if .Values.instance.kubernetesVersion }}
+            - name: APP_KUBERNETES_VERSION
+              value: {{ .Values.instance.kubernetesVersion }}
+            {{- end }}
             {{- if .Values.clusterapimanager.extraEnv }}
             {{- toYaml .Values.clusterapimanager.extraEnv | nindent 12 }}
             {{- end }}
