@@ -1,6 +1,7 @@
 stages:
   - lint
   - build
+  - deploy
 
 variables:
   APP_BUILD_VERSION: 0.0.0
@@ -95,3 +96,37 @@ lint_cluster-api-manager:
     - go get -u golang.org/x/lint/golint
   script:
     - golint -set_exit_status ./apps/cluster-api-manager/...
+
+deploy:
+  stage: deploy
+  image:
+    name: alpine:3.12
+    entrypoint: [""]
+  variables:
+    KUBECTL_VERSION: v1.20.2
+    KUBECTL_HASH: 2583b1c9fbfc5443a722fb04cf0cc83df18e45880a2cf1f6b52d9f595c5beb88
+    MANIFEST_FOLDER: $CI_PROJECT_DIR/manifests
+  before_script:
+    - export $(cat $CI_PROJECT_DIR/.env | xargs)
+    - apk add --no-cache curl gettext
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl
+    - echo "$KUBECTL_HASH  kubectl" | sha256sum -c -
+    - chmod +x kubectl
+    - mv kubectl /usr/local/bin/kubectl
+    - mkdir -p $HOME/.kube
+    - echo ${KUBECONFIG_FROM_ENV} | base64 -d > $HOME/.kube/config
+    - cd $MANIFEST_FOLDER
+    - export SHARINGIO_PAIR_TAG=$CI_COMMIT_TAG
+  script:
+    - |
+        for MANIFEST in $MANIFEST_FOLDER/*; do
+          if cat $MANIFEST | grep -q ci-sa:noapply=true; then
+            continue
+          fi
+          envsubst < $MANIFEST | kubectl apply -f -
+        done
+  only:
+    refs:
+      - tags
+    variables:
+      - $KUBECONFIG_FROM_ENV

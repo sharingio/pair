@@ -1,0 +1,14 @@
+#ci-sa:noapply=true
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: sharingio-pair-ci
+  namespace: sharingio-pair
+subjects:
+- kind: ServiceAccount
+  name: sharingio-pair-ci
+  namespace: sharingio-pair
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sharingio-pair-ci

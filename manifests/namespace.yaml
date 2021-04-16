@@ -1,0 +1,5 @@
+#ci-sa:noapply=true
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sharingio-pair

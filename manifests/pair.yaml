@@ -1,0 +1,39 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: sharingio-pair
+spec:
+  releaseName: sharingio-pair
+  chart:
+    git: https://github.com/sharingio/pair.git
+    ref: ${SHARINGIO_PAIR_TAG}
+    path: charts/sharingio-pair
+  values:
+    instance:
+      kubernetesVersion: 1.21.0
+      humacsVersion: 2021.04.16
+    sessionSecret: pairpairpairpair
+    githubOAuth:
+      id: ${SHARINGIO_PAIR_GITHUB_OAUTH_ID}
+      secret: ${SHARINGIO_PAIR_GITHUB_OAUTH_SECRET}
+    equinixMetal:
+      projectID: ${SHARINGIO_PAIR_EQUINIX_METAL_PROJECT_ID}
+    clusterapimanager:
+      autoscaling:
+        enabled: true
+        minReplicas: 2
+      resources:
+        requests:
+          cpu: 250m
+          memory: 250Mi
+        limits:
+          cpu: 250m
+          memory: 250Mi
+    ingress:
+      enabled: true
+      certmanager:
+        enabled: true
+      hosts:
+        - host: ${SHARINGIO_PAIR_HOST}
+          paths:
+            - /
