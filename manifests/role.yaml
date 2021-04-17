@@ -10,5 +10,7 @@ rules:
   resources:
   - 'helmreleases'
   verbs:
+  - get
+  - list
   - update
   - patch
