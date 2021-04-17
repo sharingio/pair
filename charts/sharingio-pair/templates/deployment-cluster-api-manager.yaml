@@ -59,11 +59,11 @@ spec:
               value: {{ .Values.timezone }}
             {{- if .Values.instance.humacsVersion }}
             - name: APP_HUMACS_VERSION
-              value: {{ .Values.instance.humacsVersion
+              value: {{ .Values.instance.humacsVersion }}
             {{- end }}
             {{- if .Values.instance.humacsRepository }}
             - name: APP_HUMACS_REPOSITORY
-              value: {{ .Values.instance.humacsRepository
+              value: {{ .Values.instance.humacsRepository }}
             {{- end }}
             {{- if .Values.instance.kubernetesVersion }}
             - name: APP_KUBERNETES_VERSION
