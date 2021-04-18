@@ -18,7 +18,12 @@ spec:
       secret: ${SHARINGIO_PAIR_GITHUB_OAUTH_SECRET}
     equinixMetal:
       projectID: ${SHARINGIO_PAIR_EQUINIX_METAL_PROJECT_ID}
+    client:
+      image:
+        tag: ${SHARINGIO_PAIR_TAG}
     clusterapimanager:
+      image:
+        tag: ${SHARINGIO_PAIR_TAG}
       autoscaling:
         enabled: true
         minReplicas: 2
