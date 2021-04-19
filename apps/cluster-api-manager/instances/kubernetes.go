@@ -608,6 +608,13 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
+	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
+	instance.NodeSize = instanceDefaultNodeSize
+	instance.Setup.HumacsVersion = GetHumacsVersion()
+	instance.Setup.HumacsRepository = GetHumacsRepository()
+	instance.Setup.KubernetesVersion = GetKubernetesVersion()
+	instance = UpdateInstanceSpecIfEnvOverrides(instance)
+
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1435,12 +1442,6 @@ sysctl --system
 			},
 		},
 	}
-	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
-	instance.NodeSize = instanceDefaultNodeSize
-	instance.Setup.HumacsVersion = GetHumacsVersion()
-	instance.Setup.HumacsRepository = GetHumacsRepository()
-	instance.Setup.KubernetesVersion = GetKubernetesVersion()
-	instance = UpdateInstanceSpecIfEnvOverrides(instance)
 	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
 	instance.Setup.GuestsNamesFlat = strings.Join(instance.Setup.Guests, " ")
 	newInstance = defaultKubernetesClusterConfig
