@@ -17,7 +17,7 @@ timezone: Pacific/Auckland
 instance:
   kubernetesVersion: ""
   humacsVersion: ""
-  humacsRepository: ""
+  humacsRepository: registry.gitlab.com/humacs/humacs/ii
 
 imagePullSecrets: []
 

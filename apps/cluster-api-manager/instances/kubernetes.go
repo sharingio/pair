@@ -608,8 +608,6 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
-	defaultKubernetesVersion := GetKubernetesVersion()
-
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -617,7 +615,7 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 				Labels: map[string]string{"io.sharing.pair": "instance"},
 			},
 			Spec: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneSpec{
-				Version:  defaultKubernetesVersion,
+				Version:  instance.Setup.KubernetesVersion,
 				Replicas: Int32ToInt32Pointer(1),
 				InfrastructureTemplate: corev1.ObjectReference{
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
@@ -691,7 +689,7 @@ EOF`,
 						"apt-key fingerprint 0EBFCD88",
 						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
 						"apt-get update -y",
-						fmt.Sprintf(`TRIMMED_KUBERNETES_VERSION=$(echo %s | sed 's/\./\\./g' | sed 's/^v//')`, defaultKubernetesVersion),
+						fmt.Sprintf(`TRIMMED_KUBERNETES_VERSION=$(echo %s | sed 's/\./\\./g' | sed 's/^v//')`, instance.Setup.KubernetesVersion),
 						"RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION} '$1~ VERSION { print $1 }' | head -n1)",
 						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION} kubectl=${RESOLVED_KUBERNETES_VERSION} ssh-import-id dnsutils kitty-terminfo git",
 						`cat <<EOF | tee /etc/modules-load.d/containerd.conf
@@ -1311,7 +1309,7 @@ EOF
 						},
 					},
 					Spec: clusterAPIv1alpha3.MachineSpec{
-						Version:     &defaultKubernetesVersion,
+						Version:     &instance.Setup.KubernetesVersion,
 						ClusterName: "",
 						Bootstrap: clusterAPIv1alpha3.Bootstrap{
 							ConfigRef: &corev1.ObjectReference{
@@ -1440,6 +1438,9 @@ sysctl --system
 	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
 	instance.NodeSize = instanceDefaultNodeSize
 	instance.Setup.HumacsVersion = GetHumacsVersion()
+	instance.Setup.HumacsRepository = GetHumacsRepository()
+	instance.Setup.KubernetesVersion = GetKubernetesVersion()
+	instance = UpdateInstanceSpecIfEnvOverrides(instance)
 	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
 	instance.Setup.GuestsNamesFlat = strings.Join(instance.Setup.Guests, " ")
 	newInstance = defaultKubernetesClusterConfig
@@ -2078,4 +2079,17 @@ pollInstanceNamespace:
 		log.Printf("%#v\n", err)
 	}
 	return err
+}
+
+// UpdateInstanceSpecIfEnvOverrides ...
+// allow overrides from instance.Setup.Env to set fields in instance
+// this way is a quick way to test new fields for new instances, but ideally these fields will be written by the client
+func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
+	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.NodeSize)
+	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
+	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
+	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
+	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
+	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
+	return instance
 }

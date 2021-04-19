@@ -144,3 +144,12 @@ func ValidateName(input string) bool {
 	re := regexp.MustCompile(`^([a-z0-9]([-a-z0-9]*[a-z0-9])?([a-z0-9]([-a-z0-9]*[a-z0-9])?)*)$`)
 	return re.MatchString(input)
 }
+
+// ReturnValueOrDefault ...
+// returns first string is not empty, otherwise returns second
+func ReturnValueOrDefault(first string, second string) string {
+	if first != "" {
+		return first
+	}
+	return second
+}
