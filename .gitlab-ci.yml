@@ -107,7 +107,6 @@ deploy:
     KUBECTL_HASH: 2583b1c9fbfc5443a722fb04cf0cc83df18e45880a2cf1f6b52d9f595c5beb88
     MANIFEST_FOLDER: $CI_PROJECT_DIR/manifests
   before_script:
-    - export $(cat $CI_PROJECT_DIR/.env | xargs)
     - apk add --no-cache curl gettext
     - curl -LO https://storage.googleapis.com/kubernetes-release/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl
     - echo "$KUBECTL_HASH  kubectl" | sha256sum -c -
