@@ -45,21 +45,21 @@ type Endpoints []struct {
 // SetupSpec ...
 // fields for provisioning an instance
 type SetupSpec struct {
-	User             string              `json:"user"`
-	Guests           []string            `json:"guests"`
-	Repos            []string            `json:"repos"`
-	Timezone         string              `json:"timezone"`
-	Fullname         string              `json:"fullname"`
-	Email            string              `json:"email"`
-	GitHubOAuthToken string              `json:"githubOAuthToken,omitempty"`
-	Env              []map[string]string `json:"env,omitempty"`
-	BaseDNSName      string              `json:"baseDNSName,omitempty"`
+	User              string              `json:"user"`
+	Guests            []string            `json:"guests"`
+	Repos             []string            `json:"repos"`
+	Timezone          string              `json:"timezone"`
+	Fullname          string              `json:"fullname"`
+	Email             string              `json:"email"`
+	GitHubOAuthToken  string              `json:"githubOAuthToken,omitempty"`
+	Env               []map[string]string `json:"env,omitempty"`
+	BaseDNSName       string              `json:"baseDNSName,omitempty"`
+	KubernetesVersion string              `json:"kubernetesVersion,omitempty"`
 
-	GuestsNamesFlat   string `json:"-"`
-	HumacsRepository  string `json:"-"`
-	HumacsVersion     string `json:"-"`
-	UserLowercase     string `json:"-"`
-	KubernetesVersion string `json:"-"`
+	GuestsNamesFlat  string `json:"-"`
+	HumacsRepository string `json:"-"`
+	HumacsVersion    string `json:"-"`
+	UserLowercase    string `json:"-"`
 }
 
 // MetaResponse ...

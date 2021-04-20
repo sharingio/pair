@@ -608,8 +608,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
-	instanceDefaultNodeSize := GetInstanceDefaultNodeSize()
-	instance.NodeSize = instanceDefaultNodeSize
+	instance.NodeSize = GetInstanceDefaultNodeSize()
 	instance.Setup.HumacsVersion = GetHumacsVersion()
 	instance.Setup.HumacsRepository = GetHumacsRepository()
 	instance.Setup.KubernetesVersion = GetKubernetesVersion()
@@ -1548,7 +1547,7 @@ sysctl --system
 	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
 	newInstance.PacketMachineTemplate.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
 	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = instanceDefaultNodeSize
+	newInstance.PacketMachineTemplate.Spec.Template.Spec.MachineType = instance.NodeSize
 
 	newInstance.MachineDeploymentWorker.ObjectMeta.Name = instance.Name + "-worker-a"
 	newInstance.MachineDeploymentWorker.ObjectMeta.Namespace = namespace
@@ -1609,7 +1608,7 @@ sysctl --system
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
 	newInstance.PacketMachineTemplateWorker.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
 	// TODO default value configuration scope - deployment based configuration
-	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = instanceDefaultNodeSize
+	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = instance.NodeSize
 
 	return err, newInstance
 }
