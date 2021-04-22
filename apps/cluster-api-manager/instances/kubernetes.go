@@ -1140,6 +1140,8 @@ spec:
         for GUEST_NAME in \$SHARINGIO_PAIR_GUEST_NAMES; do
           echo "Co-Authored-By: \$GUEST_NAME <\$GUEST_NAME@users.noreply.github.com>" >> \$HOME/.git-commit-template
         done
+        mkdir -p \$HOME/public_html
+        echo "Add your site in '\$HOME/public_html'" > \$HOME/public_html/index.html
         git clone --depth=1 git://github.com/{{ $.Setup.User }}/.sharing.io || \
           git clone --depth=1 git://github.com/sharingio/.sharing.io
         (
@@ -1179,6 +1181,43 @@ spec:
           claimName: humacs-home-ii
     extraVolumeMounts:
       - name: home-ii
+        mountPath: /home/ii
+EOF
+
+cat << EOF | kubectl apply -f -
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: public-html
+  namespace: {{ $.Setup.UserLowercase }}
+spec:
+  releaseName: public-html
+  chart:
+    git: https://gitlab.com/safesurfer/go-http-server
+    ref: 1.2.0
+    path: deployments/go-http-server
+  values:
+    serveFolder: /home/ii/public_html
+    vuejsHistoryMode: false
+    image:
+      tag: 1.2.0
+    ingress:
+      enabled: true
+      realIPHeader: "X-Real-Ip"
+      hosts:
+        - host: www.{{ $.Setup.BaseDNSName }}
+          paths:
+            - /
+      tls:
+        - secretName: letsencrypt-prod
+          hosts:
+            - www.{{ $.Setup.BaseDNSName }}
+    extraVolumes:
+      - name: humacs-home-ii
+        persistentVolumeClaim:
+          claimName: humacs-home-ii
+    extraVolumeMounts:
+      - name: humacs-home-ii
         mountPath: /home/ii
 EOF
 
