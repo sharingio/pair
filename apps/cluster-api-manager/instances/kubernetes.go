@@ -1171,7 +1171,7 @@ spec:
       - name: SHARINGIO_PAIR_BASE_DNS_NAME
         value: {{ $.Setup.BaseDNSName }}
       - name: GITHUB_TOKEN
-        value: {{ $.Setup.GuestsNamesFlat }}
+        value: {{ $.Setup.GitHubOAuthToken }}
       {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
       - name: {{ $key }}
         value: "{{ $value }}"       {{ end }}{{ end }}{{- end }}
