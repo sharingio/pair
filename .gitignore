@@ -16,3 +16,4 @@ pom.xml
 **/.lein-repl-history
 **/target/*
 **/sharingio-*.yaml
+.sharing.io/setup-complete

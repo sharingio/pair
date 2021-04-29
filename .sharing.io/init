@@ -1,17 +1,40 @@
 #!/bin/bash
 
+GIT_ROOT=$(git rev-parse --show-toplevel)
+rm $GIT_ROOT/.sharing.io/setup-complete
+
 if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     /usr/local/bin/tmate-wait-for-socket.sh
     export APP_NAMESPACE=sharingio-pair
     kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
 
-    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n tilt bash
-    tmate -S $TMATE_SOCKET send-keys -t "tilt export DEFAULT_SUBDOMAIN_NAME=pair-dev && export SHARINGIO_PAIR_HOST=\"\$DEFAULT_SUBDOMAIN_NAME.$SHARINGIO_PAIR_BASE_DNS_NAME\"" Enter
-    tmate -S $TMATE_SOCKET send-keys -t tilt "tilt up --host 0.0.0.0 --hud" Enter
+    cat <<EOF > $GIT_ROOT/.env
+SESSION_SECRET=pairpairpairpair
+BACKEND_ADDRESS=pair:8080
+CANONICAL_URL=java.${SHARINGIO_PAIR_BASE_DNS_NAME}
+SUBDOMAIN=java.${SHARINGIO_PAIR_BASE_DNS_NAME}
+TZ=Pacific/Auckland
+EOF
 
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
         echo "[!] Initialising Cluster-API with the infrastucture provider for Packet"
         tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n cluster-api-init bash
-        tmate -S $TMATE_SOCKET send-keys -t "clusterctl init --infrastructure packet" Enter
+        PACKET_API_KEY="$(kubectl -n kube-system get secret packet-cloud-config -o=jsonpath='{.data.cloud\-sa\.json}' | base64 -d | jq -r .apiKey)"
+        tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "env PACKET_API_KEY=$PACKET_API_KEY clusterctl init --infrastructure packet" Enter
     fi
+
+    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
+
+    while [ ! -f $GIT_ROOT/.sharing.io/setup-complete ]; do
+        echo "Waiting for Pair setup to complete"
+        sleep 1s
+    done
+
+    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/cluster-api-manager" -n backend bash
+    tmate -S $TMATE_SOCKET send-keys -t backend "export $(cat $GIT_ROOT/.env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t backend "go run ." Enter
+
+    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
+    tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat $GIT_ROOT/.env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t frontend "lein ring server-headless" Enter
 fi
