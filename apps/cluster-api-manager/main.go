@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 	"github.com/sharingio/pair/common"
 	"github.com/sharingio/pair/kubernetes"
@@ -86,5 +87,7 @@ func handleWebserver() {
 func main() {
 	// initialise the app
 	log.Printf("launching cluster-api-manager (%v, %v, %v, %v)\n", common.AppBuildVersion, common.AppBuildHash, common.AppBuildDate, common.AppBuildMode)
+	envFile := common.GetAppEnvFile()
+	_ = godotenv.Load(envFile)
 	handleWebserver()
 }

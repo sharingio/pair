@@ -39,6 +39,12 @@ func GetEnvOrDefault(envName string, defaultValue string) (output string) {
 	return output
 }
 
+// GetAppEnvFile ...
+// location of an env file to load
+func GetAppEnvFile() (output string) {
+	return GetEnvOrDefault("APP_ENV_FILE", ".env")
+}
+
 // GetAppPort ...
 // the port to bind to
 func GetAppPort() (output string) {
