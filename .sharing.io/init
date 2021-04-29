@@ -11,11 +11,14 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     cat <<EOF > $GIT_ROOT/.env
 SESSION_SECRET=pairpairpairpair
 BACKEND_ADDRESS=locahost:8080
-CANONICAL_URL=java.${SHARINGIO_PAIR_BASE_DNS_NAME}
-SUBDOMAIN=java.${SHARINGIO_PAIR_BASE_DNS_NAME}
+CANONICAL_URL=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+SUBDOMAIN=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 TZ=Pacific/Auckland
 
 APP_PORT=127.0.0.1:8080
+EOF
+    cat <<EOF > $GIT_ROOT/apps/client/.env
+SHARINGIO_PAIR_SET_HOSTNAME=pair
 EOF
 
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
@@ -38,5 +41,6 @@ EOF
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
     tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat $GIT_ROOT/.env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat .env | xargs)" Enter
     tmate -S $TMATE_SOCKET send-keys -t frontend "lein ring server-headless" Enter
 fi
