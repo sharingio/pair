@@ -10,10 +10,12 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
 
     cat <<EOF > $GIT_ROOT/.env
 SESSION_SECRET=pairpairpairpair
-BACKEND_ADDRESS=pair:8080
+BACKEND_ADDRESS=locahost:8080
 CANONICAL_URL=java.${SHARINGIO_PAIR_BASE_DNS_NAME}
 SUBDOMAIN=java.${SHARINGIO_PAIR_BASE_DNS_NAME}
 TZ=Pacific/Auckland
+
+APP_PORT=127.0.0.1:8080
 EOF
 
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
