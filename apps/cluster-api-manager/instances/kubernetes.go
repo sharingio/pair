@@ -1164,6 +1164,8 @@ spec:
         value: {{ $.Name }}
       - name: SHARINGIO_PAIR_USER
         value: {{ $.Setup.User }}
+      - name: SHARINGIO_PAIR_LOAD_BALANCER_IP
+        value: ${LOAD_BALANCER_IP}
       - name: HUMACS_DEBUG
         value: "true"
       - name: REINIT_HOME_FOLDER
@@ -1179,9 +1181,14 @@ spec:
       - name: home-ii
         persistentVolumeClaim:
           claimName: humacs-home-ii
+      - name: host
+        hostPath:
+          path: /
     extraVolumeMounts:
       - name: home-ii
         mountPath: /home/ii
+      - name: host
+        mountPath: /var/run/host
 EOF
 
 cat << EOF | kubectl apply -f -
@@ -1212,13 +1219,18 @@ spec:
         - secretName: letsencrypt-prod
           hosts:
             - www.{{ $.Setup.BaseDNSName }}
+    extraVolumeMounts:
+      - name: humacs-home-ii
+        mountPath: /home/ii
+      - name: host
+        mountPath: /var/run/host
     extraVolumes:
       - name: humacs-home-ii
         persistentVolumeClaim:
           claimName: humacs-home-ii
-    extraVolumeMounts:
-      - name: humacs-home-ii
-        mountPath: /home/ii
+      - name: host
+        hostPath:
+          path: /
 EOF
 
 export BASE_DNS_NAME={{ $.Setup.BaseDNSName }}
