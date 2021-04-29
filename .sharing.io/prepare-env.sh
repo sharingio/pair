@@ -23,6 +23,9 @@ EOF
 
 touch $GIT_ROOT/.sharing.io/setup-complete
 
+echo
+echo "Please that note that it may take a minute to bring everything up."
+echo
 echo "Access Pair's client/frontend in development from 'https://pair.${SHARINGIO_PAIR_BASE_DNS_NAME}'"
 echo "Access Pair's backend from 'http://localhost:8080/api'"
 read -r -p "Press enter to exit"
