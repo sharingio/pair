@@ -17,6 +17,7 @@ TZ=Pacific/Auckland
 
 APP_PORT=127.0.0.1:8080
 EOF
+
     cat <<EOF > $GIT_ROOT/apps/client/.env
 SHARINGIO_PAIR_SET_HOSTNAME=pair
 EOF
@@ -40,7 +41,6 @@ EOF
     tmate -S $TMATE_SOCKET send-keys -t backend "go run ." Enter
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
-    tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat $GIT_ROOT/.env | xargs)" Enter
-    tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat .env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat $GIT_ROOT/.env | xargs) $(cat $GIT_ROOT/apps/client/.env | xargs)" Enter
     tmate -S $TMATE_SOCKET send-keys -t frontend "lein ring server-headless" Enter
 fi
