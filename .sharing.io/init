@@ -9,21 +9,28 @@ fi
 
 if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     /usr/local/bin/tmate-wait-for-socket.sh
+    PACKET_PROJECT_ID="$(kubectl -n kube-system get secret packet-cloud-config -o=jsonpath='{.data.cloud\-sa\.json}' | base64 -d | jq -r .projectID)"
     export APP_NAMESPACE=sharingio-pair
     kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
+    kubectl get ns $APP_NAMESPACE-instances || kubectl create ns $APP_NAMESPACE-instances
 
     cat <<EOF > $GIT_ROOT/.env
 SESSION_SECRET=pairpairpairpair
-BACKEND_ADDRESS=locahost:8080
+BACKEND_ADDRESS=localhost:8080
 CANONICAL_URL=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
-SUBDOMAIN=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+SUBDOMAIN=%s.%s.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 TZ=Pacific/Auckland
-
-APP_PORT=127.0.0.1:8080
 EOF
 
     cat <<EOF > $GIT_ROOT/apps/client/.env
 SHARINGIO_PAIR_SET_HOSTNAME=pair
+EOF
+    
+    cat <<EOF > $GIT_ROOT/apps/cluster-api-manager/.env
+APP_PORT=127.0.0.1:8080
+APP_TARGET_NAMESPACE=${APP_TARGET_NAMESPACE}
+APP_BASE_HOST=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+APP_PACKET_PROJECT_ID=${PACKET_PROJECT_ID}
 EOF
 
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
