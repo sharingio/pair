@@ -608,10 +608,10 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
-	instance.NodeSize = GetInstanceDefaultNodeSize()
-	instance.Setup.HumacsVersion = GetHumacsVersion()
-	instance.Setup.HumacsRepository = GetHumacsRepository()
-	instance.Setup.KubernetesVersion = GetKubernetesVersion()
+	instance.NodeSize = common.ReturnValueOrDefault(instance.NodeSize, GetInstanceDefaultNodeSize())
+	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(instance.Setup.HumacsVersion, GetHumacsVersion())
+	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(instance.Setup.HumacsRepository, GetHumacsRepository())
+	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(instance.Setup.KubernetesVersion, GetKubernetesVersion())
 	instance = UpdateInstanceSpecIfEnvOverrides(instance)
 
 	defaultKubernetesClusterConfig := KubernetesCluster{
