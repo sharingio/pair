@@ -1,0 +1,23 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+  namespace: ${APP_NAMESPACE}
+spec:
+  endpoints:
+  - dnsName: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${SHARINGIO_PAIR_LOAD_BALANCER_IP}
+  - dnsName: "*.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}"
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${SHARINGIO_PAIR_LOAD_BALANCER_IP}
+  - dnsName: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+    recordTTL: 60
+    recordType: SOA
+    targets:
+    - ns1.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}. hostmaster.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}. 7 60
+      60 60 60
