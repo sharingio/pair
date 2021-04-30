@@ -14,21 +14,23 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
     kubectl get ns $APP_NAMESPACE-instances || kubectl create ns $APP_NAMESPACE-instances
 
+    envsubst < $GIT_ROOT/.sharing.io/pair-soa.yaml | kubectl apply -f -
+
     cat <<EOF > $GIT_ROOT/.env
-SESSION_SECRET=pairpairpairpair
-BACKEND_ADDRESS=localhost:8080
-CANONICAL_URL=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
-SUBDOMAIN=%s.%s.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 TZ=Pacific/Auckland
 EOF
 
     cat <<EOF > $GIT_ROOT/apps/client/.env
+SESSION_SECRET=pairpairpairpair
+BACKEND_ADDRESS=localhost:8080
+CANONICAL_URL=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+SUBDOMAIN=%s.%s.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 SHARINGIO_PAIR_SET_HOSTNAME=pair
 EOF
     
     cat <<EOF > $GIT_ROOT/apps/cluster-api-manager/.env
 APP_PORT=127.0.0.1:8080
-APP_TARGET_NAMESPACE=${APP_TARGET_NAMESPACE}
+APP_TARGET_NAMESPACE=${APP_NAMESPACE}-instances
 APP_BASE_HOST=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 APP_PACKET_PROJECT_ID=${PACKET_PROJECT_ID}
 EOF
