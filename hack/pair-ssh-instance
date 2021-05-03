@@ -1,18 +1,28 @@
 #!/bin/bash
 
-PROG_NAME=$(basename $0)
+PROG_NAME="$(basename $0)"
 PAIR_ADDR="${1:-$PAIR_ADDR}"
 PAIR_USER="${2:-$PAIR_USER}"
+SSH_OPTS="${SSH_OPTS:--tA}"
+DEBUG="${DEBUG:-false}"
+
+if [ ! "$DEBUG" = "false" ]; then
+    set -x
+fi
 
 if [ $# -eq 0 ]; then
     echo "Usage: $PROG_NAME INSTANCE <USER>
 
-Example:
+Examples:
 - $PROG_NAME coolbox zz
 - $PROG_NAME bobymcbobs
 - $PROG_NAME 133.7.0.0 hh
 - $PROG_NAME heyste.pair.sharing.io heyste
-- $PROG_NAME bernokl"
+- $PROG_NAME bernokl
+
+Notes:
+- to not forward SSH keys set the 'SSH_OPTS' var to something like '-t'.
+  example: $PROG_NAME SSH_OPTS=-t heyste"
     exit 0
 fi
 
@@ -40,4 +50,4 @@ fi
 
 envEmpty PAIR_USER "${PAIR_USER}"
 
-ssh -tA ii@${PAIR_ADDR} -- kubectl -n $PAIR_USER exec -it statefulset/${PAIR_USER}-humacs -- attach
+ssh ${SSH_OPTS} ii@${PAIR_ADDR} -- kubectl -n $PAIR_USER exec -it statefulset/${PAIR_USER}-humacs -- attach
