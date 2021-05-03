@@ -1,0 +1,43 @@
+#!/bin/bash
+
+PROG_NAME=$(basename $0)
+PAIR_ADDR="${1:-$PAIR_ADDR}"
+PAIR_USER="${2:-$PAIR_USER}"
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $PROG_NAME INSTANCE <USER>
+
+Example:
+- $PROG_NAME coolbox zz
+- $PROG_NAME bobymcbobs
+- $PROG_NAME 133.7.0.0 hh
+- $PROG_NAME heyste.pair.sharing.io heyste
+- $PROG_NAME bernokl"
+    exit 0
+fi
+
+function errorMsg {
+        echo "error: $*" > /dev/stderr
+        exit 1
+}
+
+function envEmpty {
+    if [ -z "$2" ]; then
+        errorMsg "'$1' is empty and is required"
+    fi
+}
+
+envEmpty PAIR_ADDR "${PAIR_ADDR}"
+
+echo "${PAIR_ADDR}" | grep -q '\.'
+PAIR_ADDR_IS_FQDN_OR_IPADDR=$?
+if [ -z "$PAIR_USER" ] && [ "${PAIR_ADDR_IS_FQDN_OR_IPADDR}" -eq 1 ]; then
+    PAIR_USER="${PAIR_ADDR}"
+fi
+if [ "${PAIR_ADDR_IS_FQDN_OR_IPADDR}" -eq 1 ]; then
+    PAIR_ADDR=${PAIR_ADDR}.pair.sharing.io
+fi
+
+envEmpty PAIR_USER "${PAIR_USER}"
+
+ssh -tA ii@${PAIR_ADDR} -- kubectl -n $PAIR_USER exec -it statefulset/${PAIR_USER}-humacs -- attach
