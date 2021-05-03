@@ -23,7 +23,9 @@ Examples:
 
 Notes:
 - to not forward SSH keys set the 'SSH_OPTS' var to something like '-t'.
-  example: SSH_OPTS=-t ${PROG_NAME} heyste"
+  example: SSH_OPTS=-t ${PROG_NAME} heyste
+- default SSH_OPTS are '${SSH_OPTS}'
+- default Pair domain is '${PAIR_BASE_ADDR}'"
     exit 0
 fi
 
