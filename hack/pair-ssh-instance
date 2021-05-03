@@ -3,7 +3,8 @@
 PROG_NAME="$(basename $0)"
 PAIR_ADDR="${1:-$PAIR_ADDR}"
 PAIR_USER="${2:-$PAIR_USER}"
-SSH_OPTS="${SSH_OPTS:--tA}"
+PAIR_BASE_ADDR="${PAIR_BASE_ADDR:-pair.sharing.io}"
+SSH_OPTS="${SSH_OPTS:--tA -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null}"
 DEBUG="${DEBUG:-false}"
 
 if [ ! "$DEBUG" = "false" ]; then
@@ -45,7 +46,7 @@ if [ -z "$PAIR_USER" ] && [ "${PAIR_ADDR_IS_FQDN_OR_IPADDR}" -eq 1 ]; then
     PAIR_USER="${PAIR_ADDR}"
 fi
 if [ "${PAIR_ADDR_IS_FQDN_OR_IPADDR}" -eq 1 ]; then
-    PAIR_ADDR=${PAIR_ADDR}.pair.sharing.io
+    PAIR_ADDR="${PAIR_ADDR}.${PAIR_BASE_ADDR}"
 fi
 
 envEmpty PAIR_USER "${PAIR_USER}"
