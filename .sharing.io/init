@@ -13,11 +13,13 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     export APP_NAMESPACE=sharingio-pair
     kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
     kubectl get ns $APP_NAMESPACE-instances || kubectl create ns $APP_NAMESPACE-instances
+    PACKET_API_KEY="$(kubectl -n kube-system get secret packet-cloud-config -o=jsonpath='{.data.cloud\-sa\.json}' | base64 -d | jq -r .apiKey)"
 
     envsubst < $GIT_ROOT/.sharing.io/pair-soa.yaml | kubectl apply -f -
 
     cat <<EOF > $GIT_ROOT/.env
 TZ=Pacific/Auckland
+PACKET_API_KEY=$PACKET_API_KEY
 EOF
 
     cat <<EOF > $GIT_ROOT/apps/client/.env
@@ -38,8 +40,8 @@ EOF
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
         echo "[!] Initialising Cluster-API with the infrastucture provider for Packet"
         tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n cluster-api-init bash
-        PACKET_API_KEY="$(kubectl -n kube-system get secret packet-cloud-config -o=jsonpath='{.data.cloud\-sa\.json}' | base64 -d | jq -r .apiKey)"
-        tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "env PACKET_API_KEY=$PACKET_API_KEY clusterctl init --infrastructure packet" Enter
+        tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "export \$(cat $GIT_ROOT/.env | xargs)" Enter
+        tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "clusterctl init --infrastructure packet" Enter
     fi
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
@@ -50,10 +52,10 @@ EOF
     done
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/cluster-api-manager" -n backend bash
-    tmate -S $TMATE_SOCKET send-keys -t backend "export $(cat $GIT_ROOT/.env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t backend "export \$(cat $GIT_ROOT/.env | xargs)" Enter
     tmate -S $TMATE_SOCKET send-keys -t backend "go run ." Enter
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
-    tmate -S $TMATE_SOCKET send-keys -t frontend "export $(cat $GIT_ROOT/.env | xargs) $(cat $GIT_ROOT/apps/client/.env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t frontend "export \$(cat $GIT_ROOT/.env | xargs) \$(cat $GIT_ROOT/apps/client/.env | xargs)" Enter
     tmate -S $TMATE_SOCKET send-keys -t frontend "lein ring server-headless" Enter
 fi
