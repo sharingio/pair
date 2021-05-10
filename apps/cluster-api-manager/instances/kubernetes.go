@@ -1110,7 +1110,7 @@ spec:
   releaseName: {{ $.Setup.UserLowercase }}
   chart:
     git: https://github.com/humacs/humacs
-    ref: eac3cae8f56c93116ae97136a4401980731d26bd
+    ref: eaf562e067faa086d3165aba659fa52b727662d8
     path: chart/humacs
   values:
     image:
