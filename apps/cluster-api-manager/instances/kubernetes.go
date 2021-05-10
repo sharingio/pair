@@ -824,7 +824,7 @@ spec:
   chart:
     repository: https://kubernetes.github.io/ingress-nginx
     name: ingress-nginx
-    version: 2.16.0
+    version: 3.30.0
   values:
     controller:
       service:
