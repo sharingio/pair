@@ -861,7 +861,7 @@ EOF
 `,
 						`(
   kubectl create ns external-dns
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/a143a6cd59177f1f72e2f173bc5cfdbe8d723157/docs/contributing/crd-source/crd-manifest.yaml
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/v0.8.0/docs/contributing/crd-source/crd-manifest.yaml
   kubectl -n external-dns create secret generic external-dns-pdns \
     --from-literal=domain-filter={{ $.Setup.BaseDNSName }} \
     --from-literal=txt-owner-id={{ $.Setup.User }} \
@@ -874,7 +874,7 @@ kind: ServiceAccount
 metadata:
   name: external-dns
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: external-dns
@@ -916,7 +916,7 @@ rules:
   - patch
   - delete
 ---
-apiVersion: rbac.authorization.k8s.io/v1beta1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: external-dns-viewer
@@ -947,7 +947,7 @@ spec:
       serviceAccountName: external-dns
       containers:
       - name: external-dns
-        image: k8s.gcr.io/external-dns/external-dns:v0.7.4
+        image: k8s.gcr.io/external-dns/external-dns:v0.8.0
         args:
         - --source=crd
         - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
