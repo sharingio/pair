@@ -70,7 +70,7 @@ function updateKubeconfig (instance) {
     if (instance.kubeconfig && instance.uid) {
         const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}/kubeconfig`
         dl.href = publicLink;
-        command.textContent = `export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s ${publicLink} > $KUBECONFIG"  ; kubectl api-resources`
+        command.textContent = `export KUBECONFIG=$(mktemp -t kubeconfig-XXXXX) ; curl -s ${publicLink} > "$KUBECONFIG"  ; kubectl api-resources`
         config.textContent = instance.kubeconfig;
     }
 };
