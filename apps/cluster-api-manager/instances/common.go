@@ -40,7 +40,7 @@ func GetKubernetesVersion() string {
 // GetInstanceDefaultNodeSize ...
 // get the size of node to create
 func GetInstanceDefaultNodeSize() string {
-	return instanceDefaultNodeSize
+	return common.GetEnvOrDefault("APP_INSTANCE_NODE_SIZE", instanceDefaultNodeSize)
 }
 
 // GenerateName ...
