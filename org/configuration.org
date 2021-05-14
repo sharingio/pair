@@ -1,0 +1,22 @@
+#+TITLE: Configuration
+
+* Environment variables
+** Frontend (also called client)
+| Name                  | Default | Description                                                   |
+| =SESSION_SECRET=      |         | A 16-character shared secret between the frontend and browser |
+| =OAUTH_CLIENT_ID=     |         | GitHub OAuth App ID                                           |
+| =OAUTH_CLIENT_SECRET= |         | GitHub OAuth App Secret                                       |
+| =BACKEND_ADDRESS=     |         | The address for where the backend is                          |
+| =TZ=                  |         | Timezone to set                                               |
+
+** Cluster-API-Manager (also called backend)
+| Name                              | Default                                | Description                                                             |
+| =APP_PACKET_PROJECT_ID=           |                                        | The project ID of the Equinix Metal / Packet project to deploy machines |
+| =APP_PORT=                        | =:8080=                                | The port to bind the web service                                        |
+| =APP_TARGET_NAMESPACE=            |                                        | The namespace to manage CAPI and External-DNS Kubernetes objects        |
+| =APP_BASE_HOST=                   |                                        | The base domain for newly created instances (i.e: pair.sharing.io)      |
+| =APP_HUMACS_REPOSITORY=           | =registry.gitlab.com/humacs/humacs/ii= | The Humacs container image repository to use                            |
+| =APP_HUMACS_VERSION=              | =2021.05.14=                           | The Humacs container image tag to use                                   |
+| =APP_INSTANCE_KUBERNETES_VERSION= | =1.21.0=                               | The version of Kubernetes to use for newly created instances            |
+| =APP_INSTANCE_NODE_SIZE=          | =c1.small.x86=                         |                                                                         |
+| =TZ=                              | =Pacific/Auckland=                     | Timezone to set                                                         |
