@@ -2,6 +2,15 @@
 
 * Preparation
 
+In this deployment, we presume the following things of your cluster:
+- an ingress controller
+- DNS management via a DNS provider [[https://github.com/kubernetes-sigs/external-dns#status-of-providers][supported by External-DNS]]
+
+Install Cert-Manager:
+#+BEGIN_SRC
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
+#+END_SRC
+
 Install Helm-Operator:
 #+BEGIN_SRC tmate :window pair-setup
 helm repo add fluxcd https://charts.fluxcd.io
@@ -13,12 +22,21 @@ helm upgrade -i helm-operator --create-namespace fluxcd/helm-operator \
 
 (Management with Helm-Operator is recommended but optional)
 
-Create a namespace:
-#+begin_src bash :dir ../.././ :results silent
-kubectl create ns sharingio-pair
-#+end_src
+Install Cluster-API, with support for Packet/Equinix Metal:
+#+BEGIN_SRC tmate :window pair-setup
+export PACKET_API_KEY="my-api-key"
+clusterctl init --infrastructure packet
+#+END_SRC
+
+Install External-DNS. Installation can differ from where it's being installed.
+The production external-dns is available in [[./external-dns/external-dns.org][external-dns.org]].
 
 * Installation
+
+Create a namespace:
+#+begin_src tmate :window pair-setup
+kubectl create ns sharingio-pair
+#+end_src
 
 A basic installation looks like this:
 #+BEGIN_SRC yaml :tangle
@@ -26,6 +44,7 @@ apiVersion: helm.fluxcd.io/v1
 kind: HelmRelease
 metadata:
   name: sharingio-pair
+  namespace: sharingio-pair
 spec:
   releaseName: sharingio-pair
   chart:
@@ -54,3 +73,5 @@ spec:
           paths:
             - /
 #+END_SRC
+
+To find ways of configuring your Pair, check out [[./configuration.org][the configuration docs]].
