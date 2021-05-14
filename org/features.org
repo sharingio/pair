@@ -8,6 +8,7 @@ Humacs is deployed as a container image into the cluster as a StatefulSet, which
 
 * Full instance SSH access
 The instances have SSH enabled and load your and your guests GitHub SSH keys into the authorized_keys file.
+You can SSH in as the root or ii user.
 
 * Docker access
 Access to the full socket is available in =/var/run/docker.sock= or through the =docker= cli.
