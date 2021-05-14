@@ -65,6 +65,8 @@ TCP services will also be allocated an Ingress, based on the DNS name of the ins
 Allocated subdomain names can be overridden by declaring a value for =$SHARINGIO_PAIR_SET_HOSTNAME=.
 Services with duplicate names will be appended with their port, to avoid duplication.
 
+Note: avoid labeling Service and Ingress resources with =io.sharing.pair/managed=true= in the namespace of your username to avoid conflict.
+
 (functionality provided by Humacs)
 
 * .sharing.io/init
