@@ -20,3 +20,6 @@
 | =APP_INSTANCE_KUBERNETES_VERSION= | =1.21.0=                               | The version of Kubernetes to use for newly created instances            |
 | =APP_INSTANCE_NODE_SIZE=          | =c1.small.x86=                         |                                                                         |
 | =TZ=                              | =Pacific/Auckland=                     | Timezone to set                                                         |
+
+* Helm
+To configure the Helm chart, check out the default [[../charts/sharingio-pair/values.yaml][values.yaml]]
