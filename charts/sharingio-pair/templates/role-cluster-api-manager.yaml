@@ -70,4 +70,5 @@ rules:
       - get
       - create
       - update
+      - deletecollection
 {{- end }}

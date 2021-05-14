@@ -600,6 +600,14 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 		log.Printf("%#v\n", err)
 		return fmt.Errorf("Failed to delete Cluster, %#v", err)
 	}
+	//   - newInstance.DNSEndpoint
+	groupVersionResource = schema.GroupVersionResource{Version: "v1alpha1", Group: "externaldns.k8s.io", Resource: "dnsendpoints"}
+	log.Printf("%#v\n", groupVersionResource)
+	err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).DeleteCollection(context.TODO(), metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: "io.sharing.pair-spec-name=" + name})
+	if err != nil && apierrors.IsNotFound(err) != true {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Failed to delete DNSEndpoint, %#v", err)
+	}
 	err = nil
 
 	return err
