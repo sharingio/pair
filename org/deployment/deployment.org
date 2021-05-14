@@ -2,198 +2,55 @@
 
 * Preparation
 
-** Lifecycle
+Install Helm-Operator:
+#+BEGIN_SRC tmate :window pair-setup
+helm repo add fluxcd https://charts.fluxcd.io
+kubectl apply -f https://raw.githubusercontent.com/fluxcd/helm-operator/1.2.0/deploy/crds.yaml
+helm upgrade -i helm-operator --create-namespace fluxcd/helm-operator \
+    --namespace helm-operator \
+    --set helm.versions=v3
+#+END_SRC
+
+(Management with Helm-Operator is recommended but optional)
+
 Create a namespace:
 #+begin_src bash :dir ../.././ :results silent
-  kubectl create ns sharingio-pair
+kubectl create ns sharingio-pair
 #+end_src
 
-** Values
-Set env to pass into Helm set commands
-#+begin_src elisp :results none
-  (setenv "SHARINGIO_PAIR_GITHUB_OAUTH_ID" (read-from-minibuffer "SHARINGIO_PAIR_GITHUB_OAUTH_ID: "))
-  (setenv "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET" (read-from-minibuffer "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET: "))
-  (setenv "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID" (read-from-minibuffer "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID: "))
-  (setenv "SHARINGIO_PAIR_HOST" (read-from-minibuffer "SHARINGIO_PAIR_HOST: "))
-#+end_src
+* Installation
 
-#+name: get-github-oauth-id
-#+begin_src elisp :results silent
-  (getenv "SHARINGIO_PAIR_GITHUB_OAUTH_ID")
-#+end_src
-
-#+name: get-github-oauth-secret
-#+begin_src elisp :results silent
-  (getenv "SHARINGIO_PAIR_GITHUB_OAUTH_SECRET")
-#+end_src
-
-#+name: get-equinixmetal-projectid
-#+begin_src elisp :results silent
-  (getenv "SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID")
-#+end_src
-
-#+name: get-host
-#+begin_src elisp :results silent
-  (getenv "SHARINGIO_PAIR_HOST")
-#+end_src
-
-* Helm
-** Lint
-#+begin_src bash :dir ../.././ :noweb yes :prologue "(" :epilogue ") 2>&1\n:"
-          export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
-          export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
-          export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
-          export SHARINGIO_PAIR_HOST=<<get-host()>>
-  helm lint \
-    --set sessionSecret=pairpairpairpair \
-    --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
-    --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
-    --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
-    --set ingress.enabled=true \
-    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
-    --set ingress.hosts[0].paths[0]='/' \
-    --set ingress.certmanager.enabled=true \
-    charts/sharingio-pair
-#+end_src
-
-** Install
-#+begin_src bash :dir ../.././ :results silent :noweb yes
-          export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
-          export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
-          export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
-          export SHARINGIO_PAIR_HOST=<<get-host()>>
-  helm install sharingio-pair -n sharingio-pair \
-    --set sessionSecret=pairpairpairpair \
-    --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
-    --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
-    --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
-    --set ingress.enabled=true \
-    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
-    --set ingress.hosts[0].paths[0]='/' \
-    --set ingress.certmanager.enabled=true \
-    charts/sharingio-pair
-#+end_src
-
-** Upgrade
-#+begin_src bash :dir ../.././ :results silent :noweb yes
-          export SHARINGIO_PAIR_GITHUB_OAUTH_ID=<<get-github-oauth-id()>>
-          export SHARINGIO_PAIR_GITHUB_OAUTH_SECRET=<<get-github-oauth-secret()>>
-          export SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID=<<get-equinixmetal-projectid()>>
-          export SHARINGIO_PAIR_HOST=<<get-host()>>
-  helm upgrade sharingio-pair -n sharingio-pair \
-    --set sessionSecret=pairpairpairpair \
-    --set githubOAuth.id=$SHARINGIO_PAIR_GITHUB_OAUTH_ID \
-    --set githubOAuth.secret=$SHARINGIO_PAIR_GITHUB_OAUTH_SECRET \
-    --set equinixMetal.projectID=$SHARINGIO_PAIR_EQUINIXMETAL_PROJECTID \
-    --set ingress.enabled=true \
-    --set ingress.hosts[0].host=$SHARINGIO_PAIR_HOST \
-    --set ingress.hosts[0].paths[0]='/' \
-    --set ingress.hosts[1].host=ii.sharing.io \
-    --set ingress.hosts[1].paths[0]='/' \
-    --set ingress.certmanager.enabled=true \
-    charts/sharingio-pair
-#+end_src
-
-** Uninstall
-#+begin_src bash :dir ../.././ :results silent
-  helm uninstall sharingio-pair -n sharingio-pair
-#+end_src
-
-** Frontend REPL
-#+NAME: Setup DNS endpoints
-#+begin_src yaml :tangle dev-endpoints.yaml
-apiVersion: externaldns.k8s.io/v1alpha1
-kind: DNSEndpoint
+A basic installation looks like this:
+#+BEGIN_SRC yaml :tangle
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
 metadata:
-  name: pair-dev-sharing-io
+  name: sharingio-pair
 spec:
-  endpoints:
-  - dnsName: pair-dev.sharing.io
-    recordTTL: 60
-    recordType: A
-    targets:
-    - 139.178.68.219
-#+end_src
-
-#+NAME: Certs
-#+begin_src yaml :tangle ./frontend-repl-certs.yaml
-# Source: sharingio-pair/templates/cert.yaml
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: pair-dev-sharingio-pair-letsencrypt
-spec:
-  secretName: pair-dev-sharingio-pair-letsencrypt
-  issuerRef:
-    name: pair-dev-sharingio-pair-letsencrypt
-    kind: ClusterIssuer
-    group: cert-manager.io
-  dnsNames:
-    - "pair-dev.sharing.io"
----
-# Source: sharingio-pair/templates/cluster-issuer.yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: pair-dev-sharingio-pair-letsencrypt
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: sharingio@ii.coop
-    privateKeySecretRef:
-      name: pair-dev-sharingio-pair-letsencrypt
-    solvers:
-      - http01:
-          ingress:
-            class: nginx
-        selector:
-          dnsNames:
-            - "pair-dev.sharing.io"
-#+end_src
-
-#+NAME: Service
-#+begin_src yaml :tangle ./frontend-repl-service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: humacs
-spec:
-  ports:
-    - name: http
-      port: 5000
-      targetPort: 5000
-  selector:
-    app.kubernetes.io/instance: zz-humacs
-#+end_src
-
-#+NAME: Ingress
-#+begin_src yaml :tangle ./frontend-repl-ingress.yaml
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: pair-dev-sharing-io
-spec:
-  rules:
-  - host: pair-dev.sharing.io
-    http:
-      paths:
-      - backend:
-          serviceName: humacs
-          servicePort: 5000
-        path: /
-  tls:
-  - hosts:
-    - pair-dev.sharing.io
-    secretName: pair-dev-sharingio-pair-letsencrypt
-#+end_src
-
-#+begin_src shell :results silent
-  kubectl apply -f dev-endpoints.yaml
-#+end_src
-
-#+begin_src bash :results silent
-  kubectl -n sharingio-pair apply \
-    -f frontend-repl-certs.yaml \
-    -f frontend-repl-service.yaml \
-    -f frontend-repl-ingress.yaml
-#+end_src
+  releaseName: sharingio-pair
+  chart:
+    git: https://github.com/sharingio/pair.git
+    ref: 1.0.50
+    path: charts/sharingio-pair
+  values:
+    timezone: Pacific/Auckland
+    instance:
+      kubernetesVersion: 1.21.0
+      humacsRepository: registry.gitlab.com/humacs/humacs/ii
+      humacsVersion: 2021.05.14
+      nodeSize: c1.small.x86
+    sessionSecret: pairpairpairpair
+    githubOAuth:
+      id: my-github-oauth-app-id
+      secret: my-github-oauth-app-secret
+    equinixMetal:
+      projectID: my-equinix-metal-project-id
+    ingress:
+      enabled: true
+      certmanager:
+        enabled: true
+      hosts:
+        - host: pair.sharing.io
+          paths:
+            - /
+#+END_SRC
