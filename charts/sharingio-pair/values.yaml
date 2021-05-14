@@ -18,6 +18,7 @@ instance:
   kubernetesVersion: ""
   humacsVersion: ""
   humacsRepository: registry.gitlab.com/humacs/humacs/ii
+  nodeSize: ""
 
 imagePullSecrets: []
 

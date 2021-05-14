@@ -69,6 +69,10 @@ spec:
             - name: APP_INSTANCE_KUBERNETES_VERSION
               value: {{ .Values.instance.kubernetesVersion }}
             {{- end }}
+            {{- if .Values.instance.nodeSize }}
+            - name: APP_INSTANCE_NODE_SIZE
+              value: {{ .Values.instance.nodeSize }}
+            {{- end }}
             {{- if .Values.clusterapimanager.extraEnv }}
             {{- toYaml .Values.clusterapimanager.extraEnv | nindent 12 }}
             {{- end }}
