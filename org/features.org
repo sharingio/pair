@@ -1,0 +1,129 @@
+#+TITLE: Features
+
+* Humacs
+[[https://humacs.org][Humacs]] is a distribution of Emacs, maintained by [[https://ii.coop][ii]].
+It features Doom, but also packages Spacemacs, with custom shared configurations.
+
+Humacs is deployed as a container image into the cluster as a StatefulSet, which is accessed as a Pod.
+
+* Full instance SSH access
+The instances have SSH enabled and load your and your guests GitHub SSH keys into the authorized_keys file.
+
+* Docker access
+Access to the full socket is available in =/var/run/docker.sock= or through the =docker= cli.
+
+* host-shell
+When working in Pair, occiasionally an escape from the container is needed for a task.
+To get a shell on the Instance host system, simply use the =host-shell= program (provided by Humacs)
+
+It also supports inline execution of the commands, if dropping into a shell is not useful:
+#+BEGIN_SRC shell
+host-shell <my command>
+#+END_SRC
+
+* Host filesystem
+The filesystem of the host machine is mounted inside the Humacs Pod under =/var/run/host=
+
+#+BEGIN_SRC shell
+ls /var/run/host
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+bin
+boot
+dev
+etc
+home
+lib
+lib32
+lib64
+libx32
+lost+found
+media
+mnt
+opt
+packer-files
+proc
+root
+run
+sbin
+snap
+srv
+sys
+tmp
+usr
+var
+#+end_example
+
+* Instance naming (admin only)
+Admins have the ability to custom name instances.
+
+* Automatic exposing of services inside of Humacs
+Whenever a TCP or UDP service is bound on all interfaces, a Service is exposed on the =$SHARINGIO_PAIR_LOAD_BALANCER_IP=.
+TCP services will also be allocated an Ingress, based on the DNS name of the instance and process name.
+Allocated subdomain names can be overridden by declaring a value for =$SHARINGIO_PAIR_SET_HOSTNAME=.
+Services with duplicate names will be appended with their port, to avoid duplication.
+
+(functionality provided by Humacs)
+
+* .sharing.io/init
+Each repo can have a =.sharing.io/init= script to initialize the project.
+
+An init script can do many things, such as:
+- installing packages
+- bringing up Tilt
+- writing .env files
+- creating tmate windows
+- bringing up services
+- deploying Kubernetes apps
+
+Some examples include:
+- https://github.com/sharingio/pair/blob/master/.sharing.io/init
+- https://github.com/cncf-infra/prow-config/blob/master/.sharing.io/init
+- https://github.com/Safe-Surfer/safesurfer-powerdns/blob/master/.sharing.io/init
+- https://gitlab.com/flattrack/flattrack/-/blob/master/.sharing.io/init
+
+* Personal .sharing.io
+If the [[https://github.com/sharingio/.sharing.io][sharingio/.sharing.io]] repo is forked into your repos, it will be run instead of the default.
+It provides the same functionality as other =.sharing.io/init= scripts.
+
+* Full instance DNS control
+DNS is mapped to ={{ InstanceName }}.{{ PairHost }}= (e.g: /myinstance.pair.sharing.io/).
+
+As External-DNS also runs on each instance.
+All instances have a user-managable DNSEndpoint in the /powerdns/ namespace, which will be named after the instance.
+Any DNS record at or below the domain name.
+
+* Wildcard LetsEncrypt TLS cert
+
+A wildcard DNS record is available to be used manually.
+If sync the wildcard cert, you'll need to label the namespace with =cert-manager-tls=sync=:
+
+#+BEGIN_SRC shell
+kubectl label ns {{ MyNamespace }} cert-manager-tls=sync
+#+END_SRC
+
+This can also be included in the =.sharing.io/init= script.
+
+* Public HTML
+With each instance, the /~/public_html/ folder is accessible from the /www/ subdomain of the instance.
+This is served using [[https://gitlab.com/safesurfer/go-http-server][safesurfer/go-http-server]], configurable through the HelmRelease of /public-html/.
+
+* Environment variables
+
+Various environment variables are available inside of the Humacs pairing environment:
+| Name                              | Description                                                  |
+| =SHARINGIO_PAIR_NAME=             | The name of the Pair instance                                |
+| =SHARINGIO_PAIR_BASE_DNS_NAME=    | The base domain name of the Pair instance                    |
+| =SHARINGIO_USER=                  | The username of the GitHub user who created the instance     |
+| =SHARINGIO_PAIR_GUEST_NAMES=      | The GitHub usernames of the guests for the instance          |
+| =SHARINGIO_PAIR_LOAD_BALANCER_IP= | The LoadBalancer IP for the Pair instance                    |
+| =GITHUB_TOKEN=                    | The GitHub token of the GitHub user who created the instance |
+
+* Misc
+- helm-operator: manage Helm charts declaratively
+- registry-creds-system: enable syncing of secrets for registries
+- local-path-provisioner: provide a CSI pvc
+- metallb:
+-
