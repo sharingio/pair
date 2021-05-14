@@ -2,24 +2,28 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# A 16-character shared secret between the frontend and the browser
 sessionSecret: ""
+# GitHub OAuth App
 githubOAuth:
   id: ""
   secret: ""
+# Equinix Metal project
 equinixMetal:
   projectID: ""
-aws:
-  accessKeyID: ""
-  secretAccessKey: ""
+# override where the Instance objects will be written to
 targetNamespace: ""
+# the timezone for Pair components and instances
 timezone: Pacific/Auckland
 
+# instance configuration
 instance:
   kubernetesVersion: ""
   humacsVersion: ""
   humacsRepository: registry.gitlab.com/humacs/humacs/ii
   nodeSize: ""
 
+# secrets for pulling images
 imagePullSecrets: []
 
 ingress:
