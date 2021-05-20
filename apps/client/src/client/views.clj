@@ -62,13 +62,13 @@
     [:nav#login-options
      [:ul
       [:li
-       [:a.button.action {:href (loginURL false)}"login"]
-       [:em.helper "Login with minimal github permissions. We request access to your org and emails, to see if you are a permitted member and an admin member."]]
-      [:li
-       [:a.button.action.strong.long {:href (loginURL true)} "login with read/write"]
+       [:a.button.action.strong.long {:href (loginURL true)} "login"]
        [:em.helper "Elevated permissions, with full read/write on any of your repos.  This permission is passed to the cluster, letting you easily push and pull from within it."]]
       [:li
-       [:a.button.action.alert {:href "/logout"} "Logout"]
+       [:a.button.action.long {:href (loginURL false)}"login (read-only)"]
+       [:em.helper "Login with minimal github permissions. We request access to your org and emails, to see if you are a permitted member and an admin member."]]
+      [:li
+       [:a.button.action.alert {:href "/logout"} "logout"]
        [:em.helper "Logout from sharing.io"]]]]]
    user))
 
