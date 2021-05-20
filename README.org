@@ -15,6 +15,16 @@ For a full rundown of features, see the [[./org/features.org][features docs]].
 * Set up
 For setting up Pair, check out the [[./org/deployment.org][deployment docs]] and the [[./org/configuration.org][configuration docs]].
 
+* Connecting
+Using [[./hack/pair-ssh-instance][pair-ssh-instance]], you are able to connect easily to your instance via SSH.
+#+BEGIN_SRC shell
+pair-ssh-instance <instance name>
+#+END_SRC
+
+Note:
+- will forward your SSH keys
+- will attach to the tmate session
+
 * License
 
 Copyright 2020 Sharingio authors and contributors.

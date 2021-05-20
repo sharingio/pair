@@ -128,5 +128,4 @@ Various environment variables are available inside of the Humacs pairing environ
 - helm-operator: manage Helm charts declaratively
 - registry-creds-system: enable syncing of secrets for registries
 - local-path-provisioner: provide a CSI pvc
-- metallb:
--
+- metallb: allows Services to have a bare metal IP address (BGP, l2)
