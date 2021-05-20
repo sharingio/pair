@@ -3,6 +3,7 @@ package instances
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -13,7 +14,9 @@ func GetGitHubUserSSHKeys(username string) (sshKeys []string, err error) {
 		return []string{}, err
 	}
 	defer resp.Body.Close()
-	sshKey, err := io.ReadAll(resp.Body)
-	sshKeys = strings.Split(string(sshKey), "\n")
+	sshKeysBytes, err := io.ReadAll(resp.Body)
+	log.Printf("key '%v'", string(sshKeysBytes))
+	sshKeysString := strings.Trim(string(sshKeysBytes), "\n")
+	sshKeys = strings.Split(sshKeysString, "\n")
 	return sshKeys, err
 }

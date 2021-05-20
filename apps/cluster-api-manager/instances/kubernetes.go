@@ -622,10 +622,18 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(instance.Setup.KubernetesVersion, GetKubernetesVersion())
 	instance = UpdateInstanceSpecIfEnvOverrides(instance)
 
-	sshKeys, err := GetGitHubUserSSHKeys(instance.Setup.User)
-	if err != nil {
-		log.Println("Error getting SSH keys: %v", err.Error())
-		sshKeys = []string{}
+	var sshKeys []string
+	for _, account := range append(instance.Setup.Guests, instance.Setup.User) {
+		log.Printf("Fetching SSH key for '%v'\n", account)
+		if account == "" {
+			continue
+		}
+		githubSSHKeys, err := GetGitHubUserSSHKeys(account)
+		if err != nil {
+			log.Printf("Error getting SSH keys: %v\n", err.Error())
+			sshKeys = []string{}
+		}
+		sshKeys = append(sshKeys, githubSSHKeys...)
 	}
 	log.Printf("sshKeys: %#v\n", sshKeys)
 
