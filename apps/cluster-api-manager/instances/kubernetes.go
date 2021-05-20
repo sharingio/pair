@@ -622,6 +622,13 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(instance.Setup.KubernetesVersion, GetKubernetesVersion())
 	instance = UpdateInstanceSpecIfEnvOverrides(instance)
 
+	sshKeys, err := GetGitHubUserSSHKeys(instance.Setup.User)
+	if err != nil {
+		log.Println("Error getting SSH keys: %v", err.Error())
+		sshKeys = []string{}
+	}
+	log.Printf("sshKeys: %#v\n", sshKeys)
+
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1467,6 +1474,7 @@ sysctl --system
 						BillingCycle: "hourly",
 						// 1 = machine type
 						MachineType: "",
+						SshKeys:     sshKeys,
 					},
 				},
 			},
