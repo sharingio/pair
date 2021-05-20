@@ -15,7 +15,9 @@ func GetGitHubUserSSHKeys(username string) (sshKeys []string, err error) {
 	}
 	defer resp.Body.Close()
 	sshKeysBytes, err := io.ReadAll(resp.Body)
-	log.Printf("key '%v'", string(sshKeysBytes))
+	if err != nil {
+		return []string{}, err
+	}
 	sshKeysString := strings.Trim(string(sshKeysBytes), "\n")
 	sshKeys = strings.Split(sshKeysString, "\n")
 	return sshKeys, err
