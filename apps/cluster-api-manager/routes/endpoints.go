@@ -177,7 +177,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/certmanage",
 			HandlerFunc:  PostKubernetesCertManage(clientset, dynamicClient),
-			HttpMethods:  []string{http.MethodPost},
+			HttpMethods:  []string{http.MethodGet, http.MethodPost},
 		},
 
 		// swagger:route POST /instance/kubernetes/{name}/dnsmanage instance getInstanceKubernetesDNSmanage
@@ -198,7 +198,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/dnsmanage",
 			HandlerFunc:  PostKubernetesDNSManage(dynamicClient),
-			HttpMethods:  []string{http.MethodPost},
+			HttpMethods:  []string{http.MethodGet, http.MethodPost},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name}/tmate instance getInstanceKubernetesTmate
