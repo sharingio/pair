@@ -174,6 +174,15 @@
     [:section#kubeconfig
      [:h3 "Kubeconfig not yet available"]]))
 
+(defn envvars
+  [{:keys [envvars]}]
+  (if envvars
+    [:details
+     [:summary "See Environment variables set on launch"]
+     (code-box "env" envvars)]
+    )
+  )
+
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
   (if(or (= "Not ready to fetch tmate session" tmate-web) (empty? tmate-ssh))
@@ -202,7 +211,7 @@
                 :rel "noreferrer noopener"} site]])]])
 
 (defn instance-header
-  [{:keys [guests uid instance-id repos age]} {:keys [username]}]
+  [{:keys [guests uid instance-id repos age owner]} {:keys [username]}]
    [:header
     [:h2 "Status for "instance-id
      (when (not (= "guest" username))
@@ -214,6 +223,7 @@
                                             :target "_blank"
                                             :rel "noreferrer nofollower"} "Get Public Link"]))]
     [:div.info
+     [:em "This instance was brought up by " owner]
      [:em#age age]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
@@ -249,7 +259,8 @@
     [:article
      [:section.status
     (tmate instance)
-    (kubeconfig-box instance)]
+    (kubeconfig-box instance)
+    (envvars instance)]
     [:aside
      (status instance)
      (instance-admin instance user)]]]

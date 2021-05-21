@@ -139,6 +139,7 @@
         created-at (status->created-at (:status instance))]
     {:instance-id (or (-> instance :spec :name) instance-id)
      :owner (-> instance :spec :setup :user)
+     :envvars (-> instance :spec :setup :env)
      :guests (-> instance :spec :setup :guests)
      :repos (-> instance :spec :setup :repos)
      :facility (-> instance :spec :facility)
