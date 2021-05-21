@@ -77,6 +77,8 @@
   [instance-id]
   (let [endpoint (str backend-address "/api/instance/kubernetes/"instance-id)
         urls [[:instance endpoint]
+              [:dns (str endpoint "/dnsmanage")]
+              [:cert (str endpoint "/certmanage")]
               [:kubeconfig (str endpoint "/kubeconfig")]
               [:tmate-ssh (str endpoint "/tmate/ssh")]
               [:tmate-web (str endpoint "/tmate/web")]
@@ -133,7 +135,7 @@
 
 (defn get-instance
   [instance-id]
-  (let [{:keys [instance kubeconfig tmate-ssh tmate-web ingresses]} (fetch-instance instance-id)
+  (let [{:keys [instance kubeconfig tmate-ssh tmate-web ingresses dns cert]} (fetch-instance instance-id)
         created-at (status->created-at (:status instance))]
     {:instance-id (or (-> instance :spec :name) instance-id)
      :owner (-> instance :spec :setup :user)
@@ -148,6 +150,8 @@
      :tmate-ssh (-> tmate-ssh :spec)
      :tmate-web (-> tmate-web :spec)
      :ingresses (-> ingresses :list)
+     :dns (-> dns :response)
+     :cert (-> cert :response)
      :sites (get-sites ingresses)
      :created-at created-at
      :age (if (nil? created-at) nil (relative-age created-at))}))
