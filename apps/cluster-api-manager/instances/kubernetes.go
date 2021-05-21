@@ -85,7 +85,6 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 
 	//   - newInstance.KubeadmControlPlane
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
-	log.Printf("%#v\n", groupVersionResource)
 	item, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -105,7 +104,6 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	//   - newInstance.Machine
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
-	log.Printf("%#v\n", groupVersionResource)
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -124,7 +122,6 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	//   - newInstance.PacketMachine
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
-	log.Printf("%#v\n", groupVersionResource)
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -136,7 +133,6 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 			if err != nil {
 				return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
 			}
-			log.Printf("%#v\n", itemRestructuredPM.Spec)
 			var providerID string = *itemRestructuredPM.Spec.ProviderID
 			providerIDSplit := strings.Split(providerID, "/")
 			if len(providerIDSplit) == 3 {
@@ -149,7 +145,6 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	var itemRestructuredC clusterAPIv1alpha3.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
-	log.Printf("%#v\n", groupVersionResource)
 	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -635,7 +630,6 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		}
 		sshKeys = append(sshKeys, githubSSHKeys...)
 	}
-	log.Printf("sshKeys: %#v\n", sshKeys)
 
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
@@ -1914,7 +1908,6 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, s
 	var ipAddress string
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
-	log.Printf("%#v\n", groupVersionResource)
 	log.Println("watching instance machine")
 	watcher, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Watch(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
@@ -1929,7 +1922,6 @@ machineWatchChannel:
 		eventObjectBytes, _ := json.Marshal(event.Object)
 		var machine clusterAPIv1alpha3.Machine
 		json.Unmarshal(eventObjectBytes, &machine)
-		fmt.Printf("%#v\n", machine)
 		if len(machine.Status.Addresses) < 1 {
 			log.Println("error: machine has no IP addresses")
 			continue
