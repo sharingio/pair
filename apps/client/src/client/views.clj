@@ -189,10 +189,10 @@
       (code-box "tmate-ssh" tmate-ssh)]]))
 
 (defn status
-  [{:keys [facility type phase sites]}]
+  [{:keys [facility type phase sites dns cert]}]
   [:section#status
    [:h3#phase "Status: " phase]
-    [:p#type  type " instance"]
+   [:p#type  type " instance"]
    [:p#facility "deployed at " facility]
    [:h3 "Sites Available"]
    [:ul#sites-available

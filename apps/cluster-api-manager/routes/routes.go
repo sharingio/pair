@@ -529,7 +529,7 @@ func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 
-		_ = instances.KubernetesAddMachineIPToDNS(dynamicClient, name, instance.Spec.Setup.UserLowercase)
+		go instances.KubernetesAddMachineIPToDNS(dynamicClient, name, name)
 		response = "Initiated DNS management"
 		responseCode = http.StatusOK
 		JSONresp := types.JSONMessageResponse{
