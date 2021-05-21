@@ -150,8 +150,6 @@
      :tmate-ssh (-> tmate-ssh :spec)
      :tmate-web (-> tmate-web :spec)
      :ingresses (-> ingresses :list)
-     :dns (-> dns :response)
-     :cert (-> cert :response)
      :sites (get-sites ingresses)
      :created-at created-at
      :age (if (nil? created-at) nil (relative-age created-at))}))
