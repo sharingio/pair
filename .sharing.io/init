@@ -4,7 +4,7 @@ GIT_ROOT=$(git rev-parse --show-toplevel)
 rm $GIT_ROOT/.sharing.io/setup-complete
 
 if ! git remote -v | grep -q gitlab; then
-    git add remote gitlab git@gitlab.com:sharingio/pair.git
+    git remote add gitlab git@gitlab.com:sharingio/pair.git
 fi
 
 if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
