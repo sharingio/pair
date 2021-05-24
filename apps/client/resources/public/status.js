@@ -65,12 +65,10 @@ function updateSOS (instance) {
 
 function updateKubeconfig (instance) {
     const dl = document.querySelector('a#kc-dl');
-    const command = document.querySelector('pre#kc-command');
     const config = document.querySelector('pre#kc');
     if (instance.kubeconfig && instance.uid) {
         const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}/kubeconfig`
         dl.href = publicLink;
-        command.textContent = `export KUBECONFIG=$(mktemp -t kubeconfig-XXXXX) ; curl -s ${publicLink} > "$KUBECONFIG"  ; kubectl api-resources`
         config.textContent = instance.kubeconfig;
     }
 };
