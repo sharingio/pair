@@ -59,14 +59,14 @@
         hours (quot (mod age-in-seconds 86400) 3600)
         minutes (quot (mod (mod age-in-seconds 86400) 3600) 60)]
     (str (when (> days 0)
-           (str (pluralize days"day")", "))
-         (when(or (> days 0)(> hours 0))
-           (str (pluralize hours"hour")", "))
-         (pluralize minutes"minute"))))
+           (str (pluralize days "day") ", "))
+         (when (or (> days 0) (> hours 0))
+           (str (pluralize hours "hour") ", "))
+         (pluralize minutes "minute"))))
 
 (defn fetch-from-backend
   [url]
-  (client/get url {:timeout 5000}
+  (client/get url {:timeout 7000}
               (fn [{:keys [status headers body error]}] ;; asynchronous response handling
                 (if error
                   (do (println "Failed, exception is " error) nil)
