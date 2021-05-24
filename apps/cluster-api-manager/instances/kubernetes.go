@@ -11,8 +11,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/sharingio/pair/common"
-	"github.com/sharingio/pair/dns"
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
+	"github.com/sharingio/pair/apps/cluster-api-manager/dns"
 
 	"github.com/asaskevich/govalidator"
 	corev1 "k8s.io/api/core/v1"

@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/sharingio/pair/common"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
 )
 
 // ValidateInstance ...

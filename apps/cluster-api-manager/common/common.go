@@ -17,7 +17,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/sharingio/pair/types"
+	"github.com/sharingio/pair/apps/cluster-api-manager/types"
 )
 
 // misc vars

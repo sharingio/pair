@@ -7,7 +7,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/sharingio/pair/common"
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
 )
 
 // misc default vars

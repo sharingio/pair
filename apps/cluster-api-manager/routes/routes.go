@@ -19,9 +19,9 @@ import (
 	"k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	"github.com/sharingio/pair/common"
-	"github.com/sharingio/pair/instances"
-	"github.com/sharingio/pair/types"
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
+	"github.com/sharingio/pair/apps/cluster-api-manager/instances"
+	"github.com/sharingio/pair/apps/cluster-api-manager/types"
 )
 
 // GetInstanceKubernetes ...

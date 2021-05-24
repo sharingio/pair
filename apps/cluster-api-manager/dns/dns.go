@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	externaldnsendpoint "sigs.k8s.io/external-dns/endpoint"
 
-	"github.com/sharingio/pair/common"
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
 )
 
 // Entry ...

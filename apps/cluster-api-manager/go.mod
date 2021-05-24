@@ -1,4 +1,4 @@
-module github.com/sharingio/pair
+module github.com/sharingio/pair/apps/cluster-api-manager
 
 go 1.13
 
@@ -13,7 +13,7 @@ require (
 	github.com/googleapis/gnostic v0.5.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/joho/godotenv v1.3.0 // indirect
+	github.com/joho/godotenv v1.3.0
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/onsi/ginkgo v1.14.1 // indirect
