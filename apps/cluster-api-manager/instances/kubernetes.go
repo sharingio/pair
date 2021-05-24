@@ -508,11 +508,10 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
 	}
-	log.Println("[pre] adding Kubernetes Instance IP to DNS")
 
 	go func() {
 	machineIPToDNS:
-		for {
+		for i := 0; i < 100; i++ {
 			err := KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Name)
 			if err == nil {
 				break machineIPToDNS
@@ -523,8 +522,8 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	if options.NameScheme == InstanceNameSchemeSpecified || options.NameScheme == InstanceNameSchemeUsername {
 		go func() {
 		certToMachine:
-			for {
-				err := KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name)
+			for i := 0; i < 100; i++ {
+				err := KubernetesAddCertToMachine(clientset, dynamicClient, instance)
 				if err == nil {
 					break certToMachine
 				}
@@ -532,7 +531,6 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 			}
 		}()
 	}
-	log.Println("[post] adding Kubernetes Instance IP to DNS")
 
 	err = nil
 
@@ -1906,7 +1904,7 @@ func KubernetesWaitForInstanceKubeconfig(clientset *kubernetes.Clientset, instan
 	kubeconfigName := fmt.Sprintf("%s-kubeconfig", instanceName)
 pollInstanceNamespace:
 	for true {
-		deadline := time.Now().Add(time.Second * 3)
+		deadline := time.Now().Add(time.Second * 1)
 		ctx, _ := context.WithDeadline(context.TODO(), deadline)
 		ns, err := clientset.CoreV1().Secrets(targetNamespace).Get(ctx, kubeconfigName, metav1.GetOptions{})
 		if err == nil && ns.ObjectMeta.Name == kubeconfigName {
@@ -2080,7 +2078,12 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 // KubernetesAddCertToMachine ...
 // given a clientset, dynamic client, and instance name,
 // manage the lifecycle of a cert on an instance
-func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instanceName string) (err error) {
+func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instance InstanceSpec) (err error) {
+	if (instance.NameScheme != InstanceNameSchemeSpecified && instance.NameScheme != InstanceNameSchemeUsername) || instance.NameScheme == "" {
+		log.Printf("Will not manage certs, due to unaccepted NameScheme '%v'", instance.NameScheme)
+		return nil
+	}
+	instanceName := instance.Name
 	// if cert secret for user name exists locally
 	namespace := "powerdns"
 	log.Printf("Managing cert for Instance '%v'\n", instanceName)
@@ -2099,7 +2102,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 
 	//   wait for cluster and namespace availability
 	restClient := instanceClientset.Discovery().RESTClient()
-	deadline := time.Now().Add(time.Second * 3)
+	deadline := time.Now().Add(time.Second * 1)
 	ctx, _ := context.WithDeadline(context.TODO(), deadline)
 	_, err = restClient.Get().AbsPath("/healthz").DoRaw(ctx)
 	if err != nil {
@@ -2107,7 +2110,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	}
 	log.Printf("Instance '%v' alive\n", instanceName)
 
-	deadline = time.Now().Add(time.Second * 3)
+	deadline = time.Now().Add(time.Second * 1)
 	ctx, _ = context.WithDeadline(context.TODO(), deadline)
 	_, err = instanceClientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {

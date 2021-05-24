@@ -118,6 +118,7 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 		}
 	}
 	instance.Name = strings.ToLower(instance.Name)
+	instance.NameScheme = options.NameScheme
 
 	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
 	if instance.Setup.Timezone == "" {
@@ -159,4 +160,3 @@ func Delete(instance InstanceSpec, kubernetesClientset dynamic.Interface) (err e
 	}
 	return err
 }
-

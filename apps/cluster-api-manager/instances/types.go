@@ -21,11 +21,12 @@ type Instance struct {
 // InstanceSpec ...
 // specification for an instance
 type InstanceSpec struct {
-	Name     string          `json:"name"`
-	Type     InstanceType    `json:"type"`
-	Setup    types.SetupSpec `json:"setup"`
-	NodeSize string          `json:"nodeSize"`
-	Facility string          `json:"facility"`
+	Name       string             `json:"name"`
+	Type       InstanceType       `json:"type"`
+	Setup      types.SetupSpec    `json:"setup"`
+	NodeSize   string             `json:"nodeSize"`
+	Facility   string             `json:"facility"`
+	NameScheme InstanceNameScheme `json:"nameScheme"`
 }
 
 // InstanceResourceStatus ...

@@ -584,7 +584,7 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 
-		err = instances.KubernetesAddCertToMachine(clientset, dynamicClient, name)
+		err = instances.KubernetesAddCertToMachine(clientset, dynamicClient, instance.Spec)
 		if err != nil {
 			response = fmt.Sprintf("%v: %v", response, err.Error())
 		} else {
