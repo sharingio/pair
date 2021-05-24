@@ -102,5 +102,6 @@ function updateStatus () {
 };
 
 window.addEventListener('load', () => {
+    updateStatus()
     setInterval(updateStatus, POLL_INTERVAL);
 });
