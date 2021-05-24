@@ -1,4 +1,4 @@
-const POLL_INTERVAL = 4000;
+const POLL_INTERVAL = 10000;
 
 function updateAge (instance) {
     let age = document.querySelector("em#age");
