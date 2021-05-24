@@ -188,6 +188,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	}
 
 	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
+	instance.Spec.NameScheme = InstanceNameScheme(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nameScheme"])
 	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
 	instance.Spec.Facility = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
 	instance.Spec.Setup.Guests = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
@@ -212,7 +213,6 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	// manifests
 
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
-	log.Printf("%#v\n", groupVersionResource)
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
@@ -249,7 +249,6 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	//   - newInstance.Machine
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
-	log.Printf("%#v\n", groupVersionResource)
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
@@ -274,7 +273,6 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	//   - newInstance.PacketMachine
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
-	log.Printf("%#v\n", groupVersionResource)
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
@@ -306,7 +304,6 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 	//   - newInstance.Cluster
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
-	log.Printf("%#v\n", groupVersionResource)
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
@@ -1663,6 +1660,7 @@ sysctl --system
 	newInstance.Cluster.ObjectMeta.Namespace = namespace
 	newInstance.Cluster.ObjectMeta.Annotations = map[string]string{}
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nameScheme"] = string(instance.NameScheme)
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
