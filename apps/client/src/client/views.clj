@@ -156,27 +156,27 @@
    user))
 
 (defn kubeconfig-box
-  [{:keys [kubeconfig uid instance-id]}]
+  [{:keys [kubeconfig uid instance-id owner]}]
   (if kubeconfig
     [:section#kubeconfig
      [:h3 "Kubeconfig available "]
-     [:a#kc-dl {:href (str "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig")
-                                       :download (str instance-id"-kubeconfig")} "download"]
+     [:a#kc-dl {:href (str "https://" (env :canonical-url) "/public-instances/" uid "/" instance-id "/kubeconfig")
+                :download (str instance-id "-kubeconfig")} "download"]
      [:p "you can attach to the cluster immediately with this command: "]
-      (code-box "kc-command"
-                (str
-                 "export KUBECONFIG=$(mktemp -t kubeconfig) ; curl -s "
-                 "https://"(env :domain)"/public-instances/"uid"/"instance-id"/kubeconfig > \"$KUBECONFIG\""
-                 " ; kubectl api-resources"))
-  [:details
-   [:summary "See Full Kubeconfig"]
-   (code-box "kc" kubeconfig)]]
+     (code-box "kc-command"
+               (str
+                "export KUBECONFIG=$(mktemp -t kubeconfig-XXXXX) ; curl -s "
+                "https://" (env :canonical-url) "/public-instances/" uid "/" instance-id "/kubeconfig > \"$KUBECONFIG\""
+                " ; kubectl -n " (clojure.string/lower-case owner) " exec -it " (clojure.string/lower-case owner) "-humacs-0 -- attach"))
+     [:details
+      [:summary "See Full Kubeconfig"]
+      (code-box "kc" kubeconfig)]]
     [:section#kubeconfig
      [:h3 "Kubeconfig not yet available"]]))
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
-  (if(or (= "Not ready to fetch tmate session" tmate-web) (empty? tmate-ssh))
+  (if (or (= "Not ready to fetch tmate session" tmate-web) (empty? tmate-ssh))
     [:section#tmate
      [:h3 "Pairing Session not yet Ready"]]
     [:section#tmate
