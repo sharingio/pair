@@ -80,7 +80,7 @@ build-client-container:
 
 spell_check:
   stage: lint
-  image: golang:1.13.10-alpine3.11
+  image: golang:1.16.0-alpine3.13
   allow_failure: true
   before_script:
     - go get -u github.com/client9/misspell/cmd/misspell
@@ -89,7 +89,7 @@ spell_check:
 
 lint_cluster-api-manager:
   stage: lint
-  image: golang:1.13.10-alpine3.11
+  image: golang:1.16.0-alpine3.13
   allow_failure: true
   before_script:
     - apk add git gcc
