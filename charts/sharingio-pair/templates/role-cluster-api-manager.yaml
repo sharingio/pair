@@ -46,7 +46,7 @@ rules:
       - list
       - delete
       - deletecollection
-      - watch
+      - list
   - apiGroups:
       - "bootstrap.cluster.x-k8s.io"
     resources:

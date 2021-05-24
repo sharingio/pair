@@ -53,7 +53,7 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instance
 
 	endpoint := externaldnsendpoint.DNSEndpoint{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
+			Name: name,
 			Labels: map[string]string{
 				"io.sharing.pair-spec-name": instanceName,
 			},
@@ -76,7 +76,6 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instance
 		},
 	}
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha1", Group: "externaldns.k8s.io", Resource: "dnsendpoints"}
-	log.Printf("%#v\n", groupVersionResource)
 	err, asUnstructured := common.ObjectToUnstructured(endpoint)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "DNSEndpoint"})
 	if err != nil {

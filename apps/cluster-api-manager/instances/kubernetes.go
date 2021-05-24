@@ -172,7 +172,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	if err != nil {
 		log.Printf("%#v\n", err)
 	}
-	deadline := time.Now().Add(time.Second * 2)
+	deadline := time.Now().Add(time.Second * 1)
 	ctx, _ := context.WithDeadline(context.TODO(), deadline)
 	humacsPod, err := instanceClientset.CoreV1().Pods(instance.Spec.Setup.UserLowercase).Get(ctx, fmt.Sprintf("%s-humacs-0", instance.Spec.Setup.UserLowercase), metav1.GetOptions{})
 	if err != nil {
@@ -510,9 +510,27 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	}
 	log.Println("[pre] adding Kubernetes Instance IP to DNS")
 
-	go KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Name)
+	go func() {
+	machineIPToDNS:
+		for {
+			err := KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Name)
+			if err == nil {
+				break machineIPToDNS
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 	if options.NameScheme == InstanceNameSchemeSpecified || options.NameScheme == InstanceNameSchemeUsername {
-		go KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name)
+		go func() {
+		certToMachine:
+			for {
+				err := KubernetesAddCertToMachine(clientset, dynamicClient, instance.Name)
+				if err == nil {
+					break certToMachine
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}()
 	}
 	log.Println("[post] adding Kubernetes Instance IP to DNS")
 
@@ -1908,38 +1926,35 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, s
 	var ipAddress string
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machines"}
-	log.Println("watching instance machine")
-	watcher, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Watch(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
+	machinesDynamic, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return err
 	}
-	defer watcher.Stop()
-	watchChan := watcher.ResultChan()
-machineWatchChannel:
-	for event := range watchChan {
-		log.Println("machine event received")
-		eventObjectBytes, _ := json.Marshal(event.Object)
-		var machine clusterAPIv1alpha3.Machine
-		json.Unmarshal(eventObjectBytes, &machine)
-		if len(machine.Status.Addresses) < 1 {
-			log.Println("error: machine has no IP addresses")
-			continue
-		}
-		if machine.Status.Addresses[1].Address == "" {
-			log.Println("error: machine address is empty")
-			continue
-		}
-		if govalidator.IsIPv4(machine.Status.Addresses[1].Address) == false {
-			log.Printf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[1].Address)
-			continue
-		}
-
-		// NOTE first IP doesn't work, as it's used for the cluster's API; instead we will use the second, which works
-		ipAddress = machine.Status.Addresses[1].Address
-		fmt.Println("machine IP available:", ipAddress)
-		break machineWatchChannel
+	eventObjectBytes, _ := json.Marshal(machinesDynamic)
+	var machines clusterAPIv1alpha3.MachineList
+	json.Unmarshal(eventObjectBytes, &machines)
+	if len(machines.Items) == 0 {
+		log.Printf("no machines available yet with label selector 'cluster.x-k8s.io/cluster-name=%v'", name)
+		return fmt.Errorf("no machines available yet with label selector 'cluster.x-k8s.io/cluster-name=%v'", name)
 	}
+	machine := machines.Items[0]
+	if len(machine.Status.Addresses) < 1 {
+		log.Println("error: machine has no IP addresses")
+		return fmt.Errorf("machine has no IP addresses")
+	}
+	if machine.Status.Addresses[1].Address == "" {
+		log.Println("error: machine address is empty")
+		return fmt.Errorf("machine address is empty")
+	}
+	if govalidator.IsIPv4(machine.Status.Addresses[1].Address) == false {
+		log.Printf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[1].Address)
+		return fmt.Errorf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[1].Address)
+	}
+
+	// NOTE first IP doesn't work, as it's used for the cluster's API; instead we will use the second, which works
+	ipAddress = machine.Status.Addresses[1].Address
+	log.Println("machine IP available:", ipAddress)
 	entry := dns.Entry{
 		Subdomain: subdomain,
 		Values: []string{
@@ -2002,6 +2017,7 @@ func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientse
 		Type: corev1.SecretTypeTLS,
 		Data: secret.Data,
 	}
+	log.Printf("Attempting to create a secret locally for '%v' in namespace '%v'\n", templatedSecretName, targetNamespace)
 	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
 	if apierrors.IsAlreadyExists(err) {
 		err = nil
@@ -2036,7 +2052,7 @@ func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, us
 			},
 			Annotations: secret.ObjectMeta.Annotations,
 		},
-		Type: corev1.SecretTypeTLS,
+		Type: secret.Type,
 		Data: secret.Data,
 	}
 	_, err = clientset.CoreV1().Secrets(targetNamespace).Create(context.TODO(), &templatedSecret, metav1.CreateOptions{})
@@ -2083,33 +2099,21 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 
 	//   wait for cluster and namespace availability
 	restClient := instanceClientset.Discovery().RESTClient()
-pollInstanceAPIServer:
-	for true {
-		deadline := time.Now().Add(time.Second * 3)
-		ctx, _ := context.WithDeadline(context.TODO(), deadline)
-		_, err := restClient.Get().AbsPath("/healthz").DoRaw(ctx)
-		if err == nil {
-			break pollInstanceAPIServer
-		} else {
-			log.Printf("err: %#v\n", err)
-		}
-		log.Printf("Instance '%v' not alive yet\n", instanceName)
-		time.Sleep(time.Second * 5)
+	deadline := time.Now().Add(time.Second * 3)
+	ctx, _ := context.WithDeadline(context.TODO(), deadline)
+	_, err = restClient.Get().AbsPath("/healthz").DoRaw(ctx)
+	if err != nil {
+		return fmt.Errorf("Instance '%v' not alive yet\n", instanceName)
 	}
 	log.Printf("Instance '%v' alive\n", instanceName)
 
-pollInstanceNamespace:
-	for true {
-		deadline := time.Now().Add(time.Second * 3)
-		ctx, _ := context.WithDeadline(context.TODO(), deadline)
-		ns, err := instanceClientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-		if err == nil && ns.ObjectMeta.Name == namespace {
-			log.Printf("Found namespace '%v' on Instance '%v'\n", namespace, instanceName)
-			break pollInstanceNamespace
-		}
-		log.Printf("Failed to find namespace '%v' on Instance '%v', %v\n", namespace, instanceName, err)
-		time.Sleep(time.Second * 5)
+	deadline = time.Now().Add(time.Second * 3)
+	ctx, _ = context.WithDeadline(context.TODO(), deadline)
+	_, err = instanceClientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to find namespace '%v' on Instance '%v', %v\n", namespace, instanceName, err)
 	}
+	log.Printf("Found namespace '%v' on Instance '%v'\n", namespace, instanceName)
 
 	// if cert doesn't exist locally
 	if apierrors.IsNotFound(errLocalInstance) {
@@ -2117,33 +2121,17 @@ pollInstanceNamespace:
 		log.Printf("Cert for Instance '%v' not found locally. Fetching from Instance\n", instanceName)
 		//   get remote cert
 		var instanceSecret *corev1.Secret
-	pollInstanceSecretWildcardTLSCert:
-		for true {
-			err, instanceSecret = KubernetesGetInstanceWildcardTLSCert(clientset, instanceName)
-			if apierrors.IsNotFound(err) {
-				log.Printf("Secret 'letsencrypt-prod' is not found in Namespace 'powerdns' on Instance '%v' yet\n", instanceName)
-				time.Sleep(time.Second * 5)
-				continue
-			}
-			if instanceSecret.ObjectMeta.Name != "" {
-				break pollInstanceSecretWildcardTLSCert
-			}
-			time.Sleep(time.Second * 5)
+		err, instanceSecret = KubernetesGetInstanceWildcardTLSCert(clientset, instanceName)
+		if apierrors.IsNotFound(err) || instanceSecret.ObjectMeta.Name == "" {
+			return fmt.Errorf("Secret 'letsencrypt-prod' is not found in Namespace 'powerdns' on Instance '%v' yet\n", instanceName)
 		}
 		//   upsert remote cert locally
 		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, instanceName, instanceSecret)
-		if err != nil {
-			log.Printf("%#v\n", err)
-		}
+		log.Printf("err: %v\n", err)
 	} else if err == nil {
 		log.Printf("Cert for Instance '%v' found locally. Creating it in the Instance\n", instanceName)
 		//   upsert local cert secret to remote
 		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, instanceName, localSecret)
-		if err != nil {
-			log.Printf("%#v\n", err)
-		}
-	} else {
-		log.Printf("%#v\n", err)
 	}
 	return err
 }
@@ -2155,7 +2143,7 @@ func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
 	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
 	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
-	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
+	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
 	return instance
 }

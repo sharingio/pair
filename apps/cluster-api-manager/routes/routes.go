@@ -6,6 +6,7 @@ package routes
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -448,6 +449,7 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 		common.JSONResponse(r, w, responseCode, JSONresp)
 	}
 }
+
 // GetKubernetesIngresses ...
 // handler for getting an instance's ingresse mappings
 func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.HandlerFunc {
@@ -529,9 +531,13 @@ func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 
-		go instances.KubernetesAddMachineIPToDNS(dynamicClient, name, name)
-		response = "Initiated DNS management"
-		responseCode = http.StatusOK
+		err = instances.KubernetesAddMachineIPToDNS(dynamicClient, name, name)
+		if err != nil {
+			response = fmt.Sprintf("%v: %v", response, err.Error())
+		} else {
+			response = "DNS records synced"
+			responseCode = http.StatusOK
+		}
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: response,
@@ -578,9 +584,13 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 
-		go instances.KubernetesAddCertToMachine(clientset, dynamicClient, name)
-		response = "Initiated cert management"
-		responseCode = http.StatusOK
+		err = instances.KubernetesAddCertToMachine(clientset, dynamicClient, name)
+		if err != nil {
+			response = fmt.Sprintf("%v: %v", response, err.Error())
+		} else {
+			response = "Certificate synced"
+			responseCode = http.StatusOK
+		}
 		JSONresp := types.JSONMessageResponse{
 			Metadata: types.JSONResponseMetadata{
 				Response: response,
