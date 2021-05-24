@@ -1,4 +1,4 @@
-FROM golang:1.14.6-alpine3.11 AS api
+FROM golang:1.16.0-alpine3.13 AS api
 WORKDIR /app
 COPY . /app/
 COPY go.* /app/
