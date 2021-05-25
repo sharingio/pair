@@ -17,25 +17,31 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
 
     envsubst < $GIT_ROOT/.sharing.io/pair-soa.yaml | kubectl apply -f -
 
-    cat <<EOF > $GIT_ROOT/.env
+    if [ ! -f $GIT_ROOT/.env ]; then
+        cat <<EOF > $GIT_ROOT/.env
 TZ=Pacific/Auckland
 PACKET_API_KEY=$PACKET_API_KEY
 EOF
+    fi
 
-    cat <<EOF > $GIT_ROOT/apps/client/.env
+    if [ ! -f $GIT_ROOT/apps/client/.env ]; then
+        cat <<EOF > $GIT_ROOT/apps/client/.env
 SESSION_SECRET=pairpairpairpair
 BACKEND_ADDRESS=localhost:8080
 CANONICAL_URL=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 SUBDOMAIN=%s.%s.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 SHARINGIO_PAIR_SET_HOSTNAME=pair
 EOF
-    
-    cat <<EOF > $GIT_ROOT/apps/cluster-api-manager/.env
+    fi
+
+    if [ ! -f $GIT_ROOT/apps/cluster-api-manager/.env ]; then
+        cat <<EOF > $GIT_ROOT/apps/cluster-api-manager/.env
 APP_PORT=127.0.0.1:8080
 APP_TARGET_NAMESPACE=${APP_NAMESPACE}-instances
 APP_BASE_HOST=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 APP_PACKET_PROJECT_ID=${PACKET_PROJECT_ID}
 EOF
+    fi
 
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
         echo "[!] Initialising Cluster-API with the infrastucture provider for Packet"
@@ -44,12 +50,14 @@ EOF
         tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "clusterctl init --infrastructure packet" Enter
     fi
 
-    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
+    if ! cat "$GIT_ROOT/.env" | grep -q OAUTH_CLIENT_ID; then
+        tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
 
-    while [ ! -f $GIT_ROOT/.sharing.io/setup-complete ]; do
-        echo "Waiting for Pair setup to complete"
-        sleep 1s
-    done
+        while [ ! -f $GIT_ROOT/.sharing.io/setup-complete ]; do
+            echo "Waiting for Pair setup to complete"
+            sleep 1s
+        done
+    fi
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/cluster-api-manager" -n backend bash
     tmate -S $TMATE_SOCKET send-keys -t backend "export \$(cat $GIT_ROOT/.env | xargs)" Enter
