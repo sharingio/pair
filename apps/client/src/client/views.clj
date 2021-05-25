@@ -161,11 +161,13 @@
   [:section#envvars
   (if envvars
   (let [keyvalue (map #(first (vec %)) envvars)]
-    [:details
-     [:summary "Environment variables declared on launch"]
-     [:table#envvar-table [:thead#envvar-table-headers [:tr [:td [:b "Key"]] [:td [:b "Value"]]]]
-      (for [[key value] keyvalue]
-        [:tr [:td (-> key name)][:td value]])]])
+    (list
+     [:h3 "Environment variables"]
+     [:details
+      [:summary "Environment variables declared on launch"]
+      [:table#envvar-table [:thead#envvar-table-headers [:tr [:td [:b "Key"]] [:td [:b "Value"]]]]
+       (for [[key value] keyvalue]
+         [:tr [:td (-> key name)][:td value]])]]))
      [:p "No environment variables declared"])])
 
 (defn kubeconfig-box
