@@ -155,10 +155,23 @@
     [:script "document.querySelector('input#timezone').value=(new Intl.DateTimeFormat).resolvedOptions().timeZone;"]]
    user))
 
+(defn envvars-box
+  [{:keys [envvars]}]
+  [:section#envvars
+  (if envvars
+  (let [keyvalue (map #(first (vec %)) envvars)]
+    [:details
+     [:summary "Environment variables declared on launch"]
+     [:table#envvar-table [:thead#envvar-table-headers [:tr [:td [:b "Key"]] [:td [:b "Value"]]]]
+      (for [[key value] keyvalue]
+        [:tr [:td (-> key name)][:td value]])]])
+     [:p "No environment variables declared"])])
+
 (defn kubeconfig-box
   [{:keys [kubeconfig uid instance-id owner]}]
-  (if kubeconfig
     [:section#kubeconfig
+  (if (and kubeconfig owner)
+    (list
      [:h3 "Kubeconfig available "]
      [:a#kc-dl {:href (str "https://" (env :canonical-url) "/public-instances/" uid "/" instance-id "/kubeconfig")
                 :download (str instance-id "-kubeconfig")} "download"]
@@ -170,9 +183,8 @@
                 " ; kubectl -n " (clojure.string/lower-case owner) " exec -it " (clojure.string/lower-case owner) "-humacs-0 -- attach"))
      [:details
       [:summary "See Full Kubeconfig"]
-      (code-box "kc" kubeconfig)]]
-    [:section#kubeconfig
-     [:h3 "Kubeconfig not yet available"]]))
+      (code-box "kc" kubeconfig)])
+     [:h3 "Kubeconfig not yet available"])])
 
 (defn tmate
   [{:keys [tmate-ssh tmate-web]}]
@@ -249,7 +261,8 @@
     [:article
      [:section.status
     (tmate instance)
-    (kubeconfig-box instance)]
+    (kubeconfig-box instance)
+    (envvars-box instance)]
     [:aside
      (status instance)
      (instance-admin instance user)]]]

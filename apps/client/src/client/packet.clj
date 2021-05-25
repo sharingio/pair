@@ -141,6 +141,7 @@
      :owner (-> instance :spec :setup :user)
      :guests (-> instance :spec :setup :guests)
      :repos (-> instance :spec :setup :repos)
+     :envvars (-> instance :spec :setup :env)
      :facility (-> instance :spec :facility)
      :type (-> instance :spec :type)
      :phase (-> instance :status :phase)

@@ -432,6 +432,14 @@ div.code-box button:active:after {
     animation-duration: 2s;
 }
 
+table#envvar-table {
+    background: var(--color_code);
+}
+
+thead#envvar-table-headers {
+    background: #b8d0de;
+}
+
 @keyframes fadeout {
     from {
         opacity: 1;
