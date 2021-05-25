@@ -44,7 +44,6 @@
     (when refresh? [:noscript [:meta {:http-equiv "refresh" :content "15"}]])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
-    [:script "document.getElementById('submit').disabled = false"]
     [:link {:rel "stylesheet"
             :href "https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;800&display=swap"}]
     [:meta {:name "viewport"
@@ -91,7 +90,13 @@
 
 (defn new-box-form
   [{:keys [fullname email username admin-member]}]
-  (form/form-to {:id "new-box" :onsubmit "document.getElementById('newInstanceSubmit').disabled = true"}
+  (form/form-to {:id "new-box" :onsubmit "
+                                         var node = document.createElement('h3')
+                                         var textnode = document.createTextNode('Your instance is now being created')
+                                         node.appendChild(textnode)
+                                         document.querySelector('form#new-box').appendChild(node)
+                                         document.querySelector('input#newInstanceSubmit').remove()
+                                         "}
                 [:post "/instances/new"]
    (util/anti-forgery-field)
    [:label {:for "type"} "Type"]
