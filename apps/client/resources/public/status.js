@@ -1,9 +1,13 @@
 const POLL_INTERVAL = 10000;
 
+function isNotEmpty (value) {
+    return (value && typeof value !== "undefined" && value !== null)
+}
+
 function updateAge (instance) {
     let age = document.querySelector("em#age");
-    if (instance.age) {
-        age.textContent = instance.age;
+    if (isNotEmpty(instance.age)) {
+        age.innerHTML = `Created by <a href="https://github.com/${instance.owner}">${instance.owner}</a> ${instance.age} ago`;
     }
 }
 
@@ -11,7 +15,7 @@ function updateTmate (instance) {
     const tmateSection = document.querySelector('section#tmate');
     const ssh = document.querySelector('pre#tmate-ssh');
     const web = document.querySelector('a.tmate.action');
-    if (instance["tmate-ssh"] && instance["tmate-web"]) {
+    if (isNotEmpty(instance["tmate-ssh"]) && isNotEmpty(instance["tmate-web"])) {
         tmateSection.classList.remove('hidden');
         ssh.textContent = instance['tmate-ssh'];
         web.href = instance["tmate-web"];
@@ -22,19 +26,19 @@ function updateInstanceInfo (instance) {
     const phase = document.querySelector('h3#phase');
     const type = document.querySelector('p#type');
     const facility = document.querySelector('p#facility');
-    if (instance.phase) {
+    if (isNotEmpty(instance.phase)) {
         phase.textContent = `Status: ${instance.phase}`;
     } else {
         phase.textContent = 'Getting status...'
     };
 
-    if (instance.type) {
+    if (isNotEmpty(instance.type)) {
         type.textContent = `${instance.type} type`;
     } else {
         type.textContent  = '';
     };
 
-    if (instance.facility) {
+    if (isNotEmpty(instance.facility)) {
         facility.textContent = `deployed at ${instance.facility}`;
     } else {
         facility.textContent = '';
@@ -44,7 +48,7 @@ function updateInstanceInfo (instance) {
 function updateSitesAvailable (instance) {
     const sitesList = document.querySelector('ul#sites-available');
     const sites = instance.sites;
-    if (sites.count > 0) {
+    if (isNotEmpty(sites) && sites.count > 0) {
         while (sitesList.firstChild) {
             sitesList.removeChild(sitesList.firstChild);
         }
@@ -58,7 +62,7 @@ function updateSitesAvailable (instance) {
 
 function updateSOS (instance) {
     const sos = document.querySelector('pre#sos-ssh');
-    if (instance.facility && instance.uid) {
+    if (isNotEmpty(instance.facility) && isNotEmpty(instance.uid)) {
         sos.textContent = `ssh ${instance.uid}@sos.${instance.facility}.platformequinix.com`;
     }
 };
@@ -66,7 +70,7 @@ function updateSOS (instance) {
 function updateKubeconfig (instance) {
     const dl = document.querySelector('a#kc-dl');
     const config = document.querySelector('pre#kc');
-    if (instance.kubeconfig && instance.uid) {
+    if (isNotEmpty(instance.kubeconfig) && isNotEmpty(instance.uid)) {
         const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}/kubeconfig`
         dl.href = publicLink;
         config.textContent = instance.kubeconfig;
@@ -75,7 +79,7 @@ function updateKubeconfig (instance) {
 
 function updatePublicLink (instance) {
     const link = document.querySelector('a#public-link');
-    if (instance.uid) {
+    if (isNotEmpty(instance.uid)) {
         const publicLink = `https://${window.location.host}/public-instances/${instance.uid}/${instance["instance-id"]}`
         link.href=publicLink;
         link.classList.remove('hidden');
