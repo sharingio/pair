@@ -26,9 +26,6 @@ spec:
         requests:
           cpu: 50m
           memory: 400Mi
-        limits:
-          cpu: 50m
-          memory: 400Mi
     clusterapimanager:
       image:
         tag: ${SHARINGIO_PAIR_TAG}
