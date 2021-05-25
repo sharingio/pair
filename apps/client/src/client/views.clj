@@ -211,15 +211,20 @@
 (defn status
   [{:keys [facility type phase sites dns cert]}]
   [:section#status
-   [:h3#phase "Status: " phase]
-   [:p#type  type " instance"]
-   [:p#facility "deployed at " facility]
+   (if (empty? phase)
+     [:h3#phase "Status: Unknown"]
+     [:h3#phase "Status: " phase])
+   [:p#type "Type: " type]
+   [:p#facility "Region: " facility]
    [:h3 "Sites Available"]
    [:ul#sites-available
+    (if (> (count (filter (complement empty?) sites)) 0)
     (for [site sites]
       [:li [:a {:href site
                 :target "_blank"
-                :rel "noreferrer noopener"} site]])]])
+                :rel "noreferrer noopener"} site]])
+    [:p "No sites available"]
+    )]])
 
 (defn instance-header
   [{:keys [guests uid instance-id repos age owner]} {:keys [username]}]
