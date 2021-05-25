@@ -349,7 +349,6 @@ main#all-instances h3 {
 
 main#all-instances ul {
     list-style-type: none;
-    margin-bottom: 3rem;
 }
 
 main#all-instances li.instance {
@@ -440,12 +439,8 @@ thead#envvar-table-headers {
     background: #b8d0de;
 }
 
-p.instanceCount {
+p.instanceCount, p.instanceCountMessage {
     font-size: 0.9rem;
-}
-
-p.instanceCountMessage {
-    font-size: 1.1rem;
 }
 
 @keyframes fadeout {
