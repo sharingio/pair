@@ -128,7 +128,7 @@
             :pattern "^[^,]*[^ ,][^,]*$"
             :title "github usernames separated by white space"
             }]
-    [:p.helper "please add github usernames, separated by whitespace"]]
+    [:p.helper "please add github usernames, separated by whitespace" [:b "(case sensistive)"]]]
    [:div.form-group
     [:label {:form "envvars"} "Environment Variables"]
     [:textarea {:name "envvars"
