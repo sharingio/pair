@@ -214,7 +214,7 @@
                 :rel "noreferrer noopener"} site]])]])
 
 (defn instance-header
-  [{:keys [guests uid instance-id repos age]} {:keys [username]}]
+  [{:keys [guests uid instance-id repos age owner]} {:keys [username]}]
    [:header
     [:h2 "Status for "instance-id
      (when (not (= "guest" username))
@@ -226,7 +226,7 @@
                                             :target "_blank"
                                             :rel "noreferrer nofollower"} "Get Public Link"]))]
     [:div.info
-     [:em#age age]
+     [:em#age "Created by " [:a {:href (str "https://github.com/" owner)} owner] " " age " ago"]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
