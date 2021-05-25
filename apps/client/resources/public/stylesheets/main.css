@@ -440,6 +440,14 @@ thead#envvar-table-headers {
     background: #b8d0de;
 }
 
+p.instanceCount {
+    font-size: 0.9rem;
+}
+
+p.instanceCountMessage {
+    font-size: 1.1rem;
+}
+
 @keyframes fadeout {
     from {
         opacity: 1;

@@ -313,28 +313,51 @@
 (defn all-instances
   [instances {:keys [username admin-member] :as user}]
   (let [[owner rest] ((juxt filter remove) #(= (:owner %) username) instances)
-        [guest other] ((juxt filter remove) #(some #{username} (:guests %)) rest)]
+        [guest other] ((juxt filter remove) #(some #{username} (:guests %)) rest)
+        [countTotal] (str (count instances))
+        [countOwner] (str (count owner))
+        [countGuest] (str (count guest))
+        [countOther] (str (count other))]
     (layout
      [:main#all-instances
       [:header
-       [:h2 "Your Instances"]]
+       [:h2 "Instances"]]
       [:article
-       (when owner
-      [:section#owner
-       [:h3 "Created by You"]
-       [:ul
-        (for [instance owner]
-          (instance-li instance))]])
-      (when guest
-      [:section#guest
-       [:h3 "Shared with You"]
-       [:ul
-       (for [instance guest]
-         (instance-li instance))]])
-       (when (and admin-member other)
-         [:section#admin
-          [:h3 "All Other Instances"]
-          [:ul
-           (for [instance other]
-             (instance-li instance))]])]]
+       (if (= (str countTotal) "0")
+         [:div
+          [:p.instanceCountMessage "No instances found"]]
+         [:div
+          (when owner
+            [:section#owner
+             [:h3 "Created by You"]
+             (if (= (str countOwner) "0")
+               [:div
+                [:p.instanceCountMessage "No instances created by you"]]
+               [:div
+                [:ul
+                 (for [instance owner]
+                   (instance-li instance))]
+                [:p.instanceCount (str countOwner " instance")]])])
+          (when guest
+            [:section#guest
+             [:h3 "Shared with You"]
+             (if (= (str countGuest) "0")
+               [:div
+                [:p.instanceCountMessage "No instances shared with you"]]
+               [:div
+                [:ul
+                 (for [instance guest]
+                   (instance-li instance))]
+                [:p.instanceCount (str countGuest " instance")]])])
+          (when (and admin-member other)
+            [:section#admin
+             [:h3 "All Other Instances"]
+             (if (= (str countOther) "0")
+               [:div
+                [:p.instanceCountMessage "No instances active"]]
+               [:div
+                [:ul
+                 (for [instance other]
+                   (instance-li instance))
+                 [:p.instanceCount (str countOther " instance")]]])])])]]
      user)))
