@@ -44,6 +44,7 @@
     (when refresh? [:noscript [:meta {:http-equiv "refresh" :content "15"}]])
     [:link {:rel "preconnect"
      :href "https://fonts.gstatic.com"}]
+    [:script "document.getElementById('submit').disabled = false"]
     [:link {:rel "stylesheet"
             :href "https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;800&display=swap"}]
     [:meta {:name "viewport"
@@ -90,8 +91,8 @@
 
 (defn new-box-form
   [{:keys [fullname email username admin-member]}]
-  (form/form-to {:id "new-box"}
-   [:post "/instances/new"]
+  (form/form-to {:id "new-box" :onsubmit "document.getElementById('newInstanceSubmit').disabled = true"}
+                [:post "/instances/new"]
    (util/anti-forgery-field)
    [:label {:for "type"} "Type"]
    (form/drop-down "type" '("Kubernetes")
@@ -142,7 +143,7 @@
                   :id "name"
                   :placeholder "coolbox-123"}]
       [:p.helper "You can set a custom name for your box, which will be used in dns."]])
-   [:input {:type :submit :value "launch"}]))
+   [:input#newInstanceSubmit {:type :submit :value "launch"}]))
 
 (defn new
   [user]
