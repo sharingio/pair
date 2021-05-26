@@ -34,11 +34,11 @@ spec:
         minReplicas: 2
       resources:
         requests:
-          cpu: 50m
-          memory: 25Mi
+          cpu: 60m
+          memory: 70Mi
         limits:
-          cpu: 50m
-          memory: 25Mi
+          cpu: 60m
+          memory: 70Mi
     ingress:
       enabled: true
       certmanager:
