@@ -65,5 +65,5 @@ EOF
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
     tmate -S $TMATE_SOCKET send-keys -t frontend "export \$(cat $GIT_ROOT/.env | xargs) \$(cat $GIT_ROOT/apps/client/.env | xargs)" Enter
-    tmate -S $TMATE_SOCKET send-keys -t frontend "lein ring server-headless" Enter
+    tmate -S $TMATE_SOCKET send-keys -t frontend "lein ring server-headless 5000" Enter
 fi
