@@ -62,6 +62,8 @@ rules:
       - secrets
     verbs:
       - get
+      - create
+      - update
   - apiGroups:
       - externaldns.k8s.io
     resources:
