@@ -1202,7 +1202,7 @@ spec:
     ref: 1.2.0
     path: deployments/go-http-server
   values:
-    serveFolder: /home/ii/.sharing.io/public_html
+    serveFolder: /home/ii/public_html
     vuejsHistoryMode: false
     image:
       tag: 1.2.0
