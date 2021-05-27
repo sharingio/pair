@@ -12,7 +12,7 @@ spec:
     instance:
       kubernetesVersion: 1.21.0
       humacsRepository: registry.gitlab.com/humacs/humacs/ii
-      humacsVersion: 2021.05.14
+      humacsVersion: 2021.05.27.36
     sessionSecret: pairpairpairpair
     githubOAuth:
       id: ${SHARINGIO_PAIR_GITHUB_OAUTH_ID}
