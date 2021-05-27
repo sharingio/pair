@@ -72,7 +72,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance",
-			HandlerFunc:  ListInstances(dynamicClient),
+			HandlerFunc:  ListInstances(dynamicClient, clientset),
 			HttpMethods:  []string{http.MethodGet},
 		},
 
@@ -93,7 +93,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes",
-			HandlerFunc:  ListInstancesKubernetes(dynamicClient),
+			HandlerFunc:  ListInstancesKubernetes(dynamicClient, clientset),
 			HttpMethods:  []string{http.MethodGet},
 		},
 
@@ -114,7 +114,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
-			HandlerFunc:  GetInstanceKubernetes(dynamicClient),
+			HandlerFunc:  GetInstanceKubernetes(dynamicClient, clientset),
 			HttpMethods:  []string{http.MethodGet},
 		},
 
@@ -198,7 +198,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/dnsmanage",
-			HandlerFunc:  PostKubernetesDNSManage(dynamicClient),
+			HandlerFunc:  PostKubernetesDNSManage(dynamicClient, clientset),
 			HttpMethods:  []string{http.MethodGet, http.MethodPost},
 		},
 
@@ -303,7 +303,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		//       500: failure
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
-			HandlerFunc:  DeleteInstanceKubernetes(dynamicClient),
+			HandlerFunc:  DeleteInstanceKubernetes(dynamicClient, clientset),
 			HttpMethods:  []string{http.MethodDelete},
 		},
 

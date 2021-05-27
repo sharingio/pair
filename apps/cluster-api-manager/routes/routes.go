@@ -26,14 +26,14 @@ import (
 
 // GetInstanceKubernetes ...
 // handler for getting a kubernetes instance type
-func GetInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
+func GetInstanceKubernetes(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient)
+		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -71,7 +71,7 @@ func GetInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 
 // ListInstances ...
 // handler for all instances
-func ListInstances(dynamicClient dynamic.Interface) http.HandlerFunc {
+func ListInstances(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all instances"
 		responseCode := http.StatusInternalServerError
@@ -85,7 +85,7 @@ func ListInstances(dynamicClient dynamic.Interface) http.HandlerFunc {
 			},
 		}
 
-		err, availableInstances := instances.List(dynamicClient, options)
+		err, availableInstances := instances.List(dynamicClient, clientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -112,7 +112,7 @@ func ListInstances(dynamicClient dynamic.Interface) http.HandlerFunc {
 
 // ListInstancesKubernetes ...
 // handler for listing Kubernetes instances
-func ListInstancesKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
+func ListInstancesKubernetes(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Listing all Kubernetes instances"
 		responseCode := http.StatusInternalServerError
@@ -124,7 +124,7 @@ func ListInstancesKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
 			},
 		}
 
-		err, availableInstances := instances.KubernetesList(dynamicClient, options)
+		err, availableInstances := instances.KubernetesList(dynamicClient, clientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -192,14 +192,14 @@ func PostInstance(dynamicClient dynamic.Interface, clientset *kubernetes.Clients
 
 // DeleteInstanceKubernetes ...
 // handler for deleting a Kubernetes instance type
-func DeleteInstanceKubernetes(dynamicClient dynamic.Interface) http.HandlerFunc {
+func DeleteInstanceKubernetes(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		responseCode := http.StatusInternalServerError
 
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient)
+		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -338,7 +338,7 @@ func GetKubernetesTmateSSHSession(clientset *kubernetes.Clientset, restConfig *r
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClientSet)
+		err, instance := instances.KubernetesGet(name, dynamicClientSet, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -399,7 +399,7 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClientSet)
+		err, instance := instances.KubernetesGet(name, dynamicClientSet, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -496,7 +496,7 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 
 // PostKubernetesDNSManage ...
 // handler for initiating DNS management for an instance
-func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
+func PostKubernetesDNSManage(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Failed to initiate DNS management"
 		responseCode := http.StatusInternalServerError
@@ -504,7 +504,7 @@ func PostKubernetesDNSManage(dynamicClient dynamic.Interface) http.HandlerFunc {
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient)
+		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -557,7 +557,7 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient)
+		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{

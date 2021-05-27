@@ -77,7 +77,7 @@ var (
 
 // KubernetesGet ...
 // Get a Kubernetes instance
-func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err error, instance Instance) {
+func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset) (err error, instance Instance) {
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
 
@@ -161,34 +161,10 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 		}
 	}
 
-	instance.Spec.Setup.User = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
-	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
-
-	err, kubeconfigBytes := KubernetesDynamicGetKubeconfigBytes(name, kubernetesClientset)
-	if err != nil {
-		log.Printf("%#v\n", err)
-	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes)
-	if err != nil {
-		log.Printf("%#v\n", err)
-	}
-	deadline := time.Now().Add(time.Second * 1)
-	ctx, _ := context.WithDeadline(context.TODO(), deadline)
-	humacsPod, err := instanceClientset.CoreV1().Pods(instance.Spec.Setup.UserLowercase).Get(ctx, fmt.Sprintf("%s-humacs-0", instance.Spec.Setup.UserLowercase), metav1.GetOptions{})
-	if err != nil {
-		log.Printf("%#v\n", err)
-	}
-	instance.Status.Resources.HumacsPod = humacsPod.Status
-
-	instance.Status.Phase = InstanceStatusPhaseProvisioning
-	if instance.Status.Resources.Cluster.Phase == string(InstanceStatusPhaseDeleting) {
-		instance.Status.Phase = InstanceStatusPhaseDeleting
-	} else if instance.Status.Resources.HumacsPod.Phase == corev1.PodRunning {
-		instance.Status.Phase = InstanceStatusPhaseProvisioned
-	}
-
 	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
 	instance.Spec.NameScheme = InstanceNameScheme(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nameScheme"])
+	instance.Spec.Setup.User = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
+	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
 	instance.Spec.Facility = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
 	instance.Spec.Setup.Guests = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
@@ -201,16 +177,28 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface) (err erro
 	instance.Spec.Setup.Env = env
 	instance.Spec.Setup.BaseDNSName = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-baseDNSName"]
 
+	var tmateSSH string
+	err, tmateSSH = KubernetesGetTmateSSHSession(clientset, instance.Spec.Name, instance.Spec.Setup.UserLowercase)
+	if err != nil {
+		log.Printf("err: %#v\n", err.Error())
+	}
+	log.Printf("Instance '%v' tmate session: '%v'", instance.Spec.Name, tmateSSH)
+	instance.Status.Phase = InstanceStatusPhaseProvisioning
+	if instance.Status.Resources.Cluster.Phase == string(InstanceStatusPhaseDeleting) {
+		instance.Status.Phase = InstanceStatusPhaseDeleting
+	} else if firstSnippit := strings.Split(tmateSSH, " "); firstSnippit[0] == "ssh" {
+		instance.Status.Phase = InstanceStatusPhaseProvisioned
+	}
+	log.Printf("Instance '%v' is at phase '%v'", instance.Spec.Name, instance.Status.Phase)
+
 	err = nil
 	return err, instance
 }
 
 // KubernetesList ...
 // list all Kubernetes instances
-func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
+func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset, options InstanceListOptions) (err error, instances []Instance) {
 	targetNamespace := common.GetTargetNamespace()
-
-	// manifests
 
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
@@ -333,6 +321,7 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 				instances[i].Spec.NodeSize = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
 				instances[i].Spec.Facility = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
 				instances[i].Spec.Setup.User = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"]
+				instances[i].Spec.Setup.UserLowercase = strings.ToLower(instances[i].Spec.Setup.User)
 				instances[i].Spec.Setup.Guests = strings.Split(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
 				instances[i].Spec.Setup.Repos = strings.Split(itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
 				instances[i].Spec.Setup.Timezone = itemRestructured.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
@@ -343,12 +332,17 @@ func KubernetesList(kubernetesClientset dynamic.Interface, options InstanceListO
 				instances[i].Spec.Setup.Env = env
 				instances[i].Status.Resources.Cluster = itemRestructured.Status
 
+				err, tmateSSH := KubernetesGetTmateSSHSession(clientset, instances[i].Spec.Name, instances[i].Spec.Setup.UserLowercase)
+				if err != nil {
+					log.Printf("err: %#v\n", err.Error())
+				}
 				instances[i].Status.Phase = InstanceStatusPhaseProvisioning
 				if instances[i].Status.Resources.Cluster.Phase == string(InstanceStatusPhaseDeleting) {
 					instances[i].Status.Phase = InstanceStatusPhaseDeleting
-				} else if instances[i].Status.Resources.HumacsPod.Phase == corev1.PodRunning {
+				} else if firstSnippit := strings.Split(tmateSSH, " "); firstSnippit[0] == "ssh" {
 					instances[i].Status.Phase = InstanceStatusPhaseProvisioned
 				}
+				log.Printf("Instance '%v' is at phase '%v'", instances[i].Spec.Name, instances[i].Status.Phase)
 				break instances3
 			}
 		}
@@ -1759,6 +1753,14 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 // KubernetesGetTmateSSHSession ...
 // given a clienset, instancename, and username, get the tmate SSH session for the Humacs Pod
 func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
+	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
+	if err != nil {
+		return err, output
+	}
+	err = KubernetesGetInstanceHumacsPodReadiness(clientset, instanceName, userName)
+	if err != nil {
+		return err, output
+	}
 	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err, output
@@ -1799,6 +1801,14 @@ func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName 
 // KubernetesGetTmateWebSession ...
 // given a clienset, instancename, and username, get the tmate web session for the Humacs Pod
 func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
+	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
+	if err != nil {
+		return err, output
+	}
+	err = KubernetesGetInstanceHumacsPodReadiness(clientset, instanceName, userName)
+	if err != nil {
+		return err, output
+	}
 	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err, output
@@ -2067,17 +2077,14 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	}
 
 	//   wait for cluster and namespace availability
-	restClient := instanceClientset.Discovery().RESTClient()
-	deadline := time.Now().Add(time.Second * 1)
-	ctx, _ := context.WithDeadline(context.TODO(), deadline)
-	_, err = restClient.Get().AbsPath("/healthz").DoRaw(ctx)
+	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
 	if err != nil {
-		return fmt.Errorf("Instance '%v' not alive yet\n", instanceName)
+		return err
 	}
 	log.Printf("Instance '%v' alive\n", instanceName)
 
-	deadline = time.Now().Add(time.Second * 1)
-	ctx, _ = context.WithDeadline(context.TODO(), deadline)
+	deadline := time.Now().Add(time.Second * 1)
+	ctx, _ := context.WithDeadline(context.TODO(), deadline)
 	_, err = instanceClientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("Failed to find namespace '%v' on Instance '%v', %v\n", namespace, instanceName, err)
@@ -2103,6 +2110,47 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, instanceName, localSecret)
 	}
 	return err
+}
+
+func KubernetesGetInstanceAPIServerLiveness(clientset *kubernetes.Clientset, instanceName string) error {
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	if err != nil {
+		return err
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return err
+	}
+
+	restClient := instanceClientset.Discovery().RESTClient()
+	deadline := time.Now().Add(time.Second * 1)
+	ctx, _ := context.WithDeadline(context.TODO(), deadline)
+	_, err = restClient.Get().AbsPath("/healthz").DoRaw(ctx)
+	if err != nil {
+		return fmt.Errorf("Instance '%v' not alive yet\n", instanceName)
+	}
+	return nil
+}
+
+func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, instanceName string, userLowercase string) error {
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	if err != nil {
+		return err
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return err
+	}
+	deadline := time.Now().Add(time.Second * 1)
+	ctx, _ := context.WithDeadline(context.TODO(), deadline)
+	humacsPod, err := instanceClientset.CoreV1().Pods(userLowercase).Get(ctx, fmt.Sprintf("%s-humacs-0", userLowercase), metav1.GetOptions{})
+	if err != nil {
+		log.Printf("%#v\n", err)
+	}
+	if humacsPod.Status.Phase != corev1.PodRunning {
+		return fmt.Errorf("Humacs Pod is not running for instance '%v'", instanceName)
+	}
+	return nil
 }
 
 // UpdateInstanceSpecIfEnvOverrides ...

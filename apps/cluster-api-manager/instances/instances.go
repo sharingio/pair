@@ -66,17 +66,17 @@ func Get(name string) (err error, instance Instance) {
 
 // List ...
 // list all instances
-func List(dynamicClient dynamic.Interface, options InstanceListOptions) (err error, instances []Instance) {
+func List(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceListOptions) (err error, instances []Instance) {
 	switch options.Filter.Type {
 	case InstanceTypeKubernetes:
-		err, instances = KubernetesList(dynamicClient, options)
+		err, instances = KubernetesList(dynamicClient, clientset, options)
 		break
 
 	case InstanceTypePlain:
 		break
 
 	default:
-		err, instances = KubernetesList(dynamicClient, options)
+		err, instances = KubernetesList(dynamicClient, clientset, options)
 		// append plain type
 	}
 	return err, instances
@@ -89,7 +89,7 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	if err != nil {
 		return err, instanceCreated
 	}
-	err, instancesOfUser := List(dynamicClient, InstanceListOptions{
+	err, instancesOfUser := List(dynamicClient, clientset, InstanceListOptions{
 		Filter: InstanceFilter{
 			Username: instance.Setup.User,
 		},
