@@ -341,7 +341,7 @@
                 [:ul
                  (for [instance owner]
                    (instance-li instance))]
-                [:p.instanceCount (str countOwner " instance")]])])
+                [:p.instanceCount (str countOwner " instance(s)")]])])
           (when guest
             [:section#guest
              [:h3 "Shared with You"]
@@ -352,7 +352,7 @@
                 [:ul
                  (for [instance guest]
                    (instance-li instance))]
-                [:p.instanceCount (str countGuest " instance")]])])
+                [:p.instanceCount (str countGuest " instance(s)")]])])
           (when (and admin-member other)
             [:section#admin
              [:h3 "All Other Instances"]
@@ -363,5 +363,5 @@
                 [:ul
                  (for [instance other]
                    (instance-li instance))
-                 [:p.instanceCount (str countOther " instance")]]])])])]]
+                 [:p.instanceCount (str countOther " instance(s)")]]])])])]]
      user)))
