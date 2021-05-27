@@ -239,7 +239,9 @@
                                             :target "_blank"
                                             :rel "noreferrer nofollower"} "Get Public Link"]))]
     [:div.info
-     [:em#age "Created by " [:a {:href (str "https://github.com/" owner)} owner] " " age " ago"]
+     [:em#age "Created by " [:a {:href (str "https://github.com/" owner)
+                                 :target "_blank"
+                                 :rel "noreferrer nofollower"} owner] " " age " ago"]
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
@@ -304,10 +306,12 @@
 
 (defn instance-li
   "used in all instances page, short list of info about instance!"
-  [{:keys [instance-id phase age]}]
+  [{:keys [instance-id phase age owner]}]
   [:li.instance [:a {:href (str "/instances/id/"instance-id)}
         instance-id] [:em.phase phase]
-   [:p.age age]])
+   [:p.age "Created by " [:a {:href (str "https://github.com/" owner)
+                                 :target "_blank"
+                                 :rel "noreferrer nofollower"} owner] " " age " ago"]])
 
 
 (defn all-instances
