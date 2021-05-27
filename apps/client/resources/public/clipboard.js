@@ -1,52 +1,45 @@
-const sosCopyButton = document.querySelector("button#copy-sos-ssh")
-      ? document.querySelector('button#copy-sos-ssh')
-      : null;
-const sosVal = document.querySelector('pre#sos-ssh')
-      ? document.querySelector('pre#sos-ssh').textContent
-      : null;
+function GetObjectByQuerySelector(selector) {
+  return (document.querySelector(selector)
+          ? document.querySelector(selector)
+          : null)
+}
 
-const tmateCopyButton = document.querySelector('button#copy-tmate-ssh')
-      ? document.querySelector('button#copy-tmate-ssh')
-      : null;
-const tmateVal = document.querySelector('pre#tmate-ssh')
-      ? document.querySelector('pre#tmate-ssh').textContent
-      : null;
+function GetObjectValueByQuerySelector(selector) {
+  return (document.querySelector(selector)
+          ? document.querySelector(selector).textContent
+          : null)
+}
 
-const kcCommandCopyButton = document.querySelector('button#copy-kc-command')
-      ? document.querySelector('button#copy-kc-command')
-      : null;
-const kcCommandVal = document.querySelector('pre#kc-command')
-      ? document.querySelector('pre#kc-command').textContent
-      : null;
-
-const kcCopyButton = document.querySelector('button#copy-kc')
-      ? document.querySelector('button#copy-kc')
-      : null;
-const kcVal = document.querySelector('pre#kc')
-      ? document.querySelector('pre#kc').textContent
-      : null;
-
+const pasteButtons = [
+  {
+    button: "button#copy-sos-ssh",
+    value: "pre#sos-ssh",
+  },
+  {
+    button: "button#copy-tmate-ssh",
+    value: "pre#tmate-ssh"
+  },
+  {
+    button: "button#copy-kc-command",
+    value: "pre#kc-command"
+  },
+  {
+    button: "button#copy-kc",
+    value: "pre#kc"
+  }
+]
 
 function copyToClipboard (str) {
-    const el = document.createElement('textarea');
-    el.value = str;
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
+  const el = document.createElement('textarea');
+  el.value = str;
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
 }
 
 window.addEventListener('load', () => {
-    if (sosCopyButton)  {
-        sosCopyButton.addEventListener('click', () => copyToClipboard(sosVal));
-    }
-    if (tmateCopyButton) {
-        tmateCopyButton.addEventListener('click', () => copyToClipboard(tmateVal));
-    }
-    if (kcCommandCopyButton) {
-        kcCommandCopyButton.addEventListener('click', () => copyToClipboard(kcCommandVal));
-    }
-    if (kcCopyButton) {
-        kcCopyButton.addEventListener('click', () => copyToClipboard(kcVal));
-    }
-});
+  pasteButtons.map(b => {
+    GetObjectByQuerySelector(b.button).addEventListener('click', () => copyToClipboard(GetObjectValueByQuerySelector(b.value)))
+  })
+})
