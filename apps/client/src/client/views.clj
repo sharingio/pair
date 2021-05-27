@@ -164,10 +164,10 @@
 (defn envvars-box
   [{:keys [envvars]}]
   [:section#envvars
+   [:h3 "Environment variables"]
   (if envvars
   (let [keyvalue (map #(first (vec %)) envvars)]
     (list
-     [:h3 "Environment variables"]
      [:details
       [:summary "Environment variables declared on launch"]
       [:table#envvar-table [:thead#envvar-table-headers [:tr [:td [:b "Key"]] [:td [:b "Value"]]]]
