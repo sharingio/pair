@@ -64,12 +64,14 @@ spec:
             {{- end }}
             - name: BACKEND_ADDRESS
               value: "{{ include "sharingio-pair.fullname" . }}-clusterapimanager.{{ .Release.Namespace }}:{{ .Values.clusterapimanager.service.port }}"
-            - name: CANONICAL_URL
-              value: {{ (first .Values.ingress.hosts).host }}
             - name: SUBDOMAIN
               value: "%s.%s.{{ (first .Values.ingress.hosts).host }}"
             - name: TZ
               value: {{ .Values.timezone }}
+            - name: PAIR_PERMITTED_ORGS
+              value: "{{ range .Values.permittedOrgs }}{{ . }} {{ end }}"
+            - name: PAIR_ADMIN_EMAIL_DOMAIN
+              value: "{{ .Values.adminEmailDomain }}"
             {{- if .Values.client.extraEnv }}
             {{- toYaml .Values.client.extraEnv | nindent 12 }}
             {{- end }}

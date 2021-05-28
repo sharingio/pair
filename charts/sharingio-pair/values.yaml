@@ -2,6 +2,12 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+permittedOrgs:
+  - sharingio
+  - humacs
+
+adminEmailDomain: ""
+
 # A 16-character shared secret between the frontend and the browser
 sessionSecret: ""
 # GitHub OAuth App
