@@ -2,12 +2,14 @@
 
 * Environment variables
 ** Frontend (also called client)
-| Name                  | Default | Description                                                   |
-| =SESSION_SECRET=      |         | A 16-character shared secret between the frontend and browser |
-| =OAUTH_CLIENT_ID=     |         | GitHub OAuth App ID                                           |
-| =OAUTH_CLIENT_SECRET= |         | GitHub OAuth App Secret                                       |
-| =BACKEND_ADDRESS=     |         | The address for where the backend is                          |
-| =TZ=                  |         | Timezone to set                                               |
+| Name                      | Default | Description                                                   |
+| =SESSION_SECRET=          |         | A 16-character shared secret between the frontend and browser |
+| =OAUTH_CLIENT_ID=         |         | GitHub OAuth App ID                                           |
+| =OAUTH_CLIENT_SECRET=     |         | GitHub OAuth App Secret                                       |
+| =BACKEND_ADDRESS=         |         | The address for where the backend is                          |
+| =TZ=                      |         | Timezone to set                                               |
+| =PAIR_PERMITTED_ORGS=     |         | GitHub orgs to allow access with                              |
+| =PAIR_ADMIN_EMAIL_DOMAIN= |         | Email domain to allow admin access with                       |
 
 ** Cluster-API-Manager (also called backend)
 | Name                              | Default                                | Description                                                             |
