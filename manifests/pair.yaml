@@ -9,6 +9,11 @@ spec:
     ref: ${SHARINGIO_PAIR_TAG}
     path: charts/sharingio-pair
   values:
+    permittedOrgs:
+      - sharingio
+      - cncf
+      - kubernetes
+    adminEmailDomain: ii.coop
     instance:
       kubernetesVersion: 1.21.0
       humacsRepository: registry.gitlab.com/humacs/humacs/ii
