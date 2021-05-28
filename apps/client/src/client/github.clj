@@ -57,7 +57,7 @@
   "do emails include ii.coop, indicating admin"
   [emails]
   (let [addresses (->> emails (filter :verified) (map :email))]
-  (some #(clojure.string/ends-with? % (concat "@" (env :pair-admin-email-domain))) addresses)))
+  (some #(clojure.string/ends-with? % (str "@" (env :pair-admin-email-domain))) addresses)))
 
 (s/fdef user-info
   :args (s/cat :raw-info :gh/raw-info)
