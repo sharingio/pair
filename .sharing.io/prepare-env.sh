@@ -14,13 +14,17 @@ echo "        - homepage URL is set to 'https://pair.${SHARINGIO_PAIR_BASE_DNS_N
 echo "        - authorization callback URL is set to 'https://pair.${SHARINGIO_PAIR_BASE_DNS_NAME}/oauth'"
 echo
 echo "Input:"
-read -r -p "OAUTH_CLIENT_ID (github oauth app client id)                  : " OAUTH_CLIENT_ID
-read -r -p "OAUTH_CLIENT_SECRET (github oauth app client generated secret): " OAUTH_CLIENT_SECRET
+read -r -p "OAUTH_CLIENT_ID (github oauth app client id)                   : " OAUTH_CLIENT_ID
+read -r -p "OAUTH_CLIENT_SECRET (github oauth app client generated secret) : " OAUTH_CLIENT_SECRET
+read -r -p "PAIR_PERMITTED_ORGS (github orgs to require for use)           : " PAIR_PERMITTED_ORGS
+read -r -p "PAIR_ADMIN_EMAIL_DOMAIN (email address domain for admin access): " PAIR_ADMIN_EMAIL_DOMAIN
 echo
 echo "Appending to '$GIT_ROOT/.env'"
 cat <<EOF >> $GIT_ROOT/.env
 OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
 OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+PAIR_PERMITTED_ORGS="${PAIR_PERMITTED_ORGS:-sharingio cncf kubernetes}"
+PAIR_ADMIN_EMAIL_DOMAIN=${PAIR_ADMIN_EMAIL_DOMAIN}
 EOF
 touch $GIT_ROOT/.sharing.io/setup-complete
 echo
