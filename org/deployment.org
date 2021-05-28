@@ -49,14 +49,14 @@ spec:
   releaseName: sharingio-pair
   chart:
     git: https://github.com/sharingio/pair.git
-    ref: 1.0.50
+    ref: 2021.05.28.1515
     path: charts/sharingio-pair
   values:
     timezone: Pacific/Auckland
     instance:
       kubernetesVersion: 1.21.0
       humacsRepository: registry.gitlab.com/humacs/humacs/ii
-      humacsVersion: 2021.05.14
+      humacsVersion: 2021.05.27.2050
       nodeSize: c1.small.x86
     sessionSecret: pairpairpairpair
     githubOAuth:
