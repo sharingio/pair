@@ -46,7 +46,7 @@
   :ret boolean?)
 (defn in-permitted-org?
   [orgs]
-  (let [permitted-orgs (set '("sharingio" "cncf" "kubernetes"))
+  (let [permitted-orgs (set (clojure.string/split (env :pair-permitted-orgs) #" "))
         user-orgs (set (map :login orgs))]
     ((complement empty?) (clojure.set/intersection user-orgs permitted-orgs))))
 
@@ -57,7 +57,7 @@
   "do emails include ii.coop, indicating admin"
   [emails]
   (let [addresses (->> emails (filter :verified) (map :email))]
-  (some #(clojure.string/ends-with? % "@ii.coop") addresses)))
+  (some #(clojure.string/ends-with? % (concat "@" (env :pair-admin-email-domain))) addresses)))
 
 (s/fdef user-info
   :args (s/cat :raw-info :gh/raw-info)
@@ -67,6 +67,7 @@
     emails :emails
     orgs :orgs
     token :token}]
+  (println "orgs: " orgs)
   {:username login
    :fullname name
    :email (primary-email emails)
