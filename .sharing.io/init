@@ -1,6 +1,8 @@
 #!/bin/bash
 
+cd $(dirname $0)
 GIT_ROOT=$(git rev-parse --show-toplevel)
+cd $GIT_ROOT
 rm $GIT_ROOT/.sharing.io/setup-complete
 
 if ! git remote -v | grep -q gitlab; then
