@@ -37,7 +37,7 @@ pre {
     background: var(--color_code);
     padding: 1.25rem;
     font-size: 0.8rem;
-    max-width: 42rem;
+    max-width: 24rem;
     overflow-x: scroll;
 }
 
