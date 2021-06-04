@@ -685,622 +685,73 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 						},
 					},
 					PreKubeadmCommands: []string{
-						"mkdir -p /etc/kubernetes/pki",
-						`cat <<EOF > /etc/kubernetes/pki/audit-policy.yaml
-apiVersion: audit.k8s.io/v1
-kind: Policy
-rules:
-- level: RequestResponse
-EOF`,
-						`cat <<EOF > /etc/kubernetes/pki/audit-sink.yaml
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: http://10.96.96.96:9900/events
-  name: auditsink-cluster
-contexts:
-- context:
-    cluster: auditsink-cluster
-    user: ""
-  name: auditsink-context
-current-context: auditsink-context
-users: []
-preferences: {}
-EOF`,
-						"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
-						"swapoff -a",
-						"mount -a",
-						"apt-get -y update",
-						"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
-						"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
-						"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
-						"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
-						"apt-key fingerprint 0EBFCD88",
-						"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
-						"apt-get update -y",
-						fmt.Sprintf(`TRIMMED_KUBERNETES_VERSION=$(echo %s | sed 's/\./\\./g' | sed 's/^v//')`, instance.Setup.KubernetesVersion),
-						"RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION} '$1~ VERSION { print $1 }' | head -n1)",
-						"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION} kubectl=${RESOLVED_KUBERNETES_VERSION} ssh-import-id dnsutils kitty-terminfo git",
-						`cat <<EOF | tee /etc/modules-load.d/containerd.conf
-overlay
-br_netfilter
-EOF
-modprobe overlay
-modprobe br_netfilter
-cat <<EOF | tee /etc/sysctl.d/99-kubernetes-cri.conf
-net.bridge.bridge-nf-call-iptables  = 1
-net.ipv4.ip_forward                 = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-EOF
-sysctl --system
-`,
-						"mkdir -p /etc/containerd",
-						"rm /etc/containerd/config.toml",
-						"systemctl restart containerd",
-						"export CONTAINER_RUNTIME_ENDPOINT=/var/run/containerd/containerd.sock",
-						"echo $HOME",
-						"export HOME=$(getent passwd $(id -u) | cut -d ':' -f6)",
-						`cat <<EOF > /etc/docker/daemon.json
-{
-  "storage-driver": "overlay2",
-  "exec-opts": ["native.cgroupdriver=systemd"],
-  "containerd-namespace": "k8s.io",
-  "containerd-plugins-namespace": "k8s.io",
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "500m",
-    "max-file": "3"
-  }
-}
-EOF`,
-						"systemctl daemon-reload",
-						"systemctl enable docker",
-						"systemctl start docker",
+						`set -x`,
 						`
-until systemctl status docker; do
-  echo "Docker not ready"
-  sleep 1s
-done
+cat << EOF >> /root/.sharing-io-pair-init.env
+export KUBERNETES_CONTROLPLANE_ENDPOINT={{ .controlPlaneEndpoint }}
+EOF`,
+						`
+cat << EOF >> /root/.sharing-io-pair-init.env
+export KUBERNETES_VERSION={{ $.Setup.KubernetesVersion }}
+export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
+EOF
+. /root/.sharing-io-pair-init.env
 `,
-						"chgrp users /var/run/docker.sock",
-						"ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo",
+						"apt-get -y update",
+						"DEBIAN_FRONTEND=noninteractive apt-get install -y git",
+						`
+cd /root
+git clone https://github.com/${SHARINGIO_PAIR_INSTANCE_SETUP_USER}/.sharing.io || \
+  git clone https://github.com/sharingio/.sharing.io
+
+if ! ( [ -f .sharing.io/cluster-api/preKubeadmCommands.sh ] || [ -f .sharing.io/cluster-api/postKubeadmCommands.sh ] ); then
+  rm -rf .sharing.io
+  git clone https://github.com/sharingio/.sharing.io
+fi
+
+cd /root/.sharing.io/cluster-api
+
+bash -x ./preKubeadmCommands.sh
+`,
 					},
 					PostKubeadmCommands: []string{
 						`set -x`,
-						`cat <<EOF >> /etc/network/interfaces
-auto lo:0
-iface lo:0 inet static
-  address {{ .controlPlaneEndpoint }}
-  netmask 255.255.255.255
-EOF
-`,
-						"mkdir -p /root/.kube",
-						"cp -i /etc/kubernetes/admin.conf /root/.kube/config",
-						"export KUBECONFIG=/root/.kube/config",
 						`
-mkdir -p /etc/sudoers.d
-echo "%sudo    ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/sudo
-cp -a /root/.ssh /etc/skel/.ssh
-useradd -m -G users,sudo -u 1000 -s /bin/bash ii
-cp -a /root/.kube /home/ii/.kube
-chown ii:ii -R /home/ii/.kube
-`,
+cat << EOF >> /root/.sharing-io-pair-init.env
+export EQUINIX_METAL_APIKEY={{ .apiKey }}
+export EQUINIX_METAL_PROJECT={{ .PacketProjectID }}
+EOF`,
 						`
-sudo -iu ii ssh-import-id gh:{{ $.Setup.User }}
-{{ range $.Setup.Guests }}
-sudo -iu ii ssh-import-id gh:{{ . }}
-{{ end }}
-`,
-						"kubectl -n default get configmap sharingio-pair-init-complete && exit 0",
-						"kubectl taint node --all node-role.kubernetes.io/master-",
-						"kubectl create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json='{\"apiKey\": \"{{ .apiKey }}\",\"projectID\": \"{{ .PacketProjectID }}\"}'",
-						"kubectl apply -f https://github.com/packethost/packet-ccm/releases/download/v2.0.0/deployment.yaml",
-						"kubectl taint node --all node-role.kubernetes.io/master-",
-						"kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.19/deploy/local-path-storage.yaml",
-						`kubectl patch storageclasses.storage.k8s.io local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'`,
-						"kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.1.1/cert-manager.yaml",
-						"kubectl apply -f \"https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16\"",
-						"curl -L https://get.helm.sh/helm-v3.3.0-linux-amd64.tar.gz | tar --directory /usr/local/bin --extract -xz --strip-components 1 linux-amd64/helm",
-						`
-helm repo add fluxcd https://charts.fluxcd.io
-kubectl apply -f https://raw.githubusercontent.com/fluxcd/helm-operator/1.2.0/deploy/crds.yaml
-helm upgrade -i helm-operator --create-namespace fluxcd/helm-operator \
-    --namespace helm-operator \
-    --set helm.versions=v3
-
-kubectl apply -f https://raw.githubusercontent.com/alexellis/registry-creds/0.2.5/manifest.yaml
-`,
-						"kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e \"s/strictARP: false/strictARP: true/\" | kubectl apply -f - -n kube-system",
-						`cat <<EOF > /root/metallb-system-config.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-      - name: default
-        protocol: layer2
-        addresses:
-          - {{ .controlPlaneEndpoint }}/32
-EOF
-export LOAD_BALANCER_IP="{{ .controlPlaneEndpoint }}"
-`,
-						`(
-          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml;
-          kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
-          kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)";
-          kubectl apply -f /root/metallb-system-config.yaml
-        )
-`,
-						`
-kubectl create ns nginx-ingress
-cat << EOF | envsubst | kubectl apply -f -
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: nginx-ingress
-  namespace: nginx-ingress
-spec:
-  releaseName: nginx-ingress
-  chart:
-    repository: https://kubernetes.github.io/ingress-nginx
-    name: ingress-nginx
-    version: 3.30.0
-  values:
-    controller:
-      service:
-        externalTrafficPolicy: Local
-        annotations:
-          metallb.universe.tf/allow-shared-ip: nginx-ingress
-        externalIPs:
-          - ${LOAD_BALANCER_IP}
-EOF
-until kubectl -n nginx-ingress get deployment nginx-ingress-ingress-nginx-controller; do
-  echo "waiting for nginx-ingress deployment"
-  sleep 5s;
-done
-kubectl wait -n nginx-ingress --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
-
-cat << EOF | kubectl apply -f -
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: metrics-server
-  namespace: kube-system
-spec:
-  releaseName: metrics-server
-  chart:
-    repository: https://charts.helm.sh/stable
-    name: metrics-server
-    version: 2.11.2
-  values:
-    args:
-      - --logtostderr
-      - --kubelet-preferred-address-types=InternalIP
-      - --kubelet-insecure-tls
-EOF
-`,
-						`(
-  kubectl create ns external-dns
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes-sigs/external-dns/v0.8.0/docs/contributing/crd-source/crd-manifest.yaml
-  kubectl -n external-dns create secret generic external-dns-pdns \
-    --from-literal=domain-filter={{ $.Setup.BaseDNSName }} \
-    --from-literal=txt-owner-id={{ $.Setup.User }} \
-    --from-literal=pdns-server=http://powerdns-service-api.powerdns:8081 \
-    --from-literal=pdns-api-key=pairingissharing
-
-  kubectl -n external-dns apply -f - << EOF
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: external-dns
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: external-dns
-rules:
-- apiGroups:
-    - ""
-  resources:
-    - services
-    - endpoints
-    - pods
-  verbs:
-    - get
-    - watch
-    - list
-- apiGroups:
-    - extensions
-    - networking.k8s.io
-  resources:
-    - ingresses
-  verbs:
-    - get
-    - watch
-    - list
-- apiGroups:
-    - externaldns.k8s.io
-  resources:
-    - dnsendpoints
-  verbs:
-    - get
-    - watch
-    - list
-- apiGroups:
-    - externaldns.k8s.io
-  resources:
-    - dnsendpoints/status
-  verbs:
-  - get
-  - update
-  - patch
-  - delete
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: external-dns-viewer
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: external-dns
-subjects:
-- kind: ServiceAccount
-  name: external-dns
-  namespace: external-dns
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: external-dns
-spec:
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: external-dns
-  template:
-    metadata:
-      labels:
-        app: external-dns
-    spec:
-      serviceAccountName: external-dns
-      containers:
-      - name: external-dns
-        image: k8s.gcr.io/external-dns/external-dns:v0.8.0
-        args:
-        - --source=crd
-        - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
-        - --crd-source-kind=DNSEndpoint
-        - --provider=pdns
-        - --policy=sync
-        - --registry=txt
-        - --interval=10s
-        - --log-level=debug
-        env:
-          - name: EXTERNAL_DNS_DOMAIN_FILTER
-            valueFrom:
-              secretKeyRef:
-                name: external-dns-pdns
-                key: domain-filter
-          - name: EXTERNAL_DNS_TXT_OWNER_ID
-            valueFrom:
-              secretKeyRef:
-                name: external-dns-pdns
-                key: txt-owner-id
-          - name: EXTERNAL_DNS_PDNS_SERVER
-            valueFrom:
-              secretKeyRef:
-                name: external-dns-pdns
-                key: pdns-server
-          - name: EXTERNAL_DNS_PDNS_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: external-dns-pdns
-                key: pdns-api-key
-          - name: EXTERNAL_DNS_PDNS_TLS_ENABLED
-            value: "0"
-EOF
-)`,
-						`
-kubectl create ns powerdns
-cat << EOF | envsubst | kubectl apply -f -
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: powerdns
-  namespace: powerdns
-spec:
-  releaseName: powerdns
-  chart:
-    name: powerdns
-    repository: https://raw.githubusercontent.com/sharingio/helm-charts/gh-pages/
-    version: 0.1.12
-  values:
-    domain: {{ $.Setup.BaseDNSName }}
-    default_soa_name: {{ $.Setup.BaseDNSName }}
-    powerdns:
-      default_ttl: 60
-      soa_minimum_ttl: 60
-      domain: {{ $.Setup.BaseDNSName }}
-      mysql_host: powerdns-service-db
-      mysql_user: powerdns
-      extraEnv:
-        - name: PDNS_dnsupdate
-          value: "yes"
-        - name: PDNS_allow_dnsupdate_from
-          value: "192.168.0.0/24"
-    service:
-      dns:
-        tcp:
-          enabled: true
-          externalIPs:
-            - ${LOAD_BALANCER_IP}
-          annotations:
-            metallb.universe.tf/allow-shared-ip: nginx-ingress
-        udp:
-          externalIPs:
-            - ${LOAD_BALANCER_IP}
-          annotations:
-            metallb.universe.tf/allow-shared-ip: nginx-ingress
-    mariadb:
-      mysql_pass: pairingissharing
-      mysql_rootpass: pairingissharing
-    admin:
-      enabled: false
-      ingress:
-        enabled: false
-      secret: pairingissharing
-    apikey: pairingissharing
-EOF
-
-until kubectl -n powerdns get svc powerdns-service-dns-udp; do
-  echo "waiting for deployed PowerDNS Chart"
-  sleep 5s
-done
-kubectl -n powerdns patch svc powerdns-service-dns-udp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
-kubectl -n powerdns patch svc powerdns-service-dns-tcp -p "{\"spec\":{\"externalIPs\":[\"${LOAD_BALANCER_IP}\"]}}"
-
-  kubectl -n powerdns apply -f - << EOF
-apiVersion: externaldns.k8s.io/v1alpha1
-kind: DNSEndpoint
-metadata:
-  name: '{{ $.Setup.BaseDNSName }}-pair-sharing-io'
-spec:
-  endpoints:
-  - dnsName: '{{ $.Setup.BaseDNSName }}'
-    recordTTL: 60
-    recordType: A
-    targets:
-    - ${LOAD_BALANCER_IP}
-  - dnsName: '*.{{ $.Setup.BaseDNSName }}'
-    recordTTL: 60
-    recordType: A
-    targets:
-    - ${LOAD_BALANCER_IP}
-  - dnsName: '{{ $.Setup.BaseDNSName }}'
-    recordTTL: 60
-    recordType: SOA
-    targets:
-    - 'ns1.{{ $.Setup.BaseDNSName }}. hostmaster.{{ $.Setup.BaseDNSName }}. 5 60 60 60 60'
-EOF
-
-cat << EOF | kubectl apply -f -
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: kubed
-  namespace: kube-system
-spec:
-  releaseName: kubed
-  chart:
-    repository: https://charts.appscode.com/stable/
-    name: kubed
-    version: 0.12.0
-  values:
-    enableAnalytics: false
-EOF
-`,
-						`
-kubectl create ns "{{ $.Setup.UserLowercase }}"
-kubectl label ns "{{ $.Setup.UserLowercase }}" cert-manager-tls=sync
-mkdir -p /var/local/humacs-home-ii
-chown 1000:1000 -R /var/local/humacs-home-ii
-kubectl -n "{{ $.Setup.UserLowercase }}" apply -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: humacs-home-ii
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 500Gi
-  storageClassName: local-path
-EOF
-
-cat << EOF | kubectl apply -f -
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: {{ $.Setup.UserLowercase }}
-  namespace: {{ $.Setup.UserLowercase }}
-spec:
-  releaseName: {{ $.Setup.UserLowercase }}
-  chart:
-    git: https://github.com/humacs/humacs
-    ref: eaf562e067faa086d3165aba659fa52b727662d8
-    path: chart/humacs
-  values:
-    image:
-      repository: {{ $.Setup.HumacsRepository }}
-      tag: {{ $.Setup.HumacsVersion }}
-    options:
-      hostDockerSocket: true
-      hostTmp: true
-      timezone: {{ $.Setup.Timezone }}
-      gitName: {{ $.Setup.Fullname }}
-      gitEmail: {{ $.Setup.Email }}
-      profile: ""
-      repos:
-        {{ range $.Setup.Repos}}- {{ . }}
+cat << EOF >> /root/.sharing-io-pair-init.env
+export SHARINGIO_PAIR_INSTANCE_NAME="{{ $.Name }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_USERLOWERCASE="{{ $.Setup.UserLowercase }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_GUESTS="{{ range $.Setup.Guests }}{{ . }} {{ end }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_BASEDNSNAME="{{ $.Setup.BaseDNSName }}"
+export SHARINGIO_PAIR_INSTANCE_HUMACS_REPOSITORY="{{ $.Setup.HumacsRepository }}"
+export SHARINGIO_PAIR_INSTANCE_HUMACS_VERSION="{{ $.Setup.HumacsVersion }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
+        {{ range $.Setup.Repos }}- {{ . }}
         {{ end }}
-      preinitScript: . /usr/local/bin/sharingio-pair-preinit-script.sh
-    extraEnvVars:
-      - name: SHARINGIO_PAIR_NAME
-        value: {{ $.Name }}
-      - name: SHARINGIO_PAIR_USER
-        value: {{ $.Setup.User }}
-      - name: SHARINGIO_PAIR_LOAD_BALANCER_IP
-        value: ${LOAD_BALANCER_IP}
-      - name: HUMACS_DEBUG
-        value: "true"
-      - name: REINIT_HOME_FOLDER
-        value: "true"
-      - name: SHARINGIO_PAIR_BASE_DNS_NAME
-        value: {{ $.Setup.BaseDNSName }}
-      - name: GITHUB_TOKEN
-        value: {{ $.Setup.GitHubOAuthToken }}
+"
+export SHARINGIO_PAIR_INSTANCE_SETUP_ENV_EXPANDED="
       {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
       - name: {{ $key }}
-        value: "{{ $value }}"       {{ end }}{{ end }}{{- end }}
-    extraVolumes:
-      - name: home-ii
-        persistentVolumeClaim:
-          claimName: humacs-home-ii
-      - name: host
-        hostPath:
-          path: /
-    extraVolumeMounts:
-      - name: home-ii
-        mountPath: /home/ii
-      - name: host
-        mountPath: /var/run/host
+        value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
+"
 EOF
 
-cat << EOF | kubectl apply -f -
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: public-html
-  namespace: {{ $.Setup.UserLowercase }}
-spec:
-  releaseName: public-html
-  chart:
-    git: https://gitlab.com/safesurfer/go-http-server
-    ref: 1.2.0
-    path: deployments/go-http-server
-  values:
-    serveFolder: /home/ii/public_html
-    vuejsHistoryMode: false
-    image:
-      tag: 1.2.0
-    ingress:
-      enabled: true
-      realIPHeader: "X-Real-Ip"
-      hosts:
-        - host: www.{{ $.Setup.BaseDNSName }}
-          paths:
-            - /
-      tls:
-        - secretName: letsencrypt-prod
-          hosts:
-            - www.{{ $.Setup.BaseDNSName }}
-    extraVolumeMounts:
-      - name: humacs-home-ii
-        mountPath: /home/ii
-      - name: host
-        mountPath: /var/run/host
-    extraVolumes:
-      - name: humacs-home-ii
-        persistentVolumeClaim:
-          claimName: humacs-home-ii
-      - name: host
-        hostPath:
-          path: /
-EOF
+. /root/.sharing-io-pair-init.env
 
-export BASE_DNS_NAME={{ $.Setup.BaseDNSName }}
+cd /root/.sharing.io/cluster-api
+
+bash -x ./postKubeadmCommands.sh
 `,
-						`
-  kubectl -n powerdns wait pod --for=condition=Ready --selector=app.kubernetes.io/name=powerdns --timeout=200s
-  until [ "$(dig A ${BASE_DNS_NAME} +short)" = "${LOAD_BALANCER_IP}" ]; do
-    echo "BaseDNSName does not resolve to Instance IP yet"
-    sleep 1
-  done
-  kubectl -n powerdns exec deployment/powerdns -- pdnsutil generate-tsig-key pair hmac-md5
-  kubectl -n powerdns exec deployment/powerdns -- pdnsutil activate-tsig-key ${BASE_DNS_NAME} pair master
-  kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta ${BASE_DNS_NAME} TSIG-ALLOW-DNSUPDATE pair
-  kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta ${BASE_DNS_NAME} NOTIFY-DNSUPDATE 1
-  kubectl -n powerdns exec deployment/powerdns -- pdnsutil set-meta ${BASE_DNS_NAME} SOA-EDIT-DNSUPDATE EPOCH
-  export POWERDNS_TSIG_SECRET="$(kubectl -n powerdns exec deployment/powerdns -- pdnsutil list-tsig-keys | grep pair | awk '{print $3}')"
-  nsupdate <<EOF
-server ${LOAD_BALANCER_IP} 53
-zone ${BASE_DNS_NAME}
-update add ${BASE_DNS_NAME} 60 NS ns1.{{ $.Setup.BaseDNSName }}
-key pair ${POWERDNS_TSIG_SECRET}
-send
-EOF
-
-  kubectl -n cert-manager create secret generic tsig-powerdns --from-literal=powerdns="$POWERDNS_TSIG_SECRET"
-  kubectl -n powerdns create secret generic tsig-powerdns --from-literal=powerdns="$POWERDNS_TSIG_SECRET"
-  kubectl -n powerdns apply -f - << EOF
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: {{ $.Setup.Email }}
-    privateKeySecretRef:
-      name: letsencrypt-prod
-    solvers:
-    - dns01:
-        rfc2136:
-          tsigKeyName: pair
-          tsigAlgorithm: HMACMD5
-          tsigSecretSecretRef:
-            name: tsig-powerdns
-            key: powerdns
-          nameserver: ${LOAD_BALANCER_IP}
-      selector:
-        dnsNames:
-          - "*.${BASE_DNS_NAME}"
-          - "${BASE_DNS_NAME}"
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: letsencrypt-prod
-spec:
-  secretName: letsencrypt-prod
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  commonName: "*.${BASE_DNS_NAME}"
-  dnsNames:
-    - "*.${BASE_DNS_NAME}"
-    - "${BASE_DNS_NAME}"
-EOF
-(
-   while true; do
-     conditions=$(kubectl -n powerdns get cert letsencrypt-prod -o=jsonpath='{.status.conditions[0]}')
-     if [ "$(echo $conditions | jq -r .type)" = "Ready" ] && [ "$(echo $conditions | jq -r .status)" = "True" ]; then
-       break
-     fi
-     echo "Waiting for valid TLS cert"
-     sleep 1
-   done
-   kubectl -n powerdns annotate secret letsencrypt-prod kubed.appscode.com/sync=cert-manager-tls --overwrite
-) &
-`,
-						"kubectl -n default create configmap sharingio-pair-init-complete",
 					},
 				},
 			},
@@ -1382,52 +833,7 @@ EOF
 			Spec: cabpkv1.KubeadmConfigTemplateSpec{
 				Template: cabpkv1.KubeadmConfigTemplateResource{
 					Spec: cabpkv1.KubeadmConfigSpec{
-						PreKubeadmCommands: []string{
-							"sed -ri '/\\sswap\\s/s/^#?/#/' /etc/fstab",
-							"swapoff -a",
-							"mount -a",
-							"apt-get -y update",
-							"DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl",
-							"curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -",
-							"echo \"deb https://apt.kubernetes.io/ kubernetes-xenial main\" > /etc/apt/sources.list.d/kubernetes.list",
-							"curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
-							"apt-key fingerprint 0EBFCD88",
-							"add-apt-repository \"deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable\"",
-							"apt-get update -y",
-							"apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl ssh-import-id dnsutils kitty-terminfo git",
-							`cat <<EOF > /etc/docker/daemon.json
-{
-  "containerd-namespace": "k8s.io",
-  "containerd-plugins-namespace": "k8s.io",
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "500m",
-    "max-file": "3"
-  }
-}
-EOF`,
-							"systemctl daemon-reload",
-							"systemctl enable docker",
-							"systemctl start docker",
-							"chgrp users /var/run/docker.sock",
-							`cat <<EOF | tee /etc/modules-load.d/containerd.conf
-overlay
-br_netfilter
-EOF
-modprobe overlay
-modprobe br_netfilter
-cat <<EOF | tee /etc/sysctl.d/99-kubernetes-cri.conf
-net.bridge.bridge-nf-call-iptables  = 1
-net.ipv4.ip_forward                 = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-EOF
-sysctl --system
-`,
-							"mkdir -p /etc/containerd",
-							"rm /etc/containerd/config.toml",
-							"systemctl restart containerd",
-							"export CONTAINER_RUNTIME_ENDPOINT=/var/run/containerd/containerd.sock",
-						},
+						PreKubeadmCommands: []string{},
 						JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 							NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 								KubeletExtraArgs: map[string]string{
@@ -1494,93 +900,49 @@ sysctl --system
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-
-	tmpl, err := template.New(fmt.Sprintf("ssh-keys-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6])
+	tmpl, err := template.New(fmt.Sprintf("packetcloudconfigsecret%s%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[1])
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
+		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
 	}
 	templatedBuffer := new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating ssh-keys commands: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[6] = templatedBuffer.String()
-
-	tmpl, err = template.New(fmt.Sprintf("packet-cloud-config-secret-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[9])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
-	}
-	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
-		"PacketProjectID": common.GetPacketProjectID(),
-		"InstanceName":    instance.Name,
+		"PacketProjectID":      common.GetPacketProjectID(),
+		"controlPlaneEndpoint": "{{ .controlPlaneEndpoint }}",
 		// NOTE I could find a way to ignore this field during templating, here's a neat little hack to ignore it ;)
 		"apiKey": "{{ .apiKey }}",
 	})
 	if err != nil {
 		log.Printf("%#v\n", err.Error())
-		return fmt.Errorf("Error templating packet-cloud-config-secret command: %#v", err), newInstance
+		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[9] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[1] = templatedBuffer.String()
 
-	fmt.Printf("\n\n\nTemplate name: external-dns-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("external-dns-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22])
+	tmpl, err = template.New(fmt.Sprintf("pair-instance-template-pre-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PreKubeadmCommands[2])
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating External DNS install command: %#v", err), newInstance
+		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating External DNS install command: %#v", err), newInstance
+		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[22] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PreKubeadmCommands[2] = templatedBuffer.String()
 
-	fmt.Printf("\n\n\nTemplate name: powerdns%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("powerdns-%s-%v", instance.Name, time.Now().Unix())).Funcs(TemplateFuncMap()).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[23])
+	tmpl, err = template.New(fmt.Sprintf("pair-instance-template-post-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[2])
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
-	}
-	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
-	if err != nil {
-		log.Printf("%#v; %v\n", err, err.Error())
-		return fmt.Errorf("Error templating PowerDNS install command: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[23] = templatedBuffer.String()
-
-	fmt.Printf("\n\n\nTemplate name: humacs-helm-install-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("humacs-helm-install-%s-%v", instance.Name, time.Now().Unix())).Funcs(TemplateFuncMap()).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
 	}
 	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating Humacs Helm install command: %#v", err), newInstance
+		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
 	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[24] = templatedBuffer.String()
-
-	fmt.Printf("\n\n\nTemplate name: certs-%s-%v\nInstance: %#v\n\n\n", instance.Name, time.Now().Unix(), instance)
-	tmpl, err = template.New(fmt.Sprintf("certs-%v-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating certs command: %#v", err), newInstance
-	}
-	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating certs command: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[25] = templatedBuffer.String()
+	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[2] = templatedBuffer.String()
 
 	templatedBuffer = nil
 	tmpl = nil
@@ -2127,7 +1489,7 @@ func KubernetesGetInstanceAPIServerLiveness(clientset *kubernetes.Clientset, ins
 	ctx, _ := context.WithDeadline(context.TODO(), deadline)
 	_, err = restClient.Get().AbsPath("/healthz").DoRaw(ctx)
 	if err != nil {
-		return fmt.Errorf("Instance '%v' not alive yet\n", instanceName)
+		return fmt.Errorf("Instance '%v' not alive yet", instanceName)
 	}
 	return nil
 }
