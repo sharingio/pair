@@ -443,6 +443,10 @@ p.instanceCount, p.instanceCountMessage {
     font-size: 0.9rem;
 }
 
+ul#sites-available > li > a {
+    line-break: anywhere;
+}
+
 @keyframes fadeout {
     from {
         opacity: 1;
