@@ -741,7 +741,7 @@ export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
 "
 export SHARINGIO_PAIR_INSTANCE_SETUP_ENV_EXPANDED="
       {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
-      - name: {{ $key }}
+      - name: \"{{ $key }}\"
         value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
 "
 EOF
