@@ -1539,6 +1539,11 @@ func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, in
 func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
 	instance.KubernetesNodeCount, _ = strconv.Atoi(common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_WORKER_NODES"), string(instance.KubernetesNodeCount)))
+	if instance.KubernetesNodeCount > 3 {
+		instance.KubernetesNodeCount = 3
+	} else if instance.KubernetesNodeCount < 0 {
+		instance.KubernetesNodeCount = 0
+	}
 	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
 	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
