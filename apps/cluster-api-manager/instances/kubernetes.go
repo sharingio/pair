@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -637,6 +638,107 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		}
 		sshKeys = append(sshKeys, githubSSHKeys...)
 	}
+	tmpl, err := template.New(fmt.Sprintf("pair-instance-template-pre-%s-%v", instance.Name, time.Now().Unix())).Parse(`
+cat << EOF >> /root/.sharing-io-pair-init.env
+export KUBERNETES_VERSION={{ $.Setup.KubernetesVersion }}
+export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
+EOF
+. /root/.sharing-io-pair-init.env
+`)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
+	}
+	templatedBuffer := new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
+	}
+	kubeadmPre2 := templatedBuffer.String()
+
+	kubeadmPre5 := `
+cd /root
+git clone https://github.com/${SHARINGIO_PAIR_INSTANCE_SETUP_USER}/.sharing.io || \
+  git clone https://github.com/sharingio/.sharing.io
+
+if ! ( [ -f .sharing.io/cluster-api/preKubeadmCommands.sh ] || [ -f .sharing.io/cluster-api/postKubeadmCommands.sh ] ); then
+  rm -rf .sharing.io
+  git clone https://github.com/sharingio/.sharing.io
+fi
+
+cd /root/.sharing.io/cluster-api
+
+bash -x ./preKubeadmCommands.sh
+`
+
+	tmpl, err = template.New(fmt.Sprintf("packetcloudconfigsecret%s%v", instance.Name, time.Now().Unix())).Parse(`
+cat << EOF >> /root/.sharing-io-pair-init.env
+export EQUINIX_METAL_APIKEY={{ .apiKey }}
+export EQUINIX_METAL_PROJECT={{ .PacketProjectID }}
+EOF`)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
+		"PacketProjectID":      common.GetPacketProjectID(),
+		"controlPlaneEndpoint": "{{ .controlPlaneEndpoint }}",
+		// NOTE I could find a way to ignore this field during templating, here's a neat little hack to ignore it ;)
+		"apiKey": "{{ .apiKey }}",
+	})
+	if err != nil {
+		log.Printf("%#v\n", err.Error())
+		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
+	}
+	kubeadmPost1 := templatedBuffer.String()
+
+	tmpl, err = template.New(fmt.Sprintf("pair-instance-template-post-%s-%v", instance.Name, time.Now().Unix())).Parse(`
+cat << EOF >> /root/.sharing-io-pair-init.env
+export SHARINGIO_PAIR_INSTANCE_NAME="{{ $.Name }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_USERLOWERCASE="{{ $.Setup.UserLowercase }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_GUESTS="{{ range $.Setup.Guests }}{{ . }} {{ end }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_BASEDNSNAME="{{ $.Setup.BaseDNSName }}"
+export SHARINGIO_PAIR_INSTANCE_HUMACS_REPOSITORY="{{ $.Setup.HumacsRepository }}"
+export SHARINGIO_PAIR_INSTANCE_HUMACS_VERSION="{{ $.Setup.HumacsVersion }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
+        {{ range $.Setup.Repos }}- {{ . }}
+        {{ end }}
+"
+export SHARINGIO_PAIR_INSTANCE_SETUP_ENV_EXPANDED="
+      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
+      - name: \"{{ $key }}\"
+        value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
+"
+EOF
+
+. /root/.sharing-io-pair-init.env
+
+cd /root/.sharing.io/cluster-api
+
+bash -x ./postKubeadmCommands.sh
+`)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
+	}
+	templatedBuffer = new(bytes.Buffer)
+	err = tmpl.Execute(templatedBuffer, instance)
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
+	}
+	kubeadmPost2 := templatedBuffer.String()
+
+	templatedBuffer = nil
+	tmpl = nil
 
 	defaultKubernetesClusterConfig := KubernetesCluster{
 		KubeadmControlPlane: clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane{
@@ -689,69 +791,17 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 						`
 cat << EOF >> /root/.sharing-io-pair-init.env
 export KUBERNETES_CONTROLPLANE_ENDPOINT={{ .controlPlaneEndpoint }}
+export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=control-plane
 EOF`,
-						`
-cat << EOF >> /root/.sharing-io-pair-init.env
-export KUBERNETES_VERSION={{ $.Setup.KubernetesVersion }}
-export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
-EOF
-. /root/.sharing-io-pair-init.env
-`,
+						kubeadmPre2,
 						"apt-get -y update",
 						"DEBIAN_FRONTEND=noninteractive apt-get install -y git",
-						`
-cd /root
-git clone https://github.com/${SHARINGIO_PAIR_INSTANCE_SETUP_USER}/.sharing.io || \
-  git clone https://github.com/sharingio/.sharing.io
-
-if ! ( [ -f .sharing.io/cluster-api/preKubeadmCommands.sh ] || [ -f .sharing.io/cluster-api/postKubeadmCommands.sh ] ); then
-  rm -rf .sharing.io
-  git clone https://github.com/sharingio/.sharing.io
-fi
-
-cd /root/.sharing.io/cluster-api
-
-bash -x ./preKubeadmCommands.sh
-`,
+						kubeadmPre5,
 					},
 					PostKubeadmCommands: []string{
 						`set -x`,
-						`
-cat << EOF >> /root/.sharing-io-pair-init.env
-export EQUINIX_METAL_APIKEY={{ .apiKey }}
-export EQUINIX_METAL_PROJECT={{ .PacketProjectID }}
-EOF`,
-						`
-cat << EOF >> /root/.sharing-io-pair-init.env
-export SHARINGIO_PAIR_INSTANCE_NAME="{{ $.Name }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_USERLOWERCASE="{{ $.Setup.UserLowercase }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_GUESTS="{{ range $.Setup.Guests }}{{ . }} {{ end }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_BASEDNSNAME="{{ $.Setup.BaseDNSName }}"
-export SHARINGIO_PAIR_INSTANCE_HUMACS_REPOSITORY="{{ $.Setup.HumacsRepository }}"
-export SHARINGIO_PAIR_INSTANCE_HUMACS_VERSION="{{ $.Setup.HumacsVersion }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
-        {{ range $.Setup.Repos }}- {{ . }}
-        {{ end }}
-"
-export SHARINGIO_PAIR_INSTANCE_SETUP_ENV_EXPANDED="
-      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
-      - name: \"{{ $key }}\"
-        value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
-"
-EOF
-
-. /root/.sharing-io-pair-init.env
-
-cd /root/.sharing.io/cluster-api
-
-bash -x ./postKubeadmCommands.sh
-`,
+						kubeadmPost1,
+						kubeadmPost2,
 					},
 				},
 			},
@@ -793,7 +843,7 @@ bash -x ./postKubeadmCommands.sh
 				},
 			},
 			Spec: clusterAPIv1alpha3.MachineDeploymentSpec{
-				Replicas:    Int32ToInt32Pointer(0),
+				Replicas:    Int32ToInt32Pointer(int32(instance.KubernetesNodeCount)),
 				ClusterName: "",
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
@@ -833,7 +883,17 @@ bash -x ./postKubeadmCommands.sh
 			Spec: cabpkv1.KubeadmConfigTemplateSpec{
 				Template: cabpkv1.KubeadmConfigTemplateResource{
 					Spec: cabpkv1.KubeadmConfigSpec{
-						PreKubeadmCommands: []string{},
+						PreKubeadmCommands: []string{
+							`set -x`,
+							`
+cat << EOF >> /root/.sharing-io-pair-init.env
+export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=worker
+EOF`,
+							kubeadmPre2,
+							"apt-get -y update",
+							"DEBIAN_FRONTEND=noninteractive apt-get install -y git",
+							kubeadmPre5,
+						},
 						JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
 							NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
 								KubeletExtraArgs: map[string]string{
@@ -900,52 +960,10 @@ bash -x ./postKubeadmCommands.sh
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-name"] = instance.Name
 	newInstance.KubeadmControlPlane.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
 	newInstance.KubeadmControlPlane.Spec.InfrastructureTemplate.Name = instance.Name + "-control-plane"
-	tmpl, err := template.New(fmt.Sprintf("packetcloudconfigsecret%s%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[1])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
-	}
-	templatedBuffer := new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
-		"PacketProjectID":      common.GetPacketProjectID(),
-		"controlPlaneEndpoint": "{{ .controlPlaneEndpoint }}",
-		// NOTE I could find a way to ignore this field during templating, here's a neat little hack to ignore it ;)
-		"apiKey": "{{ .apiKey }}",
-	})
-	if err != nil {
-		log.Printf("%#v\n", err.Error())
-		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[1] = templatedBuffer.String()
 
-	tmpl, err = template.New(fmt.Sprintf("pair-instance-template-pre-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PreKubeadmCommands[2])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
-	}
-	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PreKubeadmCommands[2] = templatedBuffer.String()
-
-	tmpl, err = template.New(fmt.Sprintf("pair-instance-template-post-%s-%v", instance.Name, time.Now().Unix())).Parse(defaultKubernetesClusterConfig.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[2])
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
-	}
-	templatedBuffer = new(bytes.Buffer)
-	err = tmpl.Execute(templatedBuffer, instance)
-	if err != nil {
-		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
-	}
-	newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands[2] = templatedBuffer.String()
-
-	templatedBuffer = nil
-	tmpl = nil
+	newInstance.KubeadmConfigTemplateWorker.Spec.Template.Spec.PreKubeadmCommands[1] = `
+export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=worker
+`
 
 	newInstance.PacketMachineTemplate.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.PacketMachineTemplate.ObjectMeta.Namespace = namespace
@@ -1520,6 +1538,7 @@ func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, in
 // this way is a quick way to test new fields for new instances, but ideally these fields will be written by the client
 func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
+	instance.KubernetesNodeCount, _ = strconv.Atoi(common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_WORKER_NODES"), string(instance.KubernetesNodeCount)))
 	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
 	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
