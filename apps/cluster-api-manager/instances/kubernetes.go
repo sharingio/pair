@@ -638,6 +638,8 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 		}
 		sshKeys = append(sshKeys, githubSSHKeys...)
 	}
+	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
+	instance.Setup.GuestsNamesFlat = strings.Join(instance.Setup.Guests, " ")
 	tmpl, err := template.New(fmt.Sprintf("pair-instance-template-pre-%s-%v", instance.Name, time.Now().Unix())).Parse(`
 cat << EOF >> /root/.sharing-io-pair-init.env
 export KUBERNETES_VERSION={{ $.Setup.KubernetesVersion }}
@@ -951,8 +953,6 @@ EOF`,
 			},
 		},
 	}
-	instance.Setup.BaseDNSName = instance.Name + "." + common.GetBaseHost()
-	instance.Setup.GuestsNamesFlat = strings.Join(instance.Setup.Guests, " ")
 	newInstance = defaultKubernetesClusterConfig
 	newInstance.KubeadmControlPlane.ObjectMeta.Name = instance.Name + "-control-plane"
 	newInstance.KubeadmControlPlane.ObjectMeta.Namespace = namespace
