@@ -1297,17 +1297,17 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, s
 		log.Println("error: machine has no IP addresses")
 		return fmt.Errorf("machine has no IP addresses")
 	}
-	if machine.Status.Addresses[1].Address == "" {
+	if machine.Status.Addresses[0].Address == "" {
 		log.Println("error: machine address is empty")
 		return fmt.Errorf("machine address is empty")
 	}
-	if govalidator.IsIPv4(machine.Status.Addresses[1].Address) == false {
-		log.Printf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[1].Address)
-		return fmt.Errorf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[1].Address)
+	if govalidator.IsIPv4(machine.Status.Addresses[0].Address) == false {
+		log.Printf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[0].Address)
+		return fmt.Errorf("error '%v' is not a valid IPv4 address", machine.Status.Addresses[0].Address)
 	}
 
 	// NOTE first IP doesn't work, as it's used for the cluster's API; instead we will use the second, which works
-	ipAddress = machine.Status.Addresses[1].Address
+	ipAddress = machine.Status.Addresses[0].Address
 	log.Println("machine IP available:", ipAddress)
 	entry := dns.Entry{
 		Subdomain: subdomain,
