@@ -83,6 +83,7 @@ An init script can do many things, such as:
 
 Some examples include:
 - https://github.com/sharingio/pair/blob/master/.sharing.io/init
+- https://github.com/sharingio/.sharing.io/blob/master/.sharing.io/init
 - https://github.com/cncf-infra/prow-config/blob/master/.sharing.io/init
 - https://github.com/Safe-Surfer/safesurfer-powerdns/blob/master/.sharing.io/init
 - https://gitlab.com/flattrack/flattrack/-/blob/master/.sharing.io/init
@@ -112,6 +113,22 @@ This can also be included in the =.sharing.io/init= script.
 * Public HTML
 With each instance, the /~/public_html/ folder is accessible from the /www/ subdomain of the instance.
 This is served using [[https://gitlab.com/safesurfer/go-http-server][safesurfer/go-http-server]], configurable through the HelmRelease of /public-html/.
+
+* Transparent home folder
+The home folder on the host machine is the exact folder as inside of the Humacs environment.
+
+* Init scripts are re-runable
+Instances are initialised using the sharingio/.sharing.io repo. The scripts can be rerun with
+#+begin_src shell
+. <(sudo cat /var/run/host/root/.sharing-io-pair-init.env)
+~/.sharing.io/cluster-api/postKubeadmCommands.sh
+#+end_src
+
+* Structured repo cloning
+When an instance comes up, the repos are cloned like ={{ Org }}.{{ Project }}=.
+For example, if I set https://github.com/sharingio/pair as a repo, it will be clone to /~/sharingio/pair/.
+
+The same kind of cloning can be invoked with =git-clone-structured=.
 
 * Environment variables
 
