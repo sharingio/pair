@@ -5,19 +5,19 @@ metadata:
   namespace: ${APP_NAMESPACE}
 spec:
   endpoints:
-  - dnsName: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
-    recordTTL: 60
-    recordType: A
-    targets:
-    - ${SHARINGIO_PAIR_LOAD_BALANCER_IP}
-  - dnsName: "*.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}"
-    recordTTL: 60
-    recordType: A
-    targets:
-    - ${SHARINGIO_PAIR_LOAD_BALANCER_IP}
-  - dnsName: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
-    recordTTL: 60
-    recordType: SOA
-    targets:
-    - ns1.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}. hostmaster.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}. 7 60
-      60 60 60
+    - dnsName: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+      recordTTL: 60
+      recordType: A
+      targets:
+        - ${SHARINGIO_PAIR_LOAD_BALANCER_IP}
+    - dnsName: "*.pair.${SHARINGIO_PAIR_BASE_DNS_NAME}"
+      recordTTL: 60
+      recordType: A
+      targets:
+        - ${SHARINGIO_PAIR_LOAD_BALANCER_IP}
+    - dnsName: pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
+      recordTTL: 60
+      recordType: SOA
+      targets:
+        - ns1.${SHARINGIO_PAIR_BASE_DNS_NAME}. hostmaster.${SHARINGIO_PAIR_BASE_DNS_NAME}. 7 60
+          60 60 60
