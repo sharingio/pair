@@ -15,7 +15,7 @@ spec:
       - kubernetes
     adminEmailDomain: ii.coop
     instance:
-      kubernetesVersion: 1.21.0
+      kubernetesVersion: 1.21.2
       humacsRepository: registry.gitlab.com/humacs/humacs/ii
       humacsVersion: 2021.06.28.2240
     sessionSecret: pairpairpairpair
