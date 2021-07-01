@@ -134,7 +134,10 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 			if err != nil {
 				return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
 			}
-			var providerID string = *itemRestructuredPM.Spec.ProviderID
+			var providerID string
+			if itemRestructuredPM.Spec.ProviderID != nil {
+				providerID = *itemRestructuredPM.Spec.ProviderID
+			}
 			providerIDSplit := strings.Split(providerID, "/")
 			if len(providerIDSplit) == 3 {
 				instance.Status.Resources.PacketMachineUID = &providerIDSplit[2]
@@ -280,7 +283,10 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 				if itemRestructured.Spec.ProviderID == nil {
 					continue instances2
 				}
-				var providerID string = *itemRestructured.Spec.ProviderID
+				var providerID string
+				if itemRestructured.Spec.ProviderID != nil {
+					providerID = *itemRestructured.Spec.ProviderID
+				}
 				providerIDSplit := strings.Split(providerID, "/")
 				if len(providerIDSplit) == 3 {
 					instances[i].Status.Resources.PacketMachineUID = &providerIDSplit[2]
