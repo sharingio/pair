@@ -1,5 +1,15 @@
 #+TITLE: Deployment
 
+* Components
+** Cluster-API
+The backend for managing the servers. This is paired with the Packet (Equinix Metal) provider for provisioning servers.
+
+** External-DNS
+This is the backend for communicating to a DNS provider for managing the records for each instance.
+
+** Pair
+The frontend and backend for managing Pair instances.
+
 * Preparation
 
 In this deployment, we presume the following things of your cluster:
