@@ -1,6 +1,23 @@
 #+TITLE: Debugging
 
-* Finding labels
+* Pair
+** backend logs
+#+begin_src tmate :window pair-debug
+kubectl -n sharingio-pair logs -l app=clusterapimanager -f --tail=100
+#+end_src
+** frontend logs
+#+begin_src tmate :window pair-debug
+kubectl -n sharingio-pair logs -l app=client -f --tail=100
+#+end_src
+
+* CAPI
+** Packet Provider Controller Manager logs
+#+begin_src tmate :window pair-debug
+kubectl -n cluster-api-provider-packet-system logs -l control-plane=packet-controller-manager,cluster.x-k8s.io/provider=infrastructure-packet -f --tail=100 -c manager
+#+end_src
+
+* Instance
+** Finding labels
 #+begin_src shell :wrap "SRC yaml"
 kubectl -n powerdns get pods -o=jsonpath='{.items[].metadata.labels}' | yq -y .
 #+end_src
@@ -16,13 +33,13 @@ pod-template-hash: 55c94fddd
 powerdns.com/role: api
 #+end_SRC
 
-* Get logs
-** PowerDNS
+** Get logs
+*** PowerDNS
 #+begin_src tmate :window powerdns-logs
-  kubectl -n powerdns logs -l app.kubernetes.io/name=powerdns -f --tail=200
+kubectl -n powerdns logs -l app.kubernetes.io/name=powerdns -f --tail=200
 #+end_src
 
-** External-DNS
+*** External-DNS
 #+begin_src tmate :window external-dns-logs
-  kubectl -n external-dns logs -l app=external-dns -f --tail=200
+kubectl -n external-dns logs -l app=external-dns -f --tail=200
 #+end_src
