@@ -14,3 +14,4 @@ rules:
   - list
   - update
   - patch
+  - create
