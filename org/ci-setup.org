@@ -1,0 +1,103 @@
+#+TITLE: CI set up
+
+#+begin_quote
+Maintainance set up for the main pair.sharing.io CI pipeline
+#+end_quote
+
+* Preparing
+
+Create the namespace
+#+begin_src shell
+kubectl create ns sharingio-pair
+#+end_src
+
+#+RESULTS:
+#+begin_example
+namespace/sharingio-pair created
+#+end_example
+
+Apply the Role and RoleBinding manifests
+#+begin_src shell :dir ../.
+kubectl -n sharingio-pair apply -f manifests/role.yaml -f manifests/rolebinding.yaml
+#+end_src
+
+#+RESULTS:
+#+begin_example
+role.rbac.authorization.k8s.io/sharingio-pair-ci unchanged
+rolebinding.rbac.authorization.k8s.io/sharingio-pair-ci unchanged
+#+end_example
+
+* Generating a KubeConfig with the ServiceAccount
+Download the script =kubernetes_add_service_account_kubeconfig.sh= to get a kubeconfig for a new ServiceAccount:
+#+BEGIN_SRC shell :results silent
+TMPDIR=/tmp/sharingio-pair
+mkdir -p $TMPDIR
+cd $TMPDIR
+curl -O -L https://gist.github.com/poweroftrue/2aca2bd4f31d307e7dea1797fb089bf3/raw/267ab63183b9cbd376998d969b9a88b1e20731cc/kubernetes_add_service_account_kubeconfig.sh
+cat << EOF > $TMPDIR/permissions-template.yaml
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: my_account-clusterrolebinding
+subjects:
+  - kind: ServiceAccount
+    name: my_account
+    namespace: my_namespace
+roleRef:
+  kind: Role
+  name: cluster-admin
+  apiGroup: ""
+EOF
+
+echo $TMPDIR
+#+END_SRC
+
+Ensure that the current context for your local kubeconfig is set to the target deploy cluster. Create the ServiceAccount and get the kubeconfig:
+#+BEGIN_SRC shell :prologue "(\n" :epilogue ") 2>&1\n:"
+TMPDIR=/tmp/sharingio-pair
+cd $TMPDIR
+bash kubernetes_add_service_account_kubeconfig.sh sharingio-pair-ci sharingio-pair
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Creating target directory to hold files in /tmp/kube...done
+Creating a service account in sharingio-pair namespace: sharingio-pair-ci
+serviceaccount/sharingio-pair-ci created
+
+Getting secret of service account sharingio-pair-ci on sharingio-pair
+Secret name: sharingio-pair-ci-token-xwqsh
+
+Extracting ca.crt from secret...done
+Getting user token from secret...done
+Setting current context to: sharingio-admin@sharingio
+Cluster name: sharingio
+ Endpoint: https://139.178.91.101:6443
+
+Preparing k8s-sharingio-pair-ci-sharingio-pair-conf
+Setting a cluster entry in kubeconfig...Cluster "sharingio" set.
+Setting token credentials entry in kubeconfig...User "sharingio-pair-ci-sharingio-pair-sharingio" set.
+Setting a context entry in kubeconfig...Context "sharingio-pair-ci-sharingio-pair-sharingio" created.
+Setting the current-context in the kubeconfig file...Switched to context "sharingio-pair-ci-sharingio-pair-sharingio".
+
+Applying RBAC permissions...rolebinding.rbac.authorization.k8s.io/sharingio-pair-ci-clusterrolebinding created
+done
+All done! Test with:
+ KUBECONFIG=/tmp/kube/k8s-sharingio-pair-ci-sharingio-pair-conf  kubectl get pods
+Error from server (Forbidden): pods is forbidden: User "system:serviceaccount:sharingio-pair:sharingio-pair-ci" cannot list resource "pods" in API group "" in the namespace "sharingio-pair"
+#+end_example
+
+Now, the KubeConfig is ready can be set in GitLab.
+
+Base64 encode
+#+begin_src shell
+cat /tmp/kube/k8s-sharingio-pair-ci-sharingio-pair-conf | base64 | tr -d '\n'
+#+end_src
+
+Navigate to the GitLab project -> Settings -> CI/CD -> Variables -> Add variable.
+Add a new variables called =KUBECONFIG_FROM_ENV= to the CI.
+Paste the value into the Value box.
+*IMPORTANT*:
+- set Protected to =false= and Mask to =true=.
+- ensure that the kubeconfig has not been commited into this file
