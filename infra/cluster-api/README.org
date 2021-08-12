@@ -1,75 +1,42 @@
-#+NAME: Sharing.io production cluster
+#+NAME: pair.sharing.io production cluster
 
-* Cluster Notes
-
-Preloaded with:
-- packet-csi
-- packet-cloud-controller-manager
-- cert-manager v1.0.3
-- weavenet
-- helm
-- nginx-ingress
-- metallb
-- metrics-server
-- humacs
+#+begin_quote
+Setting up a production cluster for Pair
+#+end_quote
 
 * Prelimiary steps
-
 ** Local cluster / outside cluster
-*** With Kind
+Create a kind cluster
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
 kind create cluster
 #+end_src
 
-*** With Minikube
-#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-minikube start
-#+end_src
-
-** Set credentials
-Use the following strings in a ~:~ minibuffer:
-#+begin_src elisp :results none
-(setenv "PACKET_PROJECT_ID" (read-from-minibuffer "PACKET_PROJECT_ID: "))
-(setenv "PACKET_API_KEY" (read-from-minibuffer "PACKET_API_KEY: "))
-#+end_src
-
-#+name: get-packet-project-id
-#+begin_src elisp :results silent
-(getenv "PACKET_PROJECT_ID")
-#+end_src
-
-#+name: get-packet-auth-token
-#+begin_src elisp :results silent
-(getenv "PACKET_API_KEY")
-#+end_src
-
 ** Initialize the packet plugin for Cluster-API
 
+Export credentials for Cluster-API + Packet running in kind to use
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-export PACKET_PROJECT_ID=<<get-packet-project-id()>>
-    export PACKET_API_KEY=<<get-packet-auth-token()>>
+read -p 'PACKET_PROJECT_ID: ' PACKET_PROJECT_ID && \
+export PACKET_PROJECT_ID && \
+read -p 'PACKET_API_KEY: ' PACKET_API_KEY && \
+export PACKET_API_KEY && \
 clusterctl init --infrastructure=packet
 #+end_src
 
-   #+RESULTS:
-   #+begin_example
-   #+end_example
-
 ** Wait until ready
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-  kubectl wait -n cluster-api-provider-packet-system --for=condition=ready pod --selector=control-plane=controller-manager --timeout=90s
+kubectl wait -n cluster-api-provider-packet-system --for=condition=ready pod --selector=control-plane=controller-manager --timeout=90s
 #+end_src
 
 ** View logs
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-  kubectl -n cluster-api-provider-packet-system logs -l control-plane=controller-manager -c manager
+kubectl -n cluster-api-provider-packet-system logs -l control-plane=controller-manager -c manager
 #+end_src
 
 * Cluster-API
 ** Create configuration for the Packet machine
 
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-export CLUSTER_NAME="sharingio"
+export CLUSTER_NAME="pairsharingio"
 export PROJECT_ID=7a44b778-41d2-49fa-9c92-99148516c600
 export PACKET_PROJECT_ID=$PROJECT_ID
 export FACILITY=sjc1
@@ -78,58 +45,432 @@ export POD_CIDR=10.244.0.0/16
 export SERVICE_CIDR=10.96.0.0/12
 export NODE_OS=ubuntu_20_04
 export CONTROLPLANE_NODE_TYPE=c1.small.x86
+export CONTROL_PLANE_MACHINE_COUNT=3
 export WORKER_NODE_TYPE=c1.small.x86
 export WORKER_MACHINE_COUNT=0
-clusterctl config cluster "$CLUSTER_NAME" --from ./cluster-packet-template.yaml -n "$CLUSTER_NAME" > cluster-packet-"$CLUSTER_NAME".yaml
+export SSH_KEY="gh:BobyMCbobs"
+clusterctl config cluster "${CLUSTER_NAME}" --from ./cluster-template-packet.yaml -n sharingio > cluster-packet-"${CLUSTER_NAME}".yaml
 #+end_src
 
 ** Create the namespace
-
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
 kubectl create ns sharingio
 #+end_src
 
 ** Create the cluster
-
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-kubectl -n sharingio apply -f cluster-packet-sharingio.yaml
+kubectl -n sharingio apply -f cluster-packet-${CLUSTER_NAME}.yaml
 #+end_src
 
 ** Get the Kubeconfig
-
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-kubectl -n sharingio get secrets sharingio-kubeconfig -o=jsonpath='{.data.value}' | base64 -d > ~/.kube/packet-sharingio
+kubectl -n sharingio get secrets ${CLUSTER_NAME}-kubeconfig -o=jsonpath='{.data.value}' | base64 -d > ~/.kube/packet-sharingio
 #+end_src
 
 ** View logs
-
 #+begin_src tmate :window ssh :session packet-cluster-api :noweb yes
 ssh root@$(kubectl -n sharingio get cluster sharingio -o=jsonpath='{.spec.controlPlaneEndpoint.host}') tail -f /var/log/cloud-init-output.log
 #+end_src
 
-** Attach to Kubemacs
-#+begin_src tmate :window humacs-cluster :session packet-cluster-api :noweb yes
-export KUBECONFIG="$HOME/.kube/packet-sharingio"
-kubectl wait -n sharingio --for=condition=ready pod --selector=app.kubernetes.io/name="humacs" --timeout=90s
-kubectl -n sharingio exec -it statefulset/sharingio -- attach
-#+end_src
-
-* Transfer cluster management to itself
-** Init
-#+begin_src tmate :window clusterctlinit :session packet-cluster-api :noweb yes
-export KUBECONFIG="$HOME/.kube/packet-sharingio"
-export PACKET_PROJECT_ID=<<get-packet-project-id()>>
-       export PACKET_API_KEY=<<get-packet-auth-token()>>
-clusterctl init --infrastructure=packet
-#+end_src
-
+* Setting the cluster up
 ** Prepare
-#+begin_src tmate :window clusterctlinit :session packet-cluster-api :noweb yes
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
 export KUBECONFIG="$HOME/.kube/packet-sharingio"
+#+end_src
+** CNI
+*** Prepare
+#+begin_src shell :results silent
+curl -s -L -o ./weavenet.yaml "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')&env.IPALLOC_RANGE=192.168.0.0/16"
+#+end_src
+
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl apply -f ./weavenet.yaml
+#+end_src
+
+** Cert-Manager
+*** Prepare
+#+begin_src shell :results silent
+curl -s -L -o ./cert-manager.yaml https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml
+#+end_src
+
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl apply -f ./cert-manager.yaml
+#+end_src
+
+** Cluster-API
+*** Prepare
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
 kubectl create namespace sharingio
 #+end_src
 
-** Move
-#+begin_src tmate :window clusterctlinit :session packet-cluster-api :noweb yes
-clusterctl move -n sharingio --kubeconfig "$HOME/.kube/config" --to-kubeconfig "$HOME/.kube/packet-sharingio"
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+clusterctl init --infrastructure=packet
 #+end_src
+
+*** Finalise
+
+Move the management from /kind/ to the Pair cluster
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+KUBECONFIG= clusterctl move -n sharingio --kubeconfig "$HOME/.kube/config" --to-kubeconfig "$HOME/.kube/packet-sharingio"
+#+end_src
+
+** Helm-Operator
+*** Prepare
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl create namespace helm-operator -o yaml --dry-run=client | \
+    kubectl apply -f -
+#+end_src
+
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl -n helm-operator apply \
+  -f https://github.com/sharingio/.sharing.io/raw/main/cluster-api/manifests/helm-operator-crds.yaml \
+  -f https://github.com/sharingio/.sharing.io/raw/main/cluster-api/manifests/helm-operator.yaml
+#+end_src
+** MetalLB
+*** Configure
+#+begin_src yaml :tangle ./metallb-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb-system
+  name: config
+data:
+  config: |
+    address-pools:
+      - name: default
+        protocol: layer2
+        addresses:
+          - ${KUBERNETES_CONTROLPLANE_ENDPOINT}/32
+#+end_src
+
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e "s/strictARP: false/strictARP: true/" | kubectl apply -f - -n kube-system
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml
+
+kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+
+export KUBERNETES_CONTROLPLANE_ENDPOINT=$(kubectl config view -o=jsonpath='{.clusters[0].cluster.server}'| grep -oE '[^^][0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}' | tr -d '/')
+envsubst < ./metallb-config.yaml | kubectl apply -f -
+
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
+#+end_src
+** nginx-ingress
+*** Configure
+#+begin_src yaml :tangle ./nginx-ingress.yaml
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: nginx-ingress
+  namespace: nginx-ingress
+spec:
+  releaseName: nginx-ingress
+  chart:
+    repository: https://kubernetes.github.io/ingress-nginx
+    name: ingress-nginx
+    version: 3.30.0
+  values:
+    controller:
+      autoscaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 3
+        targetCPUUtilizationPercentage: 80
+      service:
+        externalTrafficPolicy: Local
+        annotations:
+          metallb.universe.tf/allow-shared-ip: nginx-ingress
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values:
+                      - ingress-nginx
+              topologyKey: "kubernetes.io/hostname"
+#+end_src
+
+*** Prepare
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl create namespace nginx-ingress -o yaml --dry-run=client | \
+    kubectl apply -f -
+#+end_src
+
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl -n nginx-ingress apply -f ./nginx-ingress.yaml
+#+end_src
+** External-DNS
+*** Prepare
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl create namespace external-dns -o yaml --dry-run=client | \
+    kubectl apply -f -
+#+end_src
+
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+read -p 'DOMAIN_FILTER: ' DOMAIN_FILTER && export DOMAIN_FILTER && \
+read -p 'TXT_OWNER_ID: ' TXT_OWNER_ID && export TXT_OWNER_ID && \
+read -p 'AWS_ACCESS_KEY_ID: ' AWS_ACCESS_KEY_ID && export AWS_ACCESS_KEY_ID && \
+read -p 'AWS_SECRET_ACCESS_KEY: ' AWS_SECRET_ACCESS_KEY && export AWS_SECRET_ACCESS_KEY && \
+kubectl -n external-dns create secret generic external-dns-aws \
+  --from-literal=domain-filter=$DOMAIN_FILTER \
+  --from-literal=txt-owner-id=$TXT_OWNER_ID \
+  --from-literal=aws-access-key-id=$AWS_ACCESS_KEY_ID \
+  --from-literal=aws-secret-access-key=$AWS_SECRET_ACCESS_KEY
+#+end_src
+
+*** Configure
+#+begin_src yaml :tangle ./external-dns-crd.yaml
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
+    api-approved.kubernetes.io: "https://github.com/kubernetes-sigs/external-dns/pull/2007"
+  creationTimestamp: null
+  name: dnsendpoints.externaldns.k8s.io
+spec:
+  group: externaldns.k8s.io
+  names:
+    kind: DNSEndpoint
+    listKind: DNSEndpointList
+    plural: dnsendpoints
+    singular: dnsendpoint
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DNSEndpointSpec defines the desired state of DNSEndpoint
+            properties:
+              endpoints:
+                items:
+                  description: Endpoint is a high-level way of a connection between a service and an IP
+                  properties:
+                    dnsName:
+                      description: The hostname of the DNS record
+                      type: string
+                    labels:
+                      additionalProperties:
+                        type: string
+                      description: Labels stores labels defined for the Endpoint
+                      type: object
+                    providerSpecific:
+                      description: ProviderSpecific stores provider specific config
+                      items:
+                        description: ProviderSpecificProperty holds the name and value of a configuration which is specific to individual DNS providers
+                        properties:
+                          name:
+                            type: string
+                          value:
+                            type: string
+                        type: object
+                      type: array
+                    recordTTL:
+                      description: TTL for the record
+                      format: int64
+                      type: integer
+                    recordType:
+                      description: RecordType type of record, e.g. CNAME, A, SRV, TXT etc
+                      type: string
+                    setIdentifier:
+                      description: Identifier to distinguish multiple records with the same name and type (e.g. Route53 records with routing policies other than 'simple')
+                      type: string
+                    targets:
+                      description: The targets the DNS record points to
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+            type: object
+          status:
+            description: DNSEndpointStatus defines the observed state of DNSEndpoint
+            properties:
+              observedGeneration:
+                description: The generation observed by the external-dns controller.
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+
+#+end_src
+#+begin_src yaml :noweb yes :tangle ./external-dns.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+  namespace: external-dns
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-dns
+rules:
+- apiGroups:
+    - ""
+  resources:
+    - services
+    - endpoints
+    - pods
+  verbs:
+    - get
+    - watch
+    - list
+- apiGroups:
+    - extensions
+    - networking.k8s.io
+  resources:
+    - ingresses
+  verbs:
+    - get
+    - watch
+    - list
+- apiGroups:
+    - ""
+  resources:
+    - nodes
+  verbs:
+    - list
+    - watch
+- apiGroups:
+    - externaldns.k8s.io
+  resources:
+    - dnsendpoints
+  verbs:
+    - get
+    - watch
+    - list
+- apiGroups:
+    - externaldns.k8s.io
+  resources:
+    - dnsendpoints/status
+  verbs:
+  - get
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: external-dns
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: k8s.gcr.io/external-dns/external-dns:v0.7.5
+        args:
+        - --source=crd
+        - --crd-source-apiversion=externaldns.k8s.io/v1alpha1
+        - --crd-source-kind=DNSEndpoint
+        - --provider=aws
+      # - --policy=upsert-only # would prevent ExternalDNS from deleting any records, omit to enable full synchronization
+        - --aws-zone-type=public # only look at public hosted zones (valid values are public, private or no value for both)
+        - --registry=txt
+        - --log-level=debug
+        - --aws-batch-change-size=99
+        env:
+          - name: EXTERNAL_DNS_DOMAIN_FILTER
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-aws
+                key: domain-filter
+          - name: EXTERNAL_DNS_TXT_OWNER_ID
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-aws
+                key: txt-owner-id
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-aws
+                key: aws-access-key-id
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: external-dns-aws
+                key: aws-secret-access-key
+      securityContext:
+        fsGroup: 65534 # For ExternalDNS to be able to read Kubernetes and AWS token files
+#+end_src
+
+*** Install
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl apply -f ./external-dns-crd.yaml -f ./external-dns.yaml
+#+end_src
+
+* Final things
+** DNS set up
+The records for:
+- sharing.io
+- *.sharing.io; and
+- *.pair.sharing.io
+
+#+NAME: HTTP web traffic LoadBalancer IP
+#+begin_src shell
+kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
+#+end_src
+
+should be assign as an /A/ record to
+#+RESULTS: HTTP web traffic LoadBalancer IP
+#+begin_example
+145.40.67.62
+#+end_example
+
+* Next steps for Pair
+CI setup for maintainers of Pair; or
+Deployment for everyone else

@@ -1,13 +1,13 @@
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
 metadata:
-  name: sharingio-control-plane
+  name: pairsharingio-control-plane
   namespace: sharingio
 spec:
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: PacketMachineTemplate
-    name: sharingio-control-plane
+    name: pairsharingio-control-plane
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
@@ -33,7 +33,7 @@ spec:
         netmask 255.255.255.255
       EOF
     - systemctl restart networking
-    - 'kubectl --kubeconfig /etc/kubernetes/admin.conf create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json=''{"apiKey": "{{ .apiKey }}","projectID": "7a44b778-41d2-49fa-9c92-99148516c600", "eipTag": "cluster-api-provider-packet:cluster-id:sharingio"}'''
+    - 'kubectl --kubeconfig /etc/kubernetes/admin.conf create secret generic -n kube-system packet-cloud-config --from-literal=cloud-sa.json=''{"apiKey": "{{ .apiKey }}","projectID": "7a44b778-41d2-49fa-9c92-99148516c600", "eipTag": "cluster-api-provider-packet:cluster-id:pairsharingio"}'''
     - kubectl apply --kubeconfig /etc/kubernetes/admin.conf -f https://github.com/packethost/packet-ccm/releases/download/v1.1.0/deployment.yaml
     - kubectl taint node --all node-role.kubernetes.io/master-
     preKubeadmCommands:
@@ -72,7 +72,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: PacketMachineTemplate
 metadata:
-  name: sharingio-control-plane
+  name: pairsharingio-control-plane
   namespace: sharingio
 spec:
   template:
@@ -87,7 +87,7 @@ spec:
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
-  name: sharingio
+  name: pairsharingio
   namespace: sharingio
 spec:
   clusterNetwork:
@@ -100,16 +100,16 @@ spec:
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     kind: KubeadmControlPlane
-    name: sharingio-control-plane
+    name: pairsharingio-control-plane
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: PacketCluster
-    name: sharingio
+    name: pairsharingio
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: PacketCluster
 metadata:
-  name: sharingio
+  name: pairsharingio
   namespace: sharingio
 spec:
   facility: sjc1
@@ -119,39 +119,39 @@ apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   labels:
-    cluster.x-k8s.io/cluster-name: sharingio
+    cluster.x-k8s.io/cluster-name: pairsharingio
     pool: worker-a
-  name: sharingio-worker-a
+  name: pairsharingio-worker-a
   namespace: sharingio
 spec:
-  clusterName: sharingio
+  clusterName: pairsharingio
   replicas: 0
   selector:
     matchLabels:
-      cluster.x-k8s.io/cluster-name: sharingio
+      cluster.x-k8s.io/cluster-name: pairsharingio
       pool: worker-a
   template:
     metadata:
       labels:
-        cluster.x-k8s.io/cluster-name: sharingio
+        cluster.x-k8s.io/cluster-name: pairsharingio
         pool: worker-a
     spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
-          name: sharingio-worker-a
-      clusterName: sharingio
+          name: pairsharingio-worker-a
+      clusterName: pairsharingio
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: PacketMachineTemplate
-        name: sharingio-worker-a
+        name: pairsharingio-worker-a
       version: v1.21.2
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: PacketMachineTemplate
 metadata:
-  name: sharingio-worker-a
+  name: pairsharingio-worker-a
   namespace: sharingio
 spec:
   template:
@@ -166,7 +166,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
-  name: sharingio-worker-a
+  name: pairsharingio-worker-a
   namespace: sharingio
 spec:
   template:
