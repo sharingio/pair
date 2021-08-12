@@ -91,15 +91,15 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.client.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.client.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .Values.client.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.client.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

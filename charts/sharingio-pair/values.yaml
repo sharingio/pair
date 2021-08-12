@@ -103,6 +103,12 @@ client:
     targetCPUUtilizationPercentage: 80
     # targetMemoryUtilizationPercentage: 80
 
+  affinity: {}
+
+  nodeSelector: {}
+
+  tolerations: []
+
 clusterapimanager:
   replicaCount: 1
 
@@ -168,8 +174,8 @@ clusterapimanager:
     # If not set and create is true, a name is generated using the fullname template
     name: ""
 
-nodeSelector: {}
+  affinity: {}
 
-tolerations: []
+  nodeSelector: {}
 
-affinity: {}
+  tolerations: []

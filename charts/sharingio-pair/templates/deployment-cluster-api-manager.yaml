@@ -88,15 +88,15 @@ spec:
               port: http
           resources:
             {{- toYaml .Values.clusterapimanager.resources | nindent 12 }}
-      {{- with .Values.nodeSelector }}
+      {{- with .Values.clusterapimanager.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- with .Values.clusterapimanager.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.tolerations }}
+      {{- with .Values.clusterapimanager.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
