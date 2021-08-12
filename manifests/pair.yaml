@@ -28,6 +28,9 @@ spec:
     client:
       image:
         tag: ${SHARINGIO_PAIR_TAG}
+      autoscaling:
+        enabled: true
+        minReplicas: 3
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -49,7 +52,7 @@ spec:
         tag: ${SHARINGIO_PAIR_TAG}
       autoscaling:
         enabled: true
-        minReplicas: 10
+        minReplicas: 3
       resources:
         requests:
           cpu: 60m
