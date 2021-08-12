@@ -1,5 +1,0 @@
-#+TITLE: Org
-
-* Index
-
-- [[./setup/setup.org][setup]]
