@@ -10,6 +10,9 @@ This is the backend for communicating to a DNS provider for managing the records
 ** Pair
 The frontend and backend for managing Pair instances.
 
+* Notes
+To see the configuration for the production Pair cluster, please check out the [[../infra/cluster-api/README.org][infra/cluster-api]] folder.
+
 * Preparation
 
 In this deployment, we presume the following things of your cluster:
