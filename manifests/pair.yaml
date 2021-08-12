@@ -28,6 +28,18 @@ spec:
     client:
       image:
         tag: ${SHARINGIO_PAIR_TAG}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - client
+                topologyKey: "kubernetes.io/hostname"
       resources:
         requests:
           cpu: 50m
@@ -45,6 +57,18 @@ spec:
         limits:
           cpu: 60m
           memory: 70Mi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - clusterapimanager
+                topologyKey: "kubernetes.io/hostname"
     ingress:
       enabled: true
       certmanager:
