@@ -23,8 +23,8 @@ kubectl -n sharingio-pair apply -f manifests/role.yaml -f manifests/rolebinding.
 
 #+RESULTS:
 #+begin_example
-role.rbac.authorization.k8s.io/sharingio-pair-ci unchanged
-rolebinding.rbac.authorization.k8s.io/sharingio-pair-ci unchanged
+role.rbac.authorization.k8s.io/sharingio-pair-ci created
+rolebinding.rbac.authorization.k8s.io/sharingio-pair-ci created
 #+end_example
 
 * Generating a KubeConfig with the ServiceAccount
@@ -67,19 +67,19 @@ Creating a service account in sharingio-pair namespace: sharingio-pair-ci
 serviceaccount/sharingio-pair-ci created
 
 Getting secret of service account sharingio-pair-ci on sharingio-pair
-Secret name: sharingio-pair-ci-token-xwqsh
+Secret name: sharingio-pair-ci-token-rqzxw
 
 Extracting ca.crt from secret...done
 Getting user token from secret...done
-Setting current context to: sharingio-admin@sharingio
-Cluster name: sharingio
- Endpoint: https://139.178.91.101:6443
+Setting current context to: pairsharingio-admin@pairsharingio
+Cluster name: pairsharingio
+ Endpoint: https://145.40.67.62:6443
 
 Preparing k8s-sharingio-pair-ci-sharingio-pair-conf
-Setting a cluster entry in kubeconfig...Cluster "sharingio" set.
-Setting token credentials entry in kubeconfig...User "sharingio-pair-ci-sharingio-pair-sharingio" set.
-Setting a context entry in kubeconfig...Context "sharingio-pair-ci-sharingio-pair-sharingio" created.
-Setting the current-context in the kubeconfig file...Switched to context "sharingio-pair-ci-sharingio-pair-sharingio".
+Setting a cluster entry in kubeconfig...Cluster "pairsharingio" set.
+Setting token credentials entry in kubeconfig...User "sharingio-pair-ci-sharingio-pair-pairsharingio" set.
+Setting a context entry in kubeconfig...Context "sharingio-pair-ci-sharingio-pair-pairsharingio" created.
+Setting the current-context in the kubeconfig file...Switched to context "sharingio-pair-ci-sharingio-pair-pairsharingio".
 
 Applying RBAC permissions...rolebinding.rbac.authorization.k8s.io/sharingio-pair-ci-clusterrolebinding created
 done
