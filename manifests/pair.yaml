@@ -30,7 +30,7 @@ spec:
         tag: ${SHARINGIO_PAIR_TAG}
       autoscaling:
         enabled: true
-        minReplicas: 9
+        minReplicas: 3
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -52,7 +52,7 @@ spec:
         tag: ${SHARINGIO_PAIR_TAG}
       autoscaling:
         enabled: true
-        minReplicas: 3
+        minReplicas: 9
       resources:
         requests:
           cpu: 60m
