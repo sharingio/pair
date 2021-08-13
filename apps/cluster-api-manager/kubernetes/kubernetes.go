@@ -17,6 +17,8 @@ func Client() (err error, clientset *kubernetes.Clientset) {
 		return err, clientset
 	}
 	config.UserAgent = defaultKubeClientUserAgent
+	config.QPS = 500
+	config.Burst = 1000
 	clientset, err = kubernetes.NewForConfig(config)
 	return err, clientset
 }
