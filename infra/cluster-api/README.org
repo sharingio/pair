@@ -562,6 +562,43 @@ should be assign as an /A/ record to
 145.40.67.62
 #+end_example
 
+*** Configure
+#+begin_src yaml :tangle ./dnsendpoint-sharingio.yaml
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: sharingio
+  namespace: sharingio
+spec:
+  endpoints:
+  - dnsName: sharing.io
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+  - dnsName: '*.sharing.io'
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+  - dnsName: '*.pair.sharing.io'
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+#+end_src
+
+*** Install
+#+begin_src shell
+export LOAD_BALANCER_IP=$(kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+envsubst < ./dnsendpoint-sharingio.yaml | kubectl apply -f -
+#+end_src
+
+#+RESULTS:
+#+begin_example
+dnsendpoint.externaldns.k8s.io/sharingio created
+#+end_example
+
 * Next steps for Pair
 CI setup for maintainers of Pair; or
 Deployment for everyone else

@@ -1,0 +1,24 @@
+# Configure
+
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: sharingio
+  namespace: sharingio
+spec:
+  endpoints:
+  - dnsName: sharing.io
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+  - dnsName: '*.sharing.io'
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
+  - dnsName: '*.pair.sharing.io'
+    recordTTL: 60
+    recordType: A
+    targets:
+    - ${LOAD_BALANCER_IP}
