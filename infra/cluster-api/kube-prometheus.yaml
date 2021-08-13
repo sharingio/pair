@@ -1,0 +1,38 @@
+# Configure
+
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: kube-prometheus
+  namespace: kube-prometheus
+spec:
+  releaseName: kube-prometheus
+  chart:
+    repository: https://prometheus-community.github.io/helm-charts
+    name: kube-prometheus-stack
+    version: 16.1.2
+  values:
+    prometheus:
+      prometheusSpec:
+        storageSpec:
+          emptyDir: {}
+    grafana:
+      dashboards:
+        default:
+          node-exporter:
+            gnetId: 1860
+            revision: 15
+            datasource: Prometheus
+          deployments:
+            gnetId: 8588
+            revision: 1
+            datasource: Prometheus
+      adminPassword: "admin"
+      ingress:
+        enabled: true
+        hosts:
+          - grafana.sharing.io
+        tls:
+          - secretName: letsencrypt-prod
+            hosts:
+              - grafana.sharing.io

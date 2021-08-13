@@ -453,9 +453,100 @@ spec:
 kubectl apply -f ./external-dns-crd.yaml -f ./external-dns.yaml
 #+end_src
 
+** Metrics-Server
+*** Configure
+#+begin_src yaml :tangle ./metrics-server.yaml
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: metrics-server
+  namespace: kube-system
+spec:
+  releaseName: metrics-server
+  chart:
+    repository: https://charts.helm.sh/stable
+    name: metrics-server
+    version: 2.11.2
+  values:
+    args:
+      - --logtostderr
+      - --kubelet-preferred-address-types=InternalIP
+      - --kubelet-insecure-tls
+#+end_src
+
+*** Install
+#+begin_src shell :results silent
+kubectl apply -f ./metrics-server.yaml
+#+end_src
+** Kube-Prometheus
+*** Prepare
+#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
+kubectl create namespace kube-prometheus -o yaml --dry-run=client | \
+    kubectl apply -f -
+#+end_src
+
+*** Configure
+#+begin_src yaml :tangle ./kube-prometheus.yaml
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: kube-prometheus
+  namespace: kube-prometheus
+spec:
+  releaseName: kube-prometheus
+  chart:
+    repository: https://prometheus-community.github.io/helm-charts
+    name: kube-prometheus-stack
+    version: 16.1.2
+  values:
+    prometheus:
+      prometheusSpec:
+        storageSpec:
+          emptyDir: {}
+    grafana:
+      dashboards:
+        default:
+          node-exporter:
+            gnetId: 1860
+            revision: 15
+            datasource: Prometheus
+          deployments:
+            gnetId: 8588
+            revision: 1
+            datasource: Prometheus
+      adminPassword: "admin"
+      ingress:
+        enabled: true
+        hosts:
+          - grafana.sharing.io
+        tls:
+          - secretName: letsencrypt-prod
+            hosts:
+              - grafana.sharing.io
+#+end_src
+
+*** Install
+#+begin_src shell :results silent
+kubectl apply -f ./kube-prometheus.yaml
+#+end_src
+
+*** Accessing
+#+begin_src shell
+kubectl -n kube-prometheus get secrets kube-prometheus-grafana -o json | jq -r '.data["admin-user"]' | base64 -d
+printf ": "
+kubectl -n kube-prometheus get secrets kube-prometheus-grafana -o json | jq -r '.data["admin-password"]' | base64 -d
+#+end_src
+
+#+RESULTS:
+#+begin_example
+admin: admin
+#+end_example
+
 * Final things
 ** DNS set up
-The records for:
+*** Notes
+With DNS, we'll set up management for Pair.
+The records that will be set up will be:
 - sharing.io
 - *.sharing.io; and
 - *.pair.sharing.io
