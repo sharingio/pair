@@ -11,18 +11,15 @@ fi
 
 if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     /usr/local/bin/tmate-wait-for-socket.sh
-    PACKET_PROJECT_ID="$(kubectl -n kube-system get secret packet-cloud-config -o=jsonpath='{.data.cloud\-sa\.json}' | base64 -d | jq -r .projectID)"
     export APP_NAMESPACE=sharingio-pair
     kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
     kubectl get ns $APP_NAMESPACE-instances || kubectl create ns $APP_NAMESPACE-instances
-    PACKET_API_KEY="$(kubectl -n kube-system get secret packet-cloud-config -o=jsonpath='{.data.cloud\-sa\.json}' | base64 -d | jq -r .apiKey)"
 
     envsubst < $GIT_ROOT/.sharing.io/pair-soa.yaml | kubectl apply -f -
 
     if [ ! -f $GIT_ROOT/.env ]; then
         cat <<EOF > $GIT_ROOT/.env
 TZ=Pacific/Auckland
-PACKET_API_KEY=$PACKET_API_KEY
 EOF
     fi
 
@@ -42,8 +39,16 @@ EOF
 APP_PORT=127.0.0.1:8080
 APP_TARGET_NAMESPACE=${APP_NAMESPACE}-instances
 APP_BASE_HOST=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
-APP_PACKET_PROJECT_ID=${PACKET_PROJECT_ID}
 EOF
+    fi
+
+    if ! cat "$GIT_ROOT/.env" | grep -q OAUTH_CLIENT_ID; then
+        tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
+
+        echo "Waiting for Pair setup to complete"
+        while [ ! -f $GIT_ROOT/.sharing.io/setup-complete ]; do
+            sleep 1s
+        done
     fi
 
     if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
@@ -51,15 +56,6 @@ EOF
         tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n cluster-api-init bash
         tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "export \$(cat $GIT_ROOT/.env | xargs)" Enter
         tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "clusterctl init --infrastructure packet" Enter
-    fi
-
-    if ! cat "$GIT_ROOT/.env" | grep -q OAUTH_CLIENT_ID; then
-        tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
-
-        while [ ! -f $GIT_ROOT/.sharing.io/setup-complete ]; do
-            echo "Waiting for Pair setup to complete"
-            sleep 1s
-        done
     fi
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/cluster-api-manager" -n backend bash
