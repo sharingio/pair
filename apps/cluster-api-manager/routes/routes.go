@@ -600,6 +600,57 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 	}
 }
 
+// PostKubernetesUpdateInstanceNodeProviderID
+// handler for updateing Kubernetes Instance Node Provider ID
+func PostKubernetesUpdateInstanceNodeProviderID(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := "Failed to update Node ProviderID"
+		responseCode := http.StatusInternalServerError
+
+		vars := mux.Vars(r)
+		name := vars["name"]
+
+		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
+		if instance.Spec.Name == "" && err == nil {
+			responseCode = http.StatusNotFound
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: "Resource not found",
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+		if err != nil {
+			JSONresp := types.JSONMessageResponse{
+				Metadata: types.JSONResponseMetadata{
+					Response: err.Error(),
+				},
+				Spec:   instances.InstanceSpec{},
+				Status: instances.InstanceStatus{},
+			}
+			common.JSONResponse(r, w, responseCode, JSONresp)
+			return
+		}
+
+		err = instances.UpdateInstanceNodeWithProviderID(clientset, dynamicClient, instance.Spec.Name)
+		if err != nil {
+			response = fmt.Sprintf("%v: %v", response, err.Error())
+		} else {
+			response = "Updated Node ProviderID"
+			responseCode = http.StatusOK
+		}
+		JSONresp := types.JSONMessageResponse{
+			Metadata: types.JSONResponseMetadata{
+				Response: response,
+			},
+		}
+		common.JSONResponse(r, w, responseCode, JSONresp)
+	}
+}
+
 // GetRoot ...
 // get root of API
 func GetRoot(w http.ResponseWriter, r *http.Request) {

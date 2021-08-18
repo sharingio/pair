@@ -79,6 +79,7 @@
         urls [[:instance endpoint]
               [:dns (str endpoint "/dnsmanage")]
               [:cert (str endpoint "/certmanage")]
+              [:providerid (str endpoint "/syncProviderID")]
               [:kubeconfig (str endpoint "/kubeconfig")]
               [:tmate-ssh (str endpoint "/tmate/ssh")]
               [:tmate-web (str endpoint "/tmate/web")]

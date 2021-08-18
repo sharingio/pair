@@ -682,7 +682,6 @@ bash -x ./preKubeadmCommands.sh
 
 	tmpl, err = template.New(fmt.Sprintf("packetcloudconfigsecret%s%v", instance.Name, time.Now().Unix())).Parse(`
 cat << EOF >> /root/.sharing-io-pair-init.env
-export EQUINIX_METAL_APIKEY={{ .apiKey }}
 export EQUINIX_METAL_PROJECT={{ .PacketProjectID }}
 EOF`)
 	if err != nil {
@@ -693,8 +692,6 @@ EOF`)
 	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
 		"PacketProjectID":      common.GetPacketProjectID(),
 		"controlPlaneEndpoint": "{{ .controlPlaneEndpoint }}",
-		// NOTE I could find a way to ignore this field during templating, here's a neat little hack to ignore it ;)
-		"apiKey": "{{ .apiKey }}",
 	})
 	if err != nil {
 		log.Printf("%#v\n", err.Error())
@@ -1555,4 +1552,44 @@ func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
 	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
 	return instance
+}
+
+// UpdateInstanceNodeWithProviderID ...
+// sets the ProviderID field in the Node resources of the target cluster
+func UpdateInstanceNodeWithProviderID(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface, instanceName string) error {
+	// get provider ID from PacketMachines
+	targetNamespace := common.GetTargetNamespace()
+	groupVersion := clusterAPIv1alpha3.GroupVersion
+	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
+	items, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + instanceName})
+
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	if err != nil {
+		return err
+	}
+	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return err
+	}
+	// get all nodes in target cluster using it's kubeconfig, where they match on the name of the controlplane nodes
+	for _, item := range items.Items {
+		var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
+		if err != nil {
+			return fmt.Errorf("Failed to restructure %T", itemRestructuredPM)
+		}
+		node, err := instanceClientset.CoreV1().Nodes().Get(context.TODO(), itemRestructuredPM.ObjectMeta.Name, metav1.GetOptions{})
+		if err != nil {
+			return fmt.Errorf("Failed to get Node '%v':\n", itemRestructuredPM.ObjectMeta.Name, err)
+		}
+		node.Spec.ProviderID = *itemRestructuredPM.Spec.ProviderID
+		node.Spec.Taints = []corev1.Taint{}
+		_, err = instanceClientset.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
+		if err != nil {
+			return fmt.Errorf("Failed to update Node %v:\n%+v", itemRestructuredPM.ObjectMeta.Name, err)
+		}
+	}
+
+	// update all nodes from list with provider ids
+	return nil
 }

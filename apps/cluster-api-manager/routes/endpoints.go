@@ -327,5 +327,26 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 			HandlerFunc:  DeleteInstance(dynamicClient),
 			HttpMethods:  []string{http.MethodDelete},
 		},
+
+		// swagger:route POST /instance/kubernetes/{name}/syncProviderID instance updateInstanceKubernetesNodeProviderID
+		//
+		// update ProviderID on Instance Nodes
+		//
+		//     Consumes:
+		//     - application/json
+		//
+		//     Produces:
+		//     - application/json
+		//
+		//     Schemes: http
+		//
+		//     Responses:
+		//       200: metaResponse
+		//       500: failure
+		{
+			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/syncProviderID",
+			HandlerFunc:  PostKubernetesUpdateInstanceNodeProviderID(clientset, dynamicClient),
+			HttpMethods:  []string{http.MethodGet, http.MethodPost},
+		},
 	}
 }
