@@ -25,6 +25,10 @@ Note:
 - will forward your SSH keys
 - will attach to the tmate session
 
+* Other things to see
+- Instance Pairing environment: [[https://github.com/humacs/humacs][Humacs]]
+- Instance configuration: [[https://github.com/sharingio/.sharing.io][.sharing.io]]
+
 * License
 
 Copyright 2020-2021 Sharingio authors and contributors.
