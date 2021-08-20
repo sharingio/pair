@@ -1,0 +1,13 @@
+#+TITLE: Pair restructure plan for v2
+
+A few ideas for things to change in the next iteration of Pair.
+
+* Reconcile Instances
+
+A plan for a reconciling endpoint, to be hit by CronJob or controller.
+
+1. Get list of Clusters
+2. For each Cluster, run function to reconcile:
+   - scheduling
+   - DNS
+   - Certs
