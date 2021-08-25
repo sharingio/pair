@@ -1,31 +1,66 @@
 #!/bin/bash
 
-PROG_NAME="$(basename $0)"
-PAIR_ADDR="${1:-$PAIR_ADDR}"
-PAIR_USER="${2:-$PAIR_USER}"
-PAIR_BASE_ADDR="${PAIR_BASE_ADDR:-pair.sharing.io}"
-SSH_OPTS="${SSH_OPTS:--tA -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null}"
 DEBUG="${DEBUG:-false}"
 
 if [ ! "$DEBUG" = "false" ]; then
     set -x
 fi
 
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    key="$1"
+
+    case $key in
+        -s|--ssh-opts)
+            SSH_OPTS="$2"
+            shift # past argument
+            shift # past value
+            ;;
+        -n|--no-keys)
+            SSH_OPTS="-t -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+            shift
+            ;;
+        -c|--command)
+            COMMAND="$2"
+            shift
+            shift
+            ;;
+        *)    # unknown option
+            POSITIONAL+=("$1") # save it in an array for later
+            shift # past argument
+            ;;
+  esac
+done
+
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+PROG_NAME="$(basename $0)"
+PAIR_ADDR="${1:-$PAIR_ADDR}"
+PAIR_USER="${2:-$PAIR_USER}"
+PAIR_BASE_ADDR="${PAIR_BASE_ADDR:-pair.sharing.io}"
+SSH_OPTS="${SSH_OPTS:--tA -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null}"
+
 if [ $# -eq 0 ]; then
-    echo "Usage: ${PROG_NAME} INSTANCE <USER>
+cat << EOF
+Usage: ${PROG_NAME} [OPTS...] INSTANCE <USER>
+
+-s|--ssh-opts specify SSH parameters
+-n|--no-keys  don't forward SSH keys
+-c|--command  change the command on connection
 
 Examples:
 - ${PROG_NAME} coolbox zz
 - ${PROG_NAME} bobymcbobs
 - ${PROG_NAME} 133.7.0.0 hh
-- ${PROG_NAME} heyste.pair.sharing.io heyste
-- ${PROG_NAME} bernokl
+- ${PROG_NAME} -c bash heyste.pair.sharing.io heyste
+- ${PROG_NAME} -n bernokl
 
 Notes:
 - to not forward SSH keys set the 'SSH_OPTS' var to something like '-t'.
   example: SSH_OPTS=-t ${PROG_NAME} heyste
 - default SSH_OPTS are '${SSH_OPTS}'
-- default Pair domain is '${PAIR_BASE_ADDR}'"
+- default Pair domain is '${PAIR_BASE_ADDR}'
+EOF
     exit 0
 fi
 
@@ -53,4 +88,5 @@ fi
 
 envEmpty PAIR_USER "${PAIR_USER}"
 
-ssh ${SSH_OPTS} ii@${PAIR_ADDR} -- kubectl -n $PAIR_USER exec -it statefulset/${PAIR_USER}-humacs -- attach
+COMMAND="${COMMAND:-kubectl -n $PAIR_USER exec -it statefulset/${PAIR_USER}-humacs -- attach}"
+ssh ${SSH_OPTS} ii@${PAIR_ADDR} -- $COMMAND
