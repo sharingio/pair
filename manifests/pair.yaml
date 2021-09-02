@@ -13,6 +13,7 @@ spec:
       - sharingio
       - cncf
       - kubernetes
+      - ii
     adminEmailDomain: ii.coop
     instance:
       kubernetesVersion: 1.21.2
