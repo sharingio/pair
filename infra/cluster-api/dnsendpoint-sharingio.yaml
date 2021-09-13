@@ -7,11 +7,11 @@ metadata:
   namespace: sharingio
 spec:
   endpoints:
-  - dnsName: sharing.io
-    recordTTL: 60
-    recordType: A
-    targets:
-    - ${LOAD_BALANCER_IP}
+  # - dnsName: sharing.io
+  #   recordTTL: 60
+  #   recordType: A
+  #   targets:
+  #   - ${LOAD_BALANCER_IP}
   - dnsName: '*.sharing.io'
     recordTTL: 60
     recordType: A

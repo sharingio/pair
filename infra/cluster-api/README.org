@@ -154,7 +154,7 @@ kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manife
 
 kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
 
-export KUBERNETES_CONTROLPLANE_ENDPOINT=$(kubectl config view -o=jsonpath='{.clusters[0].cluster.server}'| grep -oE '[^^][0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}' | tr -d '/')
+export KUBERNETES_CONTROLPLANE_ENDPOINT=$(kubectl config view -o=jsonpath='{.clusters[0].cluster.server}'| grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
 envsubst < ./metallb-config.yaml | kubectl apply -f -
 
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml;
@@ -172,9 +172,11 @@ spec:
   chart:
     repository: https://kubernetes.github.io/ingress-nginx
     name: ingress-nginx
-    version: 3.30.0
+    version: 4.0.1
   values:
     controller:
+      ingressClassResource:
+        default: true
       autoscaling:
         enabled: true
         minReplicas: 3
@@ -571,11 +573,11 @@ metadata:
   namespace: sharingio
 spec:
   endpoints:
-  - dnsName: sharing.io
-    recordTTL: 60
-    recordType: A
-    targets:
-    - ${LOAD_BALANCER_IP}
+  # - dnsName: sharing.io
+  #   recordTTL: 60
+  #   recordType: A
+  #   targets:
+  #   - ${LOAD_BALANCER_IP}
   - dnsName: '*.sharing.io'
     recordTTL: 60
     recordType: A
@@ -596,7 +598,7 @@ envsubst < ./dnsendpoint-sharingio.yaml | kubectl apply -f -
 
 #+RESULTS:
 #+begin_example
-dnsendpoint.externaldns.k8s.io/sharingio created
+dnsendpoint.externaldns.k8s.io/sharingio configured
 #+end_example
 
 * Next steps for Pair
