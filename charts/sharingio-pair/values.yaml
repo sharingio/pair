@@ -6,6 +6,7 @@ permittedOrgs:
   - sharingio
   - humacs
 
+fullnameOverride: ""
 adminEmailDomain: ""
 
 # A 16-character shared secret between the frontend and the browser
@@ -57,7 +58,6 @@ client:
     tag: ""
 
   nameOverride: ""
-  fullnameOverride: ""
 
   podAnnotations: {}
 
@@ -119,7 +119,6 @@ clusterapimanager:
     tag: ""
 
   nameOverride: ""
-  fullnameOverride: ""
 
   podAnnotations: {}
 
