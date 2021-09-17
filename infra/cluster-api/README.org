@@ -592,5 +592,5 @@ dnsendpoint.externaldns.k8s.io/sharingio configured
 #+end_example
 
 * Next steps for Pair
-CI setup for maintainers of Pair; or
-Deployment for everyone else
+- [[../../org/deployment.org][Deploying Pair]]
+- [[../../org/ci-setup.org][CI setup]] (maintainers of Pair)
