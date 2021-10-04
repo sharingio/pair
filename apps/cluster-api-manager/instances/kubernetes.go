@@ -712,7 +712,9 @@ export SHARINGIO_PAIR_INSTANCE_HUMACS_VERSION="{{ $.Setup.HumacsVersion }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
+{{ if not $.Setup.NoGitHubToken }}
 export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
+{{ end }}
 export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
         {{ range $.Setup.Repos }}- {{ . }}
         {{ end }}
@@ -1551,6 +1553,7 @@ func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
 	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
+	instance.Setup.NoGitHubToken = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_NO_GITHUB_TOKEN"), "false") == "true"
 	return instance
 }
 
