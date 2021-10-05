@@ -18,7 +18,7 @@ spec:
     instance:
       kubernetesVersion: 1.21.2
       humacsRepository: registry.gitlab.com/humacs/humacs/ii
-      humacsVersion: 2021.09.10.1346
+      humacsVersion: 2021.10.06.0847
       nodeSize: c3.small.x86
     sessionSecret: pairpairpairpair
     githubOAuth:

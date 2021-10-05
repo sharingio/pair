@@ -15,7 +15,7 @@ var (
 	instanceDefaultNodeSize          = "c3.small.x86"
 	instanceDefaultTimezone          = "Pacific/Auckland"
 	instanceDefaultHumacsRepository  = "registry.gitlab.com/humacs/humacs/ii"
-	instanceDefaultHumacsVersion     = "2021.08.13.0212"
+	instanceDefaultHumacsVersion     = "2021.10.06.0847"
 	instanceDefaultKubernetesVersion = "1.21.2"
 )
 
