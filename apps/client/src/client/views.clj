@@ -83,8 +83,18 @@
      [:div
       [:a {:href "/instances/new"} "New"]
       [:a {:href "/instances"} "All"]]
-     [:div
-      [:p "To use sharing.io, you must be a member of a permitted github org."]]
+     [:div.display-block
+      [:div#more-info.display-block
+       [:p
+        "Sharable Pairing Environments (on Equinix Metal)."]
+       [:p
+        "Contribute over at "
+        [:a {:href "https://github.com/sharingio/pair"} "GitHub"]
+        " and "
+        [:a {:href "https://gitlab.com/sharingio/pair"} "GitLab"]
+        "."]]
+      [:p "To use sharing.io, you must be a member of a permitted github org."]
+      ]
      )]]
    user))
 
