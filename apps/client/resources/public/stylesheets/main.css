@@ -104,6 +104,7 @@ header#top nav p {
 
 header#top nav img {
   max-width: 2rem;
+  margin-right: 10px;
 }
 
 .display-block {
