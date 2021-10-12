@@ -112,9 +112,13 @@
    [:label {:for "type"} "Type"]
    (form/drop-down "type" '("Kubernetes")
                    "kubernetes")
-   [:input {:type :hidden
-            :name "facility"
-            :value "sjc1"}]
+   [:label {:for "facility"} "Facility"]
+   (form/drop-down "facility" '("sjc1" "all") "sjc1")
+   (when admin-member
+     [:div.form-group
+       [:label {:for "kubernetesNodeCount"} "Additional node count"]
+       (form/drop-down "kubernetesNodeCount"
+                      '("0" "1" "2" "3") "0")])
    [:input {:type :hidden
             :name "fullname"
             :value fullname}]
@@ -151,6 +155,9 @@
                 :id "envvars"
                 :placeholder "PAIR=sharing\nSHARE=pairing"}]
     [:p.helper "Add env vars as KEY=value, with each new variable on its own line."]]
+   [:div.form-group
+    [:label {:for "github-token"} "Share GitHub token to instance"]
+    [:input {:name "github-token" :type :checkbox :id "github-token" :value "github-token" :checked "true"}]]
    (when admin-member
      [:div.form-group
       [:label {:form "name"} "Custom Name for Instance"]
