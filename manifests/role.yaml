@@ -5,13 +5,23 @@ metadata:
   name: sharingio-pair-ci
   namespace: sharingio-pair
 rules:
-- apiGroups:
-  - 'helm.fluxcd.io'
-  resources:
-  - 'helmreleases'
-  verbs:
-  - get
-  - list
-  - update
-  - patch
-  - create
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - get
+      - list
+      - update
+      - patch
+      - create
+  - apiGroups:
+      - helm.fluxcd.io
+    resources:
+      - helmreleases
+    verbs:
+      - get
+      - list
+      - update
+      - patch
+      - create
