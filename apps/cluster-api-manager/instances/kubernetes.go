@@ -171,6 +171,8 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
 	instance.Spec.NodeSize = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"]
 	instance.Spec.Facility = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-facility"]
+	kubernetesNodeCount, _ := strconv.Atoi(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-kubernetesNodeCount"])
+	instance.Spec.KubernetesNodeCount = kubernetesNodeCount
 	instance.Spec.Setup.Guests = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"], " ")
 	instance.Spec.Setup.Repos = strings.Split(itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"], " ")
 	instance.Spec.Setup.Timezone = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-timezone"]
@@ -363,6 +365,11 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
+	if instance.KubernetesNodeCount > 3 {
+		instance.KubernetesNodeCount = 3
+	} else if instance.KubernetesNodeCount < 0 {
+		instance.KubernetesNodeCount = 0
+	}
 	err, newInstance := KubernetesTemplateResources(instance, targetNamespace)
 	if err != nil {
 		return err, instanceCreated
@@ -374,7 +381,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	if options.DryRun == true {
 		log.Println("Exiting before create due to dry run")
 		postKubeadmCommandYAML, _ := yaml.Marshal(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands)
-		log.Printf("%v\n", string(postKubeadmCommandYAML))
+		log.Printf("%v\n\n%#v", string(postKubeadmCommandYAML), instance)
 		return err, instanceCreated
 	}
 
@@ -1010,6 +1017,8 @@ export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=worker
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nameScheme"] = string(instance.NameScheme)
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-kubernetesNodeCount"] = fmt.Sprintf("%v", instance.KubernetesNodeCount)
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-noGitHubToken"] = fmt.Sprintf("%v", instance.Setup.NoGitHubToken)
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")
@@ -1543,17 +1552,10 @@ func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, in
 // this way is a quick way to test new fields for new instances, but ideally these fields will be written by the client
 func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
-	instance.KubernetesNodeCount, _ = strconv.Atoi(common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_WORKER_NODES"), string(instance.KubernetesNodeCount)))
-	if instance.KubernetesNodeCount > 3 {
-		instance.KubernetesNodeCount = 3
-	} else if instance.KubernetesNodeCount < 0 {
-		instance.KubernetesNodeCount = 0
-	}
 	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
 	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
 	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
-	instance.Setup.NoGitHubToken = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_NO_GITHUB_TOKEN"), "false") == "true"
 	return instance
 }
 

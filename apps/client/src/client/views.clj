@@ -112,9 +112,13 @@
    [:label {:for "type"} "Type"]
    (form/drop-down "type" '("Kubernetes")
                    "kubernetes")
-   [:input {:type :hidden
-            :name "facility"
-            :value "sjc1"}]
+   [:label {:for "facility"} "Facility"]
+   (form/drop-down "facility" '("sjc1" "any") "sjc1")
+   (when admin-member
+     [:div.form-group
+       [:label {:for "kubernetesNodeCount"} "Additional node count"]
+       (form/drop-down "kubernetesNodeCount"
+                      '("0" "1" "2" "3") "0")])
    [:input {:type :hidden
             :name "fullname"
             :value fullname}]
@@ -151,6 +155,9 @@
                 :id "envvars"
                 :placeholder "PAIR=sharing\nSHARE=pairing"}]
     [:p.helper "Add env vars as KEY=value, with each new variable on its own line."]]
+   [:div.form-group
+    [:label {:for "noGitHubToken"} "Share GitHub token to instance"]
+    [:input {:name "noGitHubToken" :type :checkbox :id "noGitHubToken" :value "noGitHubToken" :checked "true"}]]
    (when admin-member
      [:div.form-group
       [:label {:form "name"} "Custom Name for Instance"]
@@ -226,12 +233,13 @@
       (code-box "tmate-ssh" tmate-ssh)]]))
 
 (defn status
-  [{:keys [facility type phase sites dns cert]}]
+  [{:keys [facility type phase sites dns cert noGitHubToken kubernetesNodeCount]}]
   [:section#status
    (if (empty? phase)
      [:h3#phase "Status: Unknown"]
      [:h3#phase "Status: " phase])
    [:p#type "Type: " type]
+   [:p#kubernetesNodeCount "Node count: " kubernetesNodeCount]
    [:p#facility "Region: " facility]
    [:h3 "Sites Available"]
    [:ul#sites-available
