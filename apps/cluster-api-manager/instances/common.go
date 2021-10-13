@@ -62,7 +62,6 @@ func TemplateFuncMap() template.FuncMap {
 			for _, i := range n {
 				output = output + i
 			}
-			fmt.Println("TemplateFuncMap add:", n, output)
 			return output
 		},
 	}

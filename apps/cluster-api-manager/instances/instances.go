@@ -14,7 +14,6 @@ import (
 // ValidateInstance ...
 // ensure an Instance is valid
 func ValidateInstance(instance InstanceSpec) (err error) {
-	fmt.Println(instance)
 	if common.ValidateName(instance.Name) == false && instance.Name != "" {
 		return fmt.Errorf("Invalid instance name '%v'", instance.Name)
 	}
@@ -98,8 +97,6 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 		return err, instanceCreated
 	}
 
-	fmt.Println("email        :::", instance.Setup.Email)
-	fmt.Println("email domain :::", common.GetEmailDomainFromEmail(instance.Setup.Email))
 	if common.GetEmailDomainFromEmail(instance.Setup.Email) != common.GetAdminEmailDomain() {
 		switch len(instancesOfUser) {
 		case common.GetNonAdminInstanceMaxAmount():
