@@ -72,6 +72,8 @@ spec:
               value: "{{ range .Values.permittedOrgs }}{{ . }} {{ end }}"
             - name: PAIR_ADMIN_EMAIL_DOMAIN
               value: "{{ .Values.adminEmailDomain }}"
+            - name: MAX_INSTANCE_LIMIT
+              value: "{{ .Values.maxInstancesForNonAdmins }}"
             - name: CANONICAL_URL
               value: "{{ (first .Values.ingress.hosts).host }}"
             {{- if .Values.client.extraEnv }}

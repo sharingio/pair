@@ -67,8 +67,68 @@ Select all resources from a deployment
 
 #+NAME: create a Kubernetes instance
 #+begin_src shell
-  curl -X POST http://localhost:8080/api/instance?dryRun=true --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"\"],\"repos\":[\"https://gitlab.com/flattrack/flattrack\"],\"fullname\":\"Caleb Woodbine\",\"email\":\"caleb@ii.coop\"}}" | jq .
+  curl -X POST http://localhost:8080/api/instance?dryRun=true --data "{\"type\":\"Kubernetes\",\"facility\":\"sjc1\",\"setup\":{\"user\":\"BobyMCbobs\",\"guests\":[\"\"],\"repos\":[\"https://gitlab.com/flattrack/flattrack\"],\"fullname\":\"Caleb Woodbine\",\"email\":\"caleb@gmail.com\",\"extraEmails\":[{\"email\":\"caleb@ii.coop\"}]}}" | jq .
 #+end_src
+
+#+RESULTS: create a Kubernetes instance
+#+begin_example
+{
+  "metadata": {
+    "selfLink": "/api/instance?dryRun=true",
+    "version": "0.0.0",
+    "requestId": "",
+    "timestamp": 1634159983,
+    "response": "Creating instance"
+  },
+  "spec": {
+    "name": "bobymcbobs",
+    "type": "Kubernetes",
+    "setup": {
+      "user": "BobyMCbobs",
+      "guests": [
+        ""
+      ],
+      "repos": [
+        "https://gitlab.com/flattrack/flattrack"
+      ],
+      "timezone": "Pacific/Auckland",
+      "fullname": "Caleb Woodbine",
+      "email": "caleb@gmail.com",
+      "extraEmails": [
+        {
+          "email": "caleb@ii.coop",
+          "verified": false
+        }
+      ],
+      "humacsRepository": "",
+      "humacsVersion": ""
+    },
+    "nodeSize": "",
+    "kubernetesNodeCount": 0,
+    "facility": "sjc1",
+    "nameScheme": "Specified"
+  },
+  "status": {
+    "phase": "Pending",
+    "resources": {
+      "KubeadmControlPlane": {
+        "initialized": false,
+        "ready": false
+      },
+      "Cluster": {
+        "infrastructureReady": false,
+        "controlPlaneInitialized": false
+      },
+      "HumacsPod": {},
+      "MachineStatus": {
+        "bootstrapReady": false,
+        "infrastructureReady": false
+      },
+      "PacketMachineUID": null
+    }
+  }
+}
+#+end_example
 
 #+NAME: delete a Kubernetes instance
 #+begin_src shell

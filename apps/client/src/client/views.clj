@@ -161,15 +161,22 @@
    [:input#newInstanceSubmit {:type :submit :value "launch"}]))
 
 (defn new
-  [user]
-  (layout
-   [:main
-    [:header
-     [:h2 "Create a new Pairing Box"]]
-    (new-box-form user)
-    ;; This will set the timezone field to the timezone of the client browser.  If js disabled, timezone is Pacific/Auckland
-    [:script "document.querySelector('input#timezone').value=(new Intl.DateTimeFormat).resolvedOptions().timeZone;"]]
-   user))
+  [user instances]
+  (let [max-instance-limit (Integer. (or (System/getenv "MAX_INSTANCE_LIMIT") 1))]
+    (layout
+     [:main
+      [:header
+       [:h2 "Create a new Pairing Box"]]
+      (if (or (:admin-member user) (< (count instances) max-instance-limit))
+      (new-box-form user)
+      [:div.warning
+       [:h2.warning__title "Max Instance Reached"]
+       [:p.warning__message "You are limited to "max-instance-limit" instances, and cannot create more."]
+       [:p.warning__message "If you think this is an error, please contact an admin."]
+       [:p.warning__message [:a {:href "/instances"}"See your current instances"]]])
+      ;; This will set the timezone field to the timezone of the client browser.  If js disabled, timezone is Pacific/Auckland
+      [:script "document.querySelector('input#timezone').value=(new Intl.DateTimeFormat).resolvedOptions().timeZone;"]]
+     user)))
 
 (defn envvars-box
   [{:keys [envvars]}]
