@@ -71,6 +71,7 @@
   {:username login
    :fullname name
    :email (primary-email emails)
+   :emails emails
    :token token
    :profile html_url
    :avatar avatar_url

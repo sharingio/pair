@@ -77,6 +77,12 @@ func GetAdminEmailDomain() string {
 	return GetEnvOrDefault("APP_ADMIN_EMAIL_DOMAIN", "")
 }
 
+// GetGitHubAdminOrgs
+// the GitHub admin orgs
+func GetGitHubAdminOrgs() []string {
+	return strings.Split(GetEnvOrDefault("APP_GITHUB_ADMIN_ORGS", ""), ",")
+}
+
 // GetNonAdminInstanceMaxAmount ...
 // the max number of instances for non-admins
 func GetNonAdminInstanceMaxAmount() int {
@@ -176,7 +182,8 @@ func ReturnValueOrDefault(first string, second string) string {
 	return second
 }
 
-// GetEmailDomainFromEmail
+// GetEmailDomainFromEmail ...
+// extract the domain from an email address
 func GetEmailDomainFromEmail(email string) string {
 	at := strings.LastIndex(email, "@")
 	if at >= 0 {
@@ -184,4 +191,21 @@ func GetEmailDomainFromEmail(email string) string {
 		return domain
 	}
 	return ""
+}
+
+// AccountIsAdmin ...
+// determine if account is an admin
+func AccountIsAdmin(emails []types.GitHubEmail) bool {
+	fmt.Println("EMAILS ::::", emails)
+	adminEmailDomain := GetAdminEmailDomain()
+	if adminEmailDomain == "" {
+		fmt.Println("No admin orgs declared, assuming any account is admin")
+		return true
+	}
+	for _, e := range emails {
+		if GetEmailDomainFromEmail(e.Email) == adminEmailDomain {
+			return true
+		}
+	}
+	return false
 }
