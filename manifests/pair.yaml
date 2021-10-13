@@ -21,6 +21,7 @@ spec:
       humacsVersion: 2021.10.06.0847
       nodeSize: c3.small.x86
     sessionSecret: pairpairpairpair
+    maxInstancesForNonAdmins: 1
     githubOAuth:
       id: ${SHARINGIO_PAIR_GITHUB_OAUTH_ID}
       secret: ${SHARINGIO_PAIR_GITHUB_OAUTH_SECRET}

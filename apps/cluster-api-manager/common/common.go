@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -67,6 +69,20 @@ func GetTargetNamespace() (namespace string) {
 // the host where the frontend will be served
 func GetBaseHost() (host string) {
 	return GetEnvOrDefault("APP_BASE_HOST", "")
+}
+
+// GetAdminEmailDomain ...
+// the admin email domain of accounts
+func GetAdminEmailDomain() string {
+	return GetEnvOrDefault("APP_ADMIN_EMAIL_DOMAIN", "")
+}
+
+// GetNonAdminInstanceMaxAmount ...
+// the max number of instances for non-admins
+func GetNonAdminInstanceMaxAmount() int {
+	maxString := GetEnvOrDefault("APP_NON_ADMIN_INSTANCE_MAX_AMOUNT", "-1")
+	max, _ := strconv.Atoi(maxString)
+	return max
 }
 
 // Logging ...
@@ -158,4 +174,14 @@ func ReturnValueOrDefault(first string, second string) string {
 		return first
 	}
 	return second
+}
+
+// GetEmailDomainFromEmail
+func GetEmailDomainFromEmail(email string) string {
+	at := strings.LastIndex(email, "@")
+	if at >= 0 {
+		domain := email[at+1:]
+		return domain
+	}
+	return ""
 }

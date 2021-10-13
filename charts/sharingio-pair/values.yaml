@@ -23,6 +23,9 @@ targetNamespace: ""
 # the timezone for Pair components and instances
 timezone: Pacific/Auckland
 
+# max instances for non-admins
+maxInstancesForNonAdmins: -1
+
 # instance configuration
 instance:
   kubernetesVersion: ""
@@ -37,7 +40,8 @@ ingress:
   enabled: false
   certmanager:
     enabled: false
-  annotations: {}
+  annotations:
+    {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:

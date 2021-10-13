@@ -97,6 +97,16 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	if err != nil {
 		return err, instanceCreated
 	}
+
+	fmt.Println("email        :::", instance.Setup.Email)
+	fmt.Println("email domain :::", common.GetEmailDomainFromEmail(instance.Setup.Email))
+	if common.GetEmailDomainFromEmail(instance.Setup.Email) != common.GetAdminEmailDomain() {
+		switch len(instancesOfUser) {
+		case common.GetNonAdminInstanceMaxAmount():
+			return fmt.Errorf("Max number of instances reached"), instanceCreated
+		}
+	}
+
 	instance.Setup.UserLowercase = strings.ToLower(instance.Setup.User)
 	// uses instance.Name if specified
 	// if no other instances exist

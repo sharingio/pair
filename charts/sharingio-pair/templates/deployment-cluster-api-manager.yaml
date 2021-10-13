@@ -72,6 +72,10 @@ spec:
             {{- if .Values.instance.nodeSize }}
             - name: APP_INSTANCE_NODE_SIZE
               value: {{ .Values.instance.nodeSize }}
+            - name: APP_ADMIN_EMAIL_DOMAIN
+              value: "{{ .Values.adminEmailDomain }}"
+            - name: APP_NON_ADMIN_INSTANCE_MAX_AMOUNT
+              value: "{{ .Values.maxInstancesForNonAdmins }}"
             {{- end }}
             {{- if .Values.clusterapimanager.extraEnv }}
             {{- toYaml .Values.clusterapimanager.extraEnv | nindent 12 }}
