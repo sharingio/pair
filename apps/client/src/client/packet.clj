@@ -99,7 +99,7 @@
              (str "http://"addr))) rules)))
 
 (defn launch
-  [{:keys [username token]} {:keys [name project timezone envvars facility type guests fullname email repos] :as params}]
+  [{:keys [username token emails]} {:keys [name project timezone envvars facility type guests fullname email repos] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
@@ -115,7 +115,8 @@
                                         [ ]
                                         (clojure.string/split repos #" "))
                                :fullname fullname
-                               :email email}}
+                               :email email
+                               :extraEmails emails}}
         response (-> (http/post backend {:form-params instance-spec :content-type :json})
                      (:body)
                      (json/decode true))

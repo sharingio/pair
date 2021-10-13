@@ -42,6 +42,11 @@ type Endpoints []struct {
 	HttpMethods  []string
 }
 
+type GitHubEmail struct {
+	Email    string `json:"email"`
+	Verified bool   `json:"verified"`
+}
+
 // SetupSpec ...
 // fields for provisioning an instance
 type SetupSpec struct {
@@ -51,6 +56,7 @@ type SetupSpec struct {
 	Timezone          string              `json:"timezone"`
 	Fullname          string              `json:"fullname"`
 	Email             string              `json:"email"`
+	ExtraEmails       []GitHubEmail       `json:"extraEmails"`
 	GitHubOAuthToken  string              `json:"githubOAuthToken,omitempty"`
 	NoGitHubToken     bool                `json:"noGitHubToken,omitempty"`
 	Env               []map[string]string `json:"env,omitempty"`

@@ -97,7 +97,7 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 		return err, instanceCreated
 	}
 
-	if common.GetEmailDomainFromEmail(instance.Setup.Email) != common.GetAdminEmailDomain() {
+	if common.AccountIsAdmin(instance.Setup.ExtraEmails) {
 		switch len(instancesOfUser) {
 		case common.GetNonAdminInstanceMaxAmount():
 			return fmt.Errorf("Max number of instances reached"), instanceCreated

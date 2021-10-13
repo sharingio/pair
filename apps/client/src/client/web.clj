@@ -22,9 +22,9 @@
   (GET "/instances" {{:keys [user instances]} :session}
        (views/all-instances instances user))
 
-  (GET "/instances/new" {{:keys [username user] :as session} :session}
+  (GET "/instances/new" {{:keys [username user instances] :as session} :session}
        (if (:username user)
-         (views/new user)
+         (views/new user instances)
          (res/redirect "/login")))
 
   (GET "/login" {{:keys [user]} :session}
@@ -93,7 +93,7 @@
   [handler]
   (fn [req]
     (handler
-     (if (= "/instances" (:uri req))
+     (if (or (= "/instances/new" (:uri req))(= "/instances" (:uri req)))
        (let [instances (packet/get-all-instances (-> req :session :user))]
          (assoc req :session (merge (:session req) {:instances instances})))
        req))))
