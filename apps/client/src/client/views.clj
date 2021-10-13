@@ -239,7 +239,7 @@
      [:h3#phase "Status: Unknown"]
      [:h3#phase "Status: " phase])
    [:p#type "Type: " type]
-   [:p#nodeCount "Node count: " kubernetesNodeCount]
+   [:p#kubernetesNodeCount "Node count: " kubernetesNodeCount]
    [:p#facility "Region: " facility]
    [:h3 "Sites Available"]
    [:ul#sites-available

@@ -26,6 +26,7 @@ function updateInstanceInfo(instance) {
   const phase = document.querySelector("h3#phase");
   const type = document.querySelector("p#type");
   const facility = document.querySelector("p#facility");
+  const kubernetesNodeCount = document.querySelector("p#kubernetesNodeCount");
   if (isNotEmpty(instance.phase)) {
     phase.textContent = `Status: ${instance.phase}`;
   } else {
@@ -39,9 +40,17 @@ function updateInstanceInfo(instance) {
   }
 
   if (isNotEmpty(instance.facility)) {
-    facility.textContent = `deployed at ${instance.facility}`;
+    facility.textContent = `Facility: ${instance.facility}`;
   } else {
     facility.textContent = "";
+  }
+
+  if (isNotEmpty(instance.kubernetesNodeCount)) {
+    kubernetesNodeCount.textContent = `Node count: ${
+      instance.kubernetesNodeCount + 1
+    }`;
+  } else {
+    kubernetesNodeCount.textContent = "";
   }
 }
 
