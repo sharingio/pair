@@ -99,7 +99,7 @@
              (str "http://"addr))) rules)))
 
 (defn launch
-  [{:keys [username token emails]} {:keys [name project timezone envvars facility type guests fullname email repos kubernetesNodeCount] :as params}]
+  [{:keys [username token emails]} {:keys [name project timezone envvars facility type guests fullname email repos kubernetesNodeCount noGitHubToken] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
         instance-spec {:type type
                        :facility facility
@@ -133,7 +133,7 @@
      :instance-id name
      :name name
      :timezone timezone
-     :github-token nil
+     :noGitHubToken (= noGitHubToken false)
      :kubernetesNodeCount kubernetesNodeCount
      :status (str api-response": "phase)}))
 
@@ -152,6 +152,7 @@
      :phase (-> instance :status :phase)
      :nodeSize (-> instance :spec :nodeSize)
      :kubernetesNodeCount (-> instance :spec :kubernetesNodeCount)
+     :noGitHubToken (-> instance :spec :setup :noGitHubToken)
      :uid (-> instance :status :resources :PacketMachineUID)
      :timezone (-> instance :spec :setup :timezone)
      :kubeconfig (-> kubeconfig :spec)
