@@ -104,7 +104,7 @@
         instance-spec {:type type
                        :facility facility
                        :name name
-                       :kubernetesNodeCount (Integer. kubernetesNodeCount)
+                       :kubernetesNodeCount (Integer. (or kubernetesNodeCount 0))
                        :setup {:user username
                                :guests (if (empty? guests)
                                          [ ]
