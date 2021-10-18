@@ -130,6 +130,19 @@ For example, if I set https://github.com/sharingio/pair as a repo, it will be cl
 
 The same kind of cloning can be invoked with =git-clone-structured=.
 
+* Additional nodes
+When creating an instance, admins will be presented with the option to create
+instances with up to three non-controlplane nodes.
+
+* Disable GitHub token
+Whilst the feature of having the GitHub token is useful, sometimes folks may not want to
+pass their token (with what ever permissions) through.
+
+This is the way to make your instance the most secure.
+
+* Max instances
+When deploying Pair, admins are able to set a max number of instances per user account (.Values.maxInstancesForNonAdmins).
+
 * Environment variables
 
 Various environment variables are available inside of the Humacs pairing environment:
