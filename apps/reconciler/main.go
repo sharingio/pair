@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -21,20 +23,30 @@ import (
 )
 
 var (
-	AppBuildVersion = "0.0.0"
-	AppBuildHash    = "???"
-	AppBuildDate    = "???"
-	AppBuildMode    = "development"
+	AppBuildVersion            = "0.0.0"
+	AppBuildHash               = "???"
+	AppBuildDate               = "???"
+	AppBuildMode               = "development"
+	endpointsForReconciliation = []string{
+		"certmanage",
+		"dnsmanage",
+		"syncProviderID",
+	}
+)
+
+const (
+	endpointTemplate = "%s/api/instance/kubernetes/%s/"
 )
 
 type reconciler struct {
-	clientset        *kubernetes.Clientset
-	dynamicClientset dynamic.Interface
-	restConfig       *rest.Config
-	targetNamespace  string
+	clientset             *kubernetes.Clientset
+	dynamicClientset      dynamic.Interface
+	restConfig            *rest.Config
+	targetNamespace       string
+	clusterAPIManagerHost string
 }
 
-func (r *reconciler) init() {
+func NewReconciler() (r reconciler, err error) {
 	err, clientset := camk8s.Client()
 	if err != nil {
 		log.Panicln(err)
@@ -44,38 +56,51 @@ func (r *reconciler) init() {
 		log.Panicln("clientset is nil")
 		return
 	}
-	r.clientset = clientset
 
 	err, dynamicClientset := camk8s.DynamicClient()
 	if err != nil {
 		log.Panicln(err)
 		return
 	}
-	r.dynamicClientset = dynamicClientset
 
 	err, restConfig := camk8s.RestClient()
 	if err != nil {
 		log.Panicln(err)
 		return
 	}
-	r.restConfig = restConfig
 
-	r.targetNamespace = common.GetTargetNamespace()
+	targetNamespace := common.GetTargetNamespace()
+	clusterAPIManagerHost := common.GetEnvOrDefault("APP_CLUSTER_API_MANAGER_HOST", "http://sharingio-pair-clusterapimanager:8080")
+
+	return reconciler{
+		clientset:             clientset,
+		dynamicClientset:      dynamicClientset,
+		restConfig:            restConfig,
+		targetNamespace:       targetNamespace,
+		clusterAPIManagerHost: clusterAPIManagerHost,
+	}, err
 }
 
-func (r *reconciler) getClustersList() (err error, clusters []clusterAPIv1alpha3.Cluster) {
+func (r *reconciler) getClustersList() (clusters []clusterAPIv1alpha3.Cluster, err error) {
 	groupVersion := clusterAPIv1alpha3.GroupVersion
-	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
-	items, err := r.dynamicClientset.Resource(groupVersionResource).Namespace(r.targetNamespace).List(context.TODO(), metav1.ListOptions{})
+	groupVersionResource := schema.GroupVersionResource{
+		Version:  groupVersion.Version,
+		Group:    groupVersion.Group,
+		Resource: "clusters",
+	}
+	items, err := r.dynamicClientset.
+		Resource(groupVersionResource).
+		Namespace(r.targetNamespace).
+		List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to list Cluster, %#v", err), clusters
+		return clusters, fmt.Errorf("Failed to list Cluster, %#v", err)
 	}
 	for _, item := range items.Items {
 		var c clusterAPIv1alpha3.Cluster
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, c)
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &c)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", c), []clusterAPIv1alpha3.Cluster{}
+			return []clusterAPIv1alpha3.Cluster{}, fmt.Errorf("Failed to restructure %T: error: %v", c, err)
 		}
 		if c.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", r.targetNamespace, c, c.ObjectMeta.Name)
@@ -83,7 +108,21 @@ func (r *reconciler) getClustersList() (err error, clusters []clusterAPIv1alpha3
 		}
 		clusters = append(clusters, c)
 	}
-	return err, clusters
+	return clusters, err
+}
+
+func GetClusterAPIManagerEndpoint(url string) (response string, err error) {
+	if url[:1] == "/" {
+		url = url[1:]
+	}
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	return string(body), err
 }
 
 func main() {
@@ -91,19 +130,32 @@ func main() {
 	envFile := common.GetAppEnvFile()
 	_ = godotenv.Load(envFile)
 
-	var r *reconciler
-	r.init()
+	r, err := NewReconciler()
+	if err != nil {
+		panic(err)
+	}
 
+list:
 	for {
-		err, clusters := r.getClustersList()
+		clusters, err := r.getClustersList()
 		if err != nil {
-			panic(err)
+			log.Printf("Failed to list cluster: %s\n", err)
+			continue list
 		}
 		for _, c := range clusters {
-			fmt.Println(c.ObjectMeta.Name)
+			log.Println(c.ObjectMeta.Name)
+			for _, e := range endpointsForReconciliation {
+				log.Printf("Trying cluster-api-manager endpoint '%s'\n", e)
+				go func() {
+					resp, err := GetClusterAPIManagerEndpoint(fmt.Sprintf("%s/api/instance/kubernetes/%s/%s", r.clusterAPIManagerHost, c.ObjectMeta.Name, e))
+					if err != nil {
+						log.Printf("Error from cluster-api-manager endpoint '%s'\n", e, err)
+					}
+					log.Printf("Response from cluster-api-manager endpoint '%s'\n", e, resp)
+				}()
+			}
 		}
 
 		time.Sleep(60 * time.Second)
 	}
-
 }

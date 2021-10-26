@@ -3,8 +3,9 @@ module github.com/sharingio/pair/apps/reconciler
 go 1.17
 
 require (
-	github.com/joho/godotenv v1.4.0
+	github.com/joho/godotenv v1.3.0
 	github.com/sharingio/pair/apps/cluster-api-manager v0.0.0-20211018005247-3bb15d31df7e
+	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.19.2
 	sigs.k8s.io/cluster-api v0.3.9
 )
@@ -50,7 +51,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	k8s.io/api v0.19.2 // indirect
 	k8s.io/apiextensions-apiserver v0.18.8 // indirect
-	k8s.io/apimachinery v0.19.2 // indirect
 	k8s.io/klog/v2 v2.3.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20200831175022-64514a1d5d59 // indirect
 	k8s.io/utils v0.0.0-20200912215256-4140de9c8800 // indirect
