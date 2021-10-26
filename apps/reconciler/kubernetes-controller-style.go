@@ -16,21 +16,42 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/google/uuid"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog"
+	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
+	"github.com/sharingio/pair/apps/cluster-api-manager/common"
 	camk8s "github.com/sharingio/pair/apps/cluster-api-manager/kubernetes"
+)
+
+var (
+	AppBuildVersion            = "0.0.0"
+	AppBuildHash               = "???"
+	AppBuildDate               = "???"
+	AppBuildMode               = "development"
+	endpointsForReconciliation = []string{
+		"certmanage",
+		"dnsmanage",
+		"syncProviderID",
+	}
 )
 
 func buildConfig(kubeconfig string) (*rest.Config, error) {
@@ -49,6 +70,21 @@ func buildConfig(kubeconfig string) (*rest.Config, error) {
 	return cfg, nil
 }
 
+func getClusterAPIManagerEndpoint(url string) (response string, err error) {
+	if url[:1] == "/" {
+		url = url[1:]
+	}
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+
+	return string(body), err
+}
+
 func main() {
 	klog.InitFlags(nil)
 
@@ -57,7 +93,6 @@ func main() {
 	var leaseLockNamespace string
 	var id string
 
-	flag.StringVar(&kubeconfig, "kubeconfig", "", "absolute path to the kubeconfig file")
 	flag.StringVar(&id, "id", uuid.New().String(), "the holder identity name")
 	flag.StringVar(&leaseLockName, "lease-lock-name", "", "the lease lock resource name")
 	flag.StringVar(&leaseLockNamespace, "lease-lock-namespace", "", "the lease lock resource namespace")
@@ -69,6 +104,8 @@ func main() {
 	if leaseLockNamespace == "" {
 		klog.Fatal("unable to get lease lock resource namespace (missing lease-lock-namespace flag).")
 	}
+	targetNamespace := common.GetTargetNamespace()
+	clusterAPIManagerHost := common.GetEnvOrDefault("APP_CLUSTER_API_MANAGER_HOST", "http://sharingio-pair-clusterapimanager:8080")
 
 	// leader election uses the Kubernetes API by writing to a
 	// lock object, which can be a LeaseLock object (preferred),
@@ -90,7 +127,48 @@ func main() {
 		// complete your controller loop here
 		klog.Info("Controller loop...")
 
-		select {}
+		var clusters []clusterAPIv1alpha3.Cluster
+		groupVersion := clusterAPIv1alpha3.GroupVersion
+		groupVersionResource := schema.GroupVersionResource{
+			Version:  groupVersion.Version,
+			Group:    groupVersion.Group,
+			Resource: "clusters",
+		}
+		items, err := dynamicClientset.
+			Resource(groupVersionResource).
+			Namespace(targetNamespace).
+			List(context.TODO(), metav1.ListOptions{})
+		if err != nil && apierrors.IsNotFound(err) != true {
+			log.Printf("Error: failed to list Clusters: %#v\n", err)
+			return
+		}
+		for _, item := range items.Items {
+			var c clusterAPIv1alpha3.Cluster
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &c)
+			if err != nil {
+				log.Println("Error: failed to restructure %T: error: %v", c, err)
+				return
+			}
+			if c.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+				log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, c, c.ObjectMeta.Name)
+				continue
+			}
+			clusters = append(clusters, c)
+		}
+
+		for _, c := range clusters {
+			log.Printf("Reconciling Pair instance '%v'\n", c.ObjectMeta.Name)
+			for _, e := range endpointsForReconciliation {
+				log.Printf("Trying cluster-api-manager endpoint '%s'\n", e)
+				go func() {
+					resp, err := getClusterAPIManagerEndpoint(fmt.Sprintf("%s/api/instance/kubernetes/%s/%s", clusterAPIManagerHost, c.ObjectMeta.Name, e))
+					if err != nil {
+						log.Printf("Error from cluster-api-manager endpoint '%s'\n", e, err)
+					}
+					log.Printf("Response from cluster-api-manager endpoint '%v'\n", e, resp)
+				}()
+			}
+		}
 	}
 
 	// use a Go context so we can tell the leaderelection code when we

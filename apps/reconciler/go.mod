@@ -3,10 +3,12 @@ module github.com/sharingio/pair/apps/reconciler
 go 1.17
 
 require (
+	github.com/google/uuid v1.1.2
 	github.com/joho/godotenv v1.3.0
 	github.com/sharingio/pair/apps/cluster-api-manager v0.0.0-20211018005247-3bb15d31df7e
 	k8s.io/apimachinery v0.19.2
 	k8s.io/client-go v0.19.2
+	k8s.io/klog v1.0.0
 	sigs.k8s.io/cluster-api v0.3.9
 )
 
@@ -23,7 +25,6 @@ require (
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gnostic v0.5.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
