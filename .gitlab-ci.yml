@@ -31,6 +31,32 @@ variables:
     export KANIKO_EXTRA_DESTINATION="--destination $CI_REGISTRY_IMAGE/$APP:$APP_BUILD_VERSION"
   fi
 
+build-reconciler-container:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:debug-v1.3.0
+    entrypoint: [""]
+  retry: 2
+  variables:
+    APP: reconciler
+    APP_PATH_NAME: reconciler
+  before_script:
+    - *kaniko-build-pre-script
+    - *kaniko-build-taggable-name
+    - *kaniko-pre-build-release-version
+  script:
+    - |
+      /kaniko/executor \
+      --snapshotMode=redo \
+      --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
+      --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
+      --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
+      $KANIKO_EXTRA_DESTINATION \
+      --build-arg AppBuildVersion="$APP_BUILD_VERSION" \
+      --build-arg AppBuildDate="$BUILD_DATE" \
+      --build-arg AppBuildHash="$COMMIT_HASH" \
+      --build-arg AppBuildMode="$APP_BUILD_MODE"
+
 build-cluster-api-manager-container:
   stage: build
   image:
