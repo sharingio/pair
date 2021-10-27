@@ -53,13 +53,6 @@ EOF
         done
     fi
 
-    if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
-        echo "[!] Initialising Cluster-API with the infrastucture provider for Packet"
-        tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n cluster-api-init bash
-        tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "export \$(cat $GIT_ROOT/.env | xargs)" Enter
-        tmate -S $TMATE_SOCKET send-keys -t cluster-api-init "clusterctl init --infrastructure packet" Enter
-    fi
-
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/cluster-api-manager" -n backend bash
     tmate -S $TMATE_SOCKET send-keys -t backend "export \$(cat $GIT_ROOT/.env | xargs)" Enter
     tmate -S $TMATE_SOCKET send-keys -t backend "go run ." Enter
