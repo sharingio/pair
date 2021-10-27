@@ -719,9 +719,7 @@ export SHARINGIO_PAIR_INSTANCE_HUMACS_VERSION="{{ $.Setup.HumacsVersion }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
-{{ if not $.Setup.NoGitHubToken }}
 export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
-{{ end }}
 export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
         {{ range $.Setup.Repos }}- {{ . }}
         {{ end }}
@@ -1018,7 +1016,7 @@ export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=worker
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-nodeSize"] = instance.NodeSize
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-facility"] = instance.Facility
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-kubernetesNodeCount"] = fmt.Sprintf("%v", instance.KubernetesNodeCount)
-	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-noGitHubToken"] = fmt.Sprintf("%v", instance.Setup.NoGitHubToken)
+	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-noGitHubToken"] = fmt.Sprintf("%v", instance.Setup.GitHubOAuthToken == "")
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-user"] = instance.Setup.User
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-guests"] = strings.Join(instance.Setup.Guests, " ")
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-repos"] = strings.Join(instance.Setup.Repos, " ")

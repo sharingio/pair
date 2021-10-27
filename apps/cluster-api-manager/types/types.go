@@ -58,7 +58,6 @@ type SetupSpec struct {
 	Email             string              `json:"email"`
 	ExtraEmails       []GitHubEmail       `json:"extraEmails"`
 	GitHubOAuthToken  string              `json:"githubOAuthToken,omitempty"`
-	NoGitHubToken     bool                `json:"noGitHubToken,omitempty"`
 	Env               []map[string]string `json:"env,omitempty"`
 	BaseDNSName       string              `json:"baseDNSName,omitempty"`
 	KubernetesVersion string              `json:"kubernetesVersion,omitempty"`
