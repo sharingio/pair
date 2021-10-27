@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -32,6 +33,7 @@ var (
 		"dnsmanage",
 		"syncProviderID",
 	}
+	defaultSleepTime = 60
 )
 
 type reconciler struct {
@@ -40,6 +42,7 @@ type reconciler struct {
 	restConfig            *rest.Config
 	targetNamespace       string
 	clusterAPIManagerHost string
+	sleepTime             int
 }
 
 func NewReconciler() (r reconciler, err error) {
@@ -67,6 +70,11 @@ func NewReconciler() (r reconciler, err error) {
 
 	targetNamespace := common.GetTargetNamespace()
 	clusterAPIManagerHost := common.GetEnvOrDefault("APP_CLUSTER_API_MANAGER_HOST", "http://sharingio-pair-clusterapimanager:8080")
+	sleepTimeString := common.GetEnvOrDefault("APP_SLEEP_TIME", "60")
+	sleepTime, _ := strconv.Atoi(sleepTimeString)
+	if sleepTime == 0 {
+		sleepTime = defaultSleepTime
+	}
 
 	return reconciler{
 		clientset:             clientset,
@@ -74,6 +82,7 @@ func NewReconciler() (r reconciler, err error) {
 		restConfig:            restConfig,
 		targetNamespace:       targetNamespace,
 		clusterAPIManagerHost: clusterAPIManagerHost,
+		sleepTime:             sleepTime,
 	}, err
 }
 
@@ -159,6 +168,7 @@ list:
 			}
 		}
 
-		time.Sleep(60 * time.Second)
+		log.Printf("Sleeping for %v seconds", r.sleepTime)
+		time.Sleep(time.Duration(r.sleepTime) * time.Second)
 	}
 }
