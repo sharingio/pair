@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-reconciler
+  labels:
+    app: reconciler
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+  annotations:
+    checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reconciler
+      app.kubernetes.io/part-of: sharingio-pair
+      {{- include "sharingio-pair.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.reconciler.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        app: reconciler
+        app.kubernetes.io/part-of: sharingio-pair
+        {{- include "sharingio-pair.selectorLabels" . | nindent 8 }}
+    spec:
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      serviceAccountName: {{ include "sharingio-pair.fullname" . }}-reconciler
+      securityContext:
+        {{- toYaml .Values.reconciler.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-reconciler
+          securityContext:
+            {{- toYaml .Values.reconciler.securityContext | nindent 12 }}
+          image: "{{ .Values.reconciler.image.repository }}:{{ .Values.reconciler.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.reconciler.image.pullPolicy }}
+          env:
+            - name: APP_TARGET_NAMESPACE
+              value: {{ .Values.targetNamespace | default .Release.Namespace }}
+            - name: TZ
+              value: {{ .Values.timezone }}
+            {{- if .Values.reconciler.extraEnv }}
+            {{- toYaml .Values.reconciler.extraEnv | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.reconciler.resources | nindent 12 }}
+      {{- with .Values.reconciler.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.reconciler.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.reconciler.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
