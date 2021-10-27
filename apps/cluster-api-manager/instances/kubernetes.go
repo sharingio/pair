@@ -514,33 +514,8 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 		log.Println("Already exists")
 	}
 
-	go func() {
-	machineIPToDNS:
-		for i := 0; i < 100; i++ {
-			err := KubernetesAddMachineIPToDNS(dynamicClient, instance.Name, instance.Name)
-			if err == nil {
-				break machineIPToDNS
-			}
-			time.Sleep(1 * time.Second)
-		}
-	}()
-	if options.NameScheme == InstanceNameSchemeSpecified || options.NameScheme == InstanceNameSchemeUsername {
-		go func() {
-		certToMachine:
-			for i := 0; i < 100; i++ {
-				err := KubernetesAddCertToMachine(clientset, dynamicClient, instance)
-				if err == nil {
-					break certToMachine
-				}
-				time.Sleep(1 * time.Second)
-			}
-		}()
-	}
-
-	err = nil
-
 	// TODO return the same creation fields (repos, guests, etc...)
-	return err, instanceCreated
+	return nil, instanceCreated
 }
 
 // KubernetesUpdate ...

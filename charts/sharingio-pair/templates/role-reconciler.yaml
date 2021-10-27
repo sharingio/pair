@@ -1,0 +1,17 @@
+{{- if .Values.reconciler.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-reconciler
+  labels:
+    app: reconciler
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - cluster.x-k8s.io
+    resources:
+      - clusters
+    verbs:
+      - get
+{{- end }}
