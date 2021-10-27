@@ -44,6 +44,12 @@ APP_NON_ADMIN_INSTANCE_MAX_AMOUNT=1000
 EOF
     fi
 
+    if [ ! -f $GIT_ROOT/apps/reconciler/.env ]; then
+        cat <<EOF > $GIT_ROOT/apps/reconciler/.env
+APP_CLUSTER_API_MANAGER_HOST=http://localhost:8080
+EOF
+    fi
+
     if ! cat "$GIT_ROOT/.env" | grep -q OAUTH_CLIENT_ID; then
         tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD" -n pair-setup $GIT_ROOT/.sharing.io/prepare-env.sh
 
@@ -56,6 +62,10 @@ EOF
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/cluster-api-manager" -n backend bash
     tmate -S $TMATE_SOCKET send-keys -t backend "export \$(cat $GIT_ROOT/.env | xargs)" Enter
     tmate -S $TMATE_SOCKET send-keys -t backend "go run ." Enter
+
+    tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/reconciler" -n reconciler bash
+    tmate -S $TMATE_SOCKET send-keys -t reconciler "export \$(cat $GIT_ROOT/.env | xargs)" Enter
+    tmate -S $TMATE_SOCKET send-keys -t reconciler "go run ." Enter
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
     tmate -S $TMATE_SOCKET send-keys -t frontend "export \$(cat $GIT_ROOT/.env | xargs) \$(cat $GIT_ROOT/apps/client/.env | xargs)" Enter
