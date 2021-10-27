@@ -109,7 +109,7 @@
                                :guests (if (empty? guests)
                                          [ ]
                                          (clojure.string/split guests #" "))
-                               :githubOAuthToken token
+                               :githubOAuthToken (if (empty? noGitHubToken) "" token)
                                :env (if (empty? envvars) [] (text->env-map envvars))
                                :timezone timezone
                                :repos (if (empty? repos)
@@ -134,7 +134,6 @@
      :instance-id name
      :name name
      :timezone timezone
-     :noGitHubToken (= noGitHubToken false)
      :kubernetesNodeCount kubernetesNodeCount
      :status (str api-response": "phase)}))
 
@@ -153,7 +152,6 @@
      :phase (-> instance :status :phase)
      :nodeSize (-> instance :spec :nodeSize)
      :kubernetesNodeCount (-> instance :spec :kubernetesNodeCount)
-     :noGitHubToken (-> instance :spec :setup :noGitHubToken)
      :uid (-> instance :status :resources :PacketMachineUID)
      :timezone (-> instance :spec :setup :timezone)
      :kubeconfig (-> kubeconfig :spec)
