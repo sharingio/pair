@@ -34,10 +34,6 @@ var (
 	}
 )
 
-const (
-	endpointTemplate = "%s/api/instance/kubernetes/%s/"
-)
-
 type reconciler struct {
 	clientset             *kubernetes.Clientset
 	dynamicClientset      dynamic.Interface
@@ -115,7 +111,13 @@ func GetClusterAPIManagerEndpoint(url string) (response string, err error) {
 	if url[:1] == "/" {
 		url = url[1:]
 	}
-	resp, err := http.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Add("Accept", "application/json")
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -144,14 +146,15 @@ list:
 		}
 		for _, c := range clusters {
 			log.Println(c.ObjectMeta.Name)
-			for _, e := range endpointsForReconciliation {
-				log.Printf("Trying cluster-api-manager endpoint '%s'\n", e)
+			for _, endpoint := range endpointsForReconciliation {
+				url := fmt.Sprintf("%s/api/instance/kubernetes/%s/%s", r.clusterAPIManagerHost, c.ObjectMeta.Name, endpoint)
+				log.Printf("Trying cluster-api-manager endpoint '%s' (%s)\n", endpoint, url)
 				go func() {
-					resp, err := GetClusterAPIManagerEndpoint(fmt.Sprintf("%s/api/instance/kubernetes/%s/%s", r.clusterAPIManagerHost, c.ObjectMeta.Name, e))
+					resp, err := GetClusterAPIManagerEndpoint(url)
 					if err != nil {
-						log.Printf("Error from cluster-api-manager endpoint '%s'\n", e, err)
+						log.Printf("Error from cluster-api-manager endpoint '%s'\n", err)
 					}
-					log.Printf("Response from cluster-api-manager endpoint '%s'\n", e, resp)
+					log.Printf("Response from cluster-api-manager endpoint '%s'\n", endpoint, resp)
 				}()
 			}
 		}
