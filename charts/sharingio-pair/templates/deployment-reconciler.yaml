@@ -40,6 +40,8 @@ spec:
           env:
             - name: APP_TARGET_NAMESPACE
               value: {{ .Values.targetNamespace | default .Release.Namespace }}
+            - name: APP_CLUSTER_API_MANAGER_HOST
+              value: http://{{ include "sharingio-pair.fullname" . }}-clusterapimanager.{{ .Release.Name }}:{{ .Values.clusterapimanager.service.port }}
             - name: TZ
               value: {{ .Values.timezone }}
             {{- if .Values.reconciler.extraEnv }}
