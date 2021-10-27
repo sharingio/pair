@@ -14,4 +14,6 @@ rules:
       - clusters
     verbs:
       - get
+      - list
+      - watch
 {{- end }}
