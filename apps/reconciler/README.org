@@ -1,0 +1,21 @@
+#+TITLE: reconciler
+
+#+begin_quote
+A reconciler for Pair instances, that calls cluster-api-manager endpoints to make calls against the instance
+#+end_quote
+
+* Purpose
+The reconciler is responsible for bringing aspects of the Pair instance into an available state.
+There are a few different things that are reconciled, these are:
+- Certs :: Backing up or restoring the /letsencrypt-prod/ secret in the /powerdns/ namespace, in order bring certs up quicker next time (if instance name matches username or a name is chosen)
+- DNS :: Creates or updates the DNSEndpoint resource for managing the DNS records related to the instance's IP
+- providerID :: The provider ID is required along with removing any node taints to allow scheduling of Pods on a Node.
+  This is normally done by the [[https://github.com/kubernetes-sigs/cluster-api-provider-packet][cluster-api-provider-packet]], but since we don't want to share privileged secrets we will manage it differently
+
+* Implementation
+By listing the /clusters.cluster.x-k8s.io/ resources, with cluster that's managed by Pair in the given namespace, call the endpoints to reconcile the instance.
+
+* Env vars
+| Name                           | Default                                      | Description                              |
+|--------------------------------+----------------------------------------------+------------------------------------------|
+| ~APP_CLUSTER_API_MANAGER_HOST~ | http://sharingio-pair-clusterapimanager:8080 | The HTTP address for cluster-api-manager |
