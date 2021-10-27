@@ -74,6 +74,9 @@ spec:
                       values:
                         - clusterapimanager
                 topologyKey: "kubernetes.io/hostname"
+    reconciler:
+      image:
+        tag: ${SHARINGIO_PAIR_TAG}
     ingress:
       enabled: true
       certmanager:
