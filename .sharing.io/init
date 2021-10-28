@@ -65,7 +65,7 @@ EOF
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/reconciler" -n reconciler bash
     tmate -S $TMATE_SOCKET send-keys -t reconciler "export \$(cat $GIT_ROOT/.env | xargs)" Enter
-    tmate -S $TMATE_SOCKET send-keys -t reconciler "go run ." Enter
+    tmate -S $TMATE_SOCKET send-keys -t reconciler "go run main.go" Enter
 
     tmate -F -v -S $TMATE_SOCKET new-window -d -c "$PWD/apps/client" -n frontend bash
     tmate -S $TMATE_SOCKET send-keys -t frontend "export \$(cat $GIT_ROOT/.env | xargs) \$(cat $GIT_ROOT/apps/client/.env | xargs)" Enter

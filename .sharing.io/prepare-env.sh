@@ -43,10 +43,9 @@ echo
 echo "Access Pair's client/frontend in development from 'https://pair.${SHARINGIO_PAIR_BASE_DNS_NAME}'"
 echo "Access Pair's backend from 'http://localhost:8080/api'"
 echo
-if ! kubectl -n capi-system get deployment capi-controller-manager 2>&1 > /dev/null; then
+if ! kubectl -n capi-system get deployment capi-controller-manager 2> /dev/null; then
     echo "Initialising cluster-api..."
     export $(cat $GIT_ROOT/.env | xargs)
     clusterctl init --infrastructure packet
-    echo
 fi
 read -r -p "Press enter to exit"
