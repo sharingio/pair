@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"log"
@@ -13,6 +14,8 @@ import (
 	"github.com/sharingio/pair/apps/cluster-api-manager/common"
 	camk8s "github.com/sharingio/pair/apps/cluster-api-manager/kubernetes"
 
+	"github.com/jetstack/cert-manager/pkg/util/pki"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -116,6 +119,42 @@ func (r *reconciler) getClustersList() (clusters []clusterAPIv1alpha3.Cluster, e
 	return clusters, err
 }
 
+func (r *reconciler) getCertForInstance(name string) (certificate *x509.Certificate, err error) {
+	templatedSecretName := fmt.Sprintf("%v-tls", name)
+	secret, err := r.clientset.CoreV1().Secrets(r.targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("Error: secret not found '%v-tls'", name)
+	}
+	if err != nil {
+		log.Printf("%#v\n", err)
+		return nil, fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, r.targetNamespace, err)
+	}
+	return pki.DecodeX509CertificateBytes(secret.Data[corev1.TLSCertKey])
+}
+
+// TODO find when cert-manager will normally try to get a new cert before it expire
+// currently using 5 days before
+func (r *reconciler) isCertExpired(name string) (expired bool, err error) {
+	certificate, err := r.getCertForInstance(name)
+	if certificate == nil {
+		return false, err
+	}
+	fmt.Println(certificate.NotAfter)
+	return certificate.NotAfter.After(time.Now().AddDate(0, 0, -5)), err
+}
+
+func (r *reconciler) RemoveExpiredCertificate(name string) (err error) {
+	templatedSecretName := fmt.Sprintf("%v-tls", name)
+	log.Printf("Checking for expired TLS cert for '%v'\n", name)
+	expired, err := r.isCertExpired(name)
+	if expired == true {
+		log.Printf("TLS cert for '%v' has expired, now deleting '%v-tls'\n", name, name)
+		err = r.clientset.CoreV1().Secrets(r.targetNamespace).Delete(context.TODO(), templatedSecretName, metav1.DeleteOptions{})
+	}
+	log.Printf("TLS cert for '%v' has not expired\n", name)
+	return nil
+}
+
 func GetClusterAPIManagerEndpoint(url string) (response string, err error) {
 	if url[:1] == "/" {
 		url = url[1:]
@@ -165,6 +204,10 @@ list:
 					}
 					log.Printf("Response from cluster-api-manager endpoint '%s'\n", endpoint, resp)
 				}()
+				err := r.RemoveExpiredCertificate(c.ObjectMeta.Name)
+				if err != nil {
+					log.Printf("Error with certificates '%v'\n", err)
+				}
 			}
 		}
 

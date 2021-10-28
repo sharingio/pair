@@ -9,6 +9,13 @@ metadata:
     {{- include "sharingio-pair.labels" . | nindent 4 }}
 rules:
   - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - delete
+  - apiGroups:
       - cluster.x-k8s.io
     resources:
       - clusters
