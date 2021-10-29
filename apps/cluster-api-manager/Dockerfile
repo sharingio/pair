@@ -1,4 +1,4 @@
-FROM golang:1.16.0-alpine3.13 AS api
+FROM golang:1.17.2-alpine3.14 AS api
 WORKDIR /app
 COPY . /app/
 COPY go.* /app/
@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH="$GOARCH" go build \
   -o bin/cluster-api-manager \
   main.go
 
-FROM alpine:3.11 as extras
+FROM alpine:3.14 as extras
 RUN apk add tzdata ca-certificates
 RUN adduser -D user
 
