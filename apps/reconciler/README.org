@@ -16,7 +16,8 @@ There are a few different things that are reconciled, these are:
 By listing the /clusters.cluster.x-k8s.io/ resources, with cluster that's managed by Pair in the given namespace, call the endpoints to reconcile the instance.
 
 * Env vars
-| Name                           | Default                                      | Description                                                               |
+| Name                           |                                      Default | Description                                                               |
 |--------------------------------+----------------------------------------------+---------------------------------------------------------------------------|
 | ~APP_CLUSTER_API_MANAGER_HOST~ | http://sharingio-pair-clusterapimanager:8080 | The HTTP address for cluster-api-manager                                  |
-| ~APP_SLEEP_TIME~               | 60                                           | The amount of seconds to wait after all clusters have been looped through |
+| ~APP_SLEEP_TIME~               |                                           60 | The amount of seconds to wait after all clusters have been looped through |
+| ~APP_CERT_DAYS_TO_PRE_EXPIRE~  |                                            5 | The amount of days before deleting an almost expired backed up TLS cert   |
