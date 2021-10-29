@@ -36,7 +36,8 @@ var (
 		"dnsmanage",
 		"syncProviderID",
 	}
-	defaultSleepTime = 60
+	defaultSleepTime                 = 60
+	defaultCertDaysToPreExpireString = time.Duration(5)
 )
 
 type reconciler struct {
@@ -46,6 +47,7 @@ type reconciler struct {
 	targetNamespace       string
 	clusterAPIManagerHost string
 	sleepTime             int
+	certDaysToPreExpire   time.Duration
 }
 
 func NewReconciler() (r reconciler, err error) {
@@ -78,6 +80,11 @@ func NewReconciler() (r reconciler, err error) {
 	if sleepTime == 0 {
 		sleepTime = defaultSleepTime
 	}
+	certDaysToPreExpireString := common.GetEnvOrDefault("APP_CERT_DAYS_TO_PRE_EXPIRE", "5")
+	certDaysToPreExpire, _ := strconv.Atoi(certDaysToPreExpireString)
+	if certDaysToPreExpire == 0 {
+		certDaysToPreExpire = int(defaultCertDaysToPreExpireString)
+	}
 
 	return reconciler{
 		clientset:             clientset,
@@ -86,6 +93,7 @@ func NewReconciler() (r reconciler, err error) {
 		targetNamespace:       targetNamespace,
 		clusterAPIManagerHost: clusterAPIManagerHost,
 		sleepTime:             sleepTime,
+		certDaysToPreExpire:   time.Duration(certDaysToPreExpire),
 	}, err
 }
 
@@ -119,34 +127,38 @@ func (r *reconciler) getClustersList() (clusters []clusterAPIv1alpha3.Cluster, e
 	return clusters, err
 }
 
-func (r *reconciler) getCertForInstance(name string) (certificate *x509.Certificate, err error) {
+func (r *reconciler) getCertForInstance(name string) (certificate *x509.Certificate, exists bool, err error) {
 	templatedSecretName := fmt.Sprintf("%v-tls", name)
 	secret, err := r.clientset.CoreV1().Secrets(r.targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return nil, fmt.Errorf("Error: secret not found '%v-tls'", name)
+		return nil, false, nil
 	}
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return nil, fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, r.targetNamespace, err)
+		return nil, false, fmt.Errorf("Failed to get Secret '%v' in namespace '%v', %#v", templatedSecretName, r.targetNamespace, err)
 	}
-	return pki.DecodeX509CertificateBytes(secret.Data[corev1.TLSCertKey])
+	certificate, err = pki.DecodeX509CertificateBytes(secret.Data[corev1.TLSCertKey])
+	return certificate, true, err
 }
 
-// TODO find when cert-manager will normally try to get a new cert before it expire
-// currently using 5 days before
-func (r *reconciler) isCertExpired(name string) (expired bool, err error) {
-	certificate, err := r.getCertForInstance(name)
+func (r *reconciler) isCertExpired(name string) (expired, exists bool, err error) {
+	certificate, exists, err := r.getCertForInstance(name)
 	if certificate == nil {
-		return false, err
+		return false, exists, err
 	}
-	fmt.Println(certificate.NotAfter)
-	return certificate.NotAfter.After(time.Now().AddDate(0, 0, -5)), err
+	log.Printf("Cert for '%v' not valid after %#v\n", name, certificate.NotAfter)
+	expireTime := time.Now().Add(time.Hour * 24 * -(r.certDaysToPreExpire))
+	return expireTime.After(certificate.NotAfter), exists, err
 }
 
 func (r *reconciler) RemoveExpiredCertificate(name string) (err error) {
 	templatedSecretName := fmt.Sprintf("%v-tls", name)
 	log.Printf("Checking for expired TLS cert for '%v'\n", name)
-	expired, err := r.isCertExpired(name)
+	expired, exists, err := r.isCertExpired(name)
+	if exists == false {
+		log.Printf("TLS cert for '%v' does not exist\n", name)
+		return err
+	}
 	if expired == true {
 		log.Printf("TLS cert for '%v' has expired, now deleting '%v-tls'\n", name, name)
 		err = r.clientset.CoreV1().Secrets(r.targetNamespace).Delete(context.TODO(), templatedSecretName, metav1.DeleteOptions{})
@@ -192,8 +204,9 @@ list:
 			log.Printf("Failed to list cluster: %s\n", err)
 			continue list
 		}
+		log.Println("Listing clusters...")
 		for _, c := range clusters {
-			log.Println(c.ObjectMeta.Name)
+			log.Println("Cluster: ", c.ObjectMeta.Name)
 			for _, endpoint := range endpointsForReconciliation {
 				url := fmt.Sprintf("%s/api/instance/kubernetes/%s/%s", r.clusterAPIManagerHost, c.ObjectMeta.Name, endpoint)
 				log.Printf("Trying cluster-api-manager endpoint '%s' (%s)\n", endpoint, url)
