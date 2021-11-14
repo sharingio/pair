@@ -68,8 +68,8 @@ spec:
     timezone: Pacific/Auckland
     instance:
       kubernetesVersion: 1.21.0
-      humacsRepository: registry.gitlab.com/humacs/humacs/ii
-      humacsVersion: 2021.05.27.2050
+      environmentRepository: registry.gitlab.com/sharingio/environment/ii
+      environmentVersion: 2021.11.12.1719
       nodeSize: c1.small.x86
     sessionSecret: pairpairpairpair
     githubOAuth:

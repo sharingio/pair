@@ -57,13 +57,13 @@ spec:
               value: {{ include "sharingio-pair.fullname" . }}
             - name: TZ
               value: {{ .Values.timezone }}
-            {{- if .Values.instance.humacsVersion }}
-            - name: APP_HUMACS_VERSION
-              value: {{ .Values.instance.humacsVersion }}
+            {{- if .Values.instance.environmentVersion }}
+            - name: APP_ENVIRONMENT_VERSION
+              value: {{ .Values.instance.environmentVersion }}
             {{- end }}
-            {{- if .Values.instance.humacsRepository }}
-            - name: APP_HUMACS_REPOSITORY
-              value: {{ .Values.instance.humacsRepository }}
+            {{- if .Values.instance.environmentRepository }}
+            - name: APP_ENVIRONMENT_REPOSITORY
+              value: {{ .Values.instance.environmentRepository }}
             {{- end }}
             {{- if .Values.instance.kubernetesVersion }}
             - name: APP_INSTANCE_KUBERNETES_VERSION

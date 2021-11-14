@@ -50,19 +50,19 @@ type GitHubEmail struct {
 // SetupSpec ...
 // fields for provisioning an instance
 type SetupSpec struct {
-	User              string              `json:"user"`
-	Guests            []string            `json:"guests"`
-	Repos             []string            `json:"repos"`
-	Timezone          string              `json:"timezone"`
-	Fullname          string              `json:"fullname"`
-	Email             string              `json:"email"`
-	ExtraEmails       []GitHubEmail       `json:"extraEmails"`
-	GitHubOAuthToken  string              `json:"githubOAuthToken,omitempty"`
-	Env               []map[string]string `json:"env,omitempty"`
-	BaseDNSName       string              `json:"baseDNSName,omitempty"`
-	KubernetesVersion string              `json:"kubernetesVersion,omitempty"`
-	HumacsRepository  string              `json:"humacsRepository"`
-	HumacsVersion     string              `json:"humacsVersion"`
+	User                  string              `json:"user"`
+	Guests                []string            `json:"guests"`
+	Repos                 []string            `json:"repos"`
+	Timezone              string              `json:"timezone"`
+	Fullname              string              `json:"fullname"`
+	Email                 string              `json:"email"`
+	ExtraEmails           []GitHubEmail       `json:"extraEmails"`
+	GitHubOAuthToken      string              `json:"githubOAuthToken,omitempty"`
+	Env                   []map[string]string `json:"env,omitempty"`
+	BaseDNSName           string              `json:"baseDNSName,omitempty"`
+	KubernetesVersion     string              `json:"kubernetesVersion,omitempty"`
+	EnvironmentRepository string              `json:"environmentRepository"`
+	EnvironmentVersion    string              `json:"environmentVersion"`
 
 	GuestsNamesFlat string `json:"-"`
 	UserLowercase   string `json:"-"`

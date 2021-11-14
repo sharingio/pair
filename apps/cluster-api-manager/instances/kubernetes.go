@@ -608,8 +608,8 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
 	instance.NodeSize = common.ReturnValueOrDefault(instance.NodeSize, GetInstanceDefaultNodeSize())
-	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(instance.Setup.HumacsVersion, GetHumacsVersion())
-	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(instance.Setup.HumacsRepository, GetHumacsRepository())
+	instance.Setup.EnvironmentVersion = common.ReturnValueOrDefault(instance.Setup.EnvironmentVersion, GetEnvironmentVersion())
+	instance.Setup.EnvironmentRepository = common.ReturnValueOrDefault(instance.Setup.EnvironmentRepository, GetEnvironmentRepository())
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(instance.Setup.KubernetesVersion, GetKubernetesVersion())
 	instance = UpdateInstanceSpecIfEnvOverrides(instance)
 
@@ -689,20 +689,21 @@ export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_USERLOWERCASE="{{ $.Setup.UserLowercase }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_GUESTS="{{ range $.Setup.Guests }}{{ . }} {{ end }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_BASEDNSNAME="{{ $.Setup.BaseDNSName }}"
-export SHARINGIO_PAIR_INSTANCE_HUMACS_REPOSITORY="{{ $.Setup.HumacsRepository }}"
-export SHARINGIO_PAIR_INSTANCE_HUMACS_VERSION="{{ $.Setup.HumacsVersion }}"
+export SHARINGIO_PAIR_INSTANCE_ENVIRONMENT_REPOSITORY="{{ $.Setup.EnvironmentRepository }}"
+export SHARINGIO_PAIR_INSTANCE_ENVIRONMENT_VERSION="{{ $.Setup.EnvironmentVersion }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="{{ range $.Setup.Repos }}{{ . }} {{ end }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
         {{ range $.Setup.Repos }}- {{ . }}
         {{ end }}
 "
 export SHARINGIO_PAIR_INSTANCE_SETUP_ENV_EXPANDED="
       {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
-      - name: \"{{ $key }}\"
-        value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
+            - name: \"{{ $key }}\"
+              value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
 "
 EOF
 
@@ -1081,7 +1082,7 @@ func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (err 
 func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, options ExecOptions) (err error, stdout string, stderr string) {
 	req := clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
-		Name(fmt.Sprintf("%s-humacs-0", options.PodName)).
+		Name("environment-0").
 		Namespace(options.Namespace).
 		SubResource("exec").
 		Param("container", options.ContainerName)
@@ -1118,13 +1119,13 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 }
 
 // KubernetesGetTmateSSHSession ...
-// given a clienset, instancename, and username, get the tmate SSH session for the Humacs Pod
+// given a clienset, instancename, and username, get the tmate SSH session for the Environment Pod
 func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
 	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
 	if err != nil {
 		return err, output
 	}
-	err = KubernetesGetInstanceHumacsPodReadiness(clientset, instanceName, userName)
+	err = KubernetesGetInstanceEnvironmentPodReadiness(clientset, instanceName, userName)
 	if err != nil {
 		return err, output
 	}
@@ -1152,7 +1153,7 @@ func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName 
 		},
 		Namespace:          userName,
 		PodName:            userName,
-		ContainerName:      "humacs",
+		ContainerName:      "environment",
 		CaptureStderr:      true,
 		CaptureStdout:      true,
 		PreserveWhitespace: false,
@@ -1166,13 +1167,13 @@ func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName 
 }
 
 // KubernetesGetTmateWebSession ...
-// given a clienset, instancename, and username, get the tmate web session for the Humacs Pod
+// given a clienset, instancename, and username, get the tmate web session for the Environment Pod
 func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
 	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
 	if err != nil {
 		return err, output
 	}
-	err = KubernetesGetInstanceHumacsPodReadiness(clientset, instanceName, userName)
+	err = KubernetesGetInstanceEnvironmentPodReadiness(clientset, instanceName, userName)
 	if err != nil {
 		return err, output
 	}
@@ -1200,7 +1201,7 @@ func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName 
 		},
 		Namespace:          userName,
 		PodName:            userName,
-		ContainerName:      "humacs",
+		ContainerName:      "environment",
 		CaptureStderr:      true,
 		CaptureStdout:      true,
 		PreserveWhitespace: false,
@@ -1499,7 +1500,7 @@ func KubernetesGetInstanceAPIServerLiveness(clientset *kubernetes.Clientset, ins
 	return nil
 }
 
-func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, instanceName string, userLowercase string) error {
+func KubernetesGetInstanceEnvironmentPodReadiness(clientset *kubernetes.Clientset, instanceName string, userLowercase string) error {
 	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err
@@ -1510,12 +1511,12 @@ func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, in
 	}
 	deadline := time.Now().Add(time.Second * 1)
 	ctx, _ := context.WithDeadline(context.TODO(), deadline)
-	humacsPod, err := instanceClientset.CoreV1().Pods(userLowercase).Get(ctx, fmt.Sprintf("%s-humacs-0", userLowercase), metav1.GetOptions{})
+	environmentPod, err := instanceClientset.CoreV1().Pods(userLowercase).Get(ctx, "environment-0", metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
 	}
-	if humacsPod.Status.Phase != corev1.PodRunning {
-		return fmt.Errorf("Humacs Pod is not running for instance '%v'", instanceName)
+	if environmentPod.Status.Phase != corev1.PodRunning {
+		return fmt.Errorf("Environment Pod is not running for instance '%v'", instanceName)
 	}
 	return nil
 }
@@ -1525,8 +1526,8 @@ func KubernetesGetInstanceHumacsPodReadiness(clientset *kubernetes.Clientset, in
 // this way is a quick way to test new fields for new instances, but ideally these fields will be written by the client
 func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
-	instance.Setup.HumacsVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_VERSION"), instance.Setup.HumacsVersion)
-	instance.Setup.HumacsRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_HUMACS_REPOSITORY"), instance.Setup.HumacsRepository)
+	instance.Setup.EnvironmentVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_ENVIRONMENT_VERSION"), instance.Setup.EnvironmentVersion)
+	instance.Setup.EnvironmentRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_ENVIRONMENT_REPOSITORY"), instance.Setup.EnvironmentRepository)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)
 	instance.Setup.Timezone = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "TZ"), instance.Setup.Timezone)
 	return instance

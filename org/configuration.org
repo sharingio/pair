@@ -12,16 +12,16 @@
 | =PAIR_ADMIN_EMAIL_DOMAIN= |         | Email domain to allow admin access with                       |
 
 ** Cluster-API-Manager (also called backend)
-| Name                              | Default                                | Description                                                             |
-| =APP_PACKET_PROJECT_ID=           |                                        | The project ID of the Equinix Metal / Packet project to deploy machines |
-| =APP_PORT=                        | =:8080=                                | The port to bind the web service                                        |
-| =APP_TARGET_NAMESPACE=            |                                        | The namespace to manage CAPI and External-DNS Kubernetes objects        |
-| =APP_BASE_HOST=                   |                                        | The base domain for newly created instances (i.e: pair.sharing.io)      |
-| =APP_HUMACS_REPOSITORY=           | =registry.gitlab.com/humacs/humacs/ii= | The Humacs container image repository to use                            |
-| =APP_HUMACS_VERSION=              | =2021.05.14=                           | The Humacs container image tag to use                                   |
-| =APP_INSTANCE_KUBERNETES_VERSION= | =1.21.0=                               | The version of Kubernetes to use for newly created instances            |
-| =APP_INSTANCE_NODE_SIZE=          | =c1.small.x86=                         |                                                                         |
-| =TZ=                              | =Pacific/Auckland=                     | Timezone to set                                                         |
+| Name                              | Default                                        | Description                                                             |
+| =APP_PACKET_PROJECT_ID=           |                                                | The project ID of the Equinix Metal / Packet project to deploy machines |
+| =APP_PORT=                        | =:8080=                                        | The port to bind the web service                                        |
+| =APP_TARGET_NAMESPACE=            |                                                | The namespace to manage CAPI and External-DNS Kubernetes objects        |
+| =APP_BASE_HOST=                   |                                                | The base domain for newly created instances (i.e: pair.sharing.io)      |
+| =APP_ENVIRONMENT_REPOSITORY=      | =registry.gitlab.com/sharingio/environment/ii= | The Environment container image repository to use                       |
+| =APP_ENVIRONMENT_VERSION=         | =2021.11.12.1719=                              | The Environment container image tag to use                              |
+| =APP_INSTANCE_KUBERNETES_VERSION= | =1.21.0=                                       | The version of Kubernetes to use for newly created instances            |
+| =APP_INSTANCE_NODE_SIZE=          | =c1.small.x86=                                 |                                                                         |
+| =TZ=                              | =Pacific/Auckland=                             | Timezone to set                                                         |
 
 * Helm
 To configure the Helm chart, check out the default [[../charts/sharingio-pair/values.yaml][values.yaml]]

@@ -1,10 +1,11 @@
 #+TITLE: Features
 
-* Humacs
-[[https://humacs.org][Humacs]] is a distribution of Emacs, maintained by [[https://ii.coop][ii]].
+* Environment
+Is the container image that is used for providing a shared environment with a shared terminal session and lots of useful utilities.
+It also contains [[https://humacs.org][Humacs]] is a distribution of Emacs, maintained by [[https://ii.coop][ii]].
 It features Doom, but also packages Spacemacs, with custom shared configurations.
 
-Humacs is deployed as a container image into the cluster as a StatefulSet, which is accessed as a Pod.
+Environment is deployed as a container image into the cluster as a StatefulSet, which is accessed as a Pod.
 
 * Full instance SSH access
 The instances have SSH enabled and load your and your guests GitHub SSH keys into the authorized_keys file.
@@ -15,7 +16,7 @@ Access to the full socket is available in =/var/run/docker.sock= or through the 
 
 * host-shell
 When working in Pair, occiasionally an escape from the container is needed for a task.
-To get a shell on the Instance host system, simply use the =host-shell= program (provided by Humacs)
+To get a shell on the Instance host system, simply use the =host-shell= program (provided by Environment)
 
 It also supports inline execution of the commands, if dropping into a shell is not useful:
 #+BEGIN_SRC shell
@@ -23,7 +24,7 @@ host-shell <my command>
 #+END_SRC
 
 * Host filesystem
-The filesystem of the host machine is mounted inside the Humacs Pod under =/var/run/host=
+The filesystem of the host machine is mounted inside the Environment Pod under =/var/run/host=
 
 #+BEGIN_SRC shell
 ls /var/run/host
@@ -60,7 +61,7 @@ var
 * Instance naming (admin only)
 Admins have the ability to custom name instances.
 
-* Automatic exposing of services inside of Humacs
+* Automatic exposing of services inside of Environment
 Whenever a TCP or UDP service is bound on all interfaces, a Service is exposed on the =$SHARINGIO_PAIR_LOAD_BALANCER_IP=.
 TCP services will also be allocated an Ingress, based on the DNS name of the instance and process name.
 Allocated subdomain names can be overridden by declaring a value for =$SHARINGIO_PAIR_SET_HOSTNAME=.
@@ -68,7 +69,7 @@ Services with duplicate names will be appended with their port, to avoid duplica
 
 Note: avoid labeling Service and Ingress resources with =io.sharing.pair/managed=true= in the namespace of your username to avoid conflict.
 
-(functionality provided by Humacs)
+(functionality provided by [[https://github.com/sharingio/environment/tree/master/cmd/environment-exporter][environment-exporter]] and [[https://github.com/sharingio/environment/tree/master/cmd/environment-exposer][environment-exposer]])
 
 * .sharing.io/init
 Each repo can have a =.sharing.io/init= script to initialize the project.
@@ -115,7 +116,7 @@ With each instance, the /~/public_html/ folder is accessible from the /www/ subd
 This is served using [[https://gitlab.com/safesurfer/go-http-server][safesurfer/go-http-server]], configurable through the HelmRelease of /public-html/.
 
 * Transparent home folder
-The home folder on the host machine is the exact folder as inside of the Humacs environment.
+The home folder on the host machine is the exact folder as inside of the environment.
 
 * Init scripts are re-runable
 Instances are initialised using the sharingio/.sharing.io repo. The scripts can be rerun with
@@ -145,7 +146,7 @@ When deploying Pair, admins are able to set a max number of instances per user a
 
 * Environment variables
 
-Various environment variables are available inside of the Humacs pairing environment:
+Various environment variables are available inside of the pairing environment:
 | Name                              | Description                                                  |
 | =SHARINGIO_PAIR_NAME=             | The name of the Pair instance                                |
 | =SHARINGIO_PAIR_BASE_DNS_NAME=    | The base domain name of the Pair instance                    |

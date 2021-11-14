@@ -26,7 +26,7 @@ Note:
 - will attach to the tmate session
 
 * Other things to see
-- Instance Pairing environment: [[https://github.com/humacs/humacs][Humacs]]
+- Instance Pairing environment: [[https://github.com/sharingio/environment][sharingio/environment]]
 - Instance configuration: [[https://github.com/sharingio/.sharing.io][.sharing.io]]
 
 * License

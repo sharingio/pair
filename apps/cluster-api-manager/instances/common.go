@@ -12,23 +12,23 @@ import (
 
 // misc default vars
 var (
-	instanceDefaultNodeSize          = "c3.small.x86"
-	instanceDefaultTimezone          = "Pacific/Auckland"
-	instanceDefaultHumacsRepository  = "registry.gitlab.com/humacs/humacs/ii"
-	instanceDefaultHumacsVersion     = "2021.10.06.0847"
-	instanceDefaultKubernetesVersion = "1.21.2"
+	instanceDefaultNodeSize              = "c3.small.x86"
+	instanceDefaultTimezone              = "Pacific/Auckland"
+	instanceDefaultEnvironmentRepository = "registry.gitlab.com/environment/environment/ii"
+	instanceDefaultEnvironmentVersion    = "2021.10.06.0847"
+	instanceDefaultKubernetesVersion     = "1.21.2"
 )
 
-// GetHumacsRepository ...
-// get the container repository of where humacs is
-func GetHumacsRepository() string {
-	return common.GetEnvOrDefault("APP_HUMACS_REPOSITORY", instanceDefaultHumacsRepository)
+// GetEnvironmentRepository ...
+// get the container repository of where environment is
+func GetEnvironmentRepository() string {
+	return common.GetEnvOrDefault("APP_ENVIRONMENT_REPOSITORY", instanceDefaultEnvironmentRepository)
 }
 
-// GetHumacsVersion ...
-// get the version to deploy of the Humacs container
-func GetHumacsVersion() string {
-	return common.GetEnvOrDefault("APP_HUMACS_VERSION", instanceDefaultHumacsVersion)
+// GetEnvironmentVersion ...
+// get the version to deploy of the Environment container
+func GetEnvironmentVersion() string {
+	return common.GetEnvOrDefault("APP_ENVIRONMENT_VERSION", instanceDefaultEnvironmentVersion)
 }
 
 // GetKubernetesVersion ...

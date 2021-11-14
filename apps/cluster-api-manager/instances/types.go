@@ -35,7 +35,7 @@ type InstanceSpec struct {
 type InstanceResourceStatus struct {
 	KubeadmControlPlane clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlaneStatus
 	Cluster             clusterAPIv1alpha3.ClusterStatus
-	HumacsPod           corev1.PodStatus
+	EnvironmentPod      corev1.PodStatus
 	MachineStatus       clusterAPIv1alpha3.MachineStatus
 	PacketMachineUID    *string
 }

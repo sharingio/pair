@@ -88,5 +88,5 @@ fi
 
 envEmpty PAIR_USER "${PAIR_USER}"
 
-COMMAND="${COMMAND:-kubectl -n $PAIR_USER exec -it statefulset/${PAIR_USER}-humacs -- attach}"
+COMMAND="${COMMAND:-kubectl -n $PAIR_USER exec -it statefulset/environment -- attach}"
 ssh ${SSH_OPTS} ii@${PAIR_ADDR} -- $COMMAND

@@ -212,7 +212,7 @@
                (str
                 "export KUBECONFIG=$(mktemp -t kubeconfig-XXXXX) ; curl -s "
                 "https://" (env :canonical-url) "/public-instances/" uid "/" instance-id "/kubeconfig > \"$KUBECONFIG\""
-                " ; kubectl -n " (clojure.string/lower-case owner) " exec -it " (clojure.string/lower-case owner) "-humacs-0 -- attach"))
+                " ; kubectl -n " (clojure.string/lower-case owner) " exec -it environment-0 -- attach"))
      [:details
       [:summary "See Full Kubeconfig"]
       (code-box "kc" kubeconfig)])

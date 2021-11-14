@@ -29,8 +29,8 @@ maxInstancesForNonAdmins: -1
 # instance configuration
 instance:
   kubernetesVersion: ""
-  humacsVersion: ""
-  humacsRepository: registry.gitlab.com/humacs/humacs/ii
+  environmentVersion: ""
+  environmentRepository: registry.gitlab.com/sharingio/environment
   nodeSize: ""
 
 # secrets for pulling images
