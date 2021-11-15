@@ -695,7 +695,7 @@ export SHARINGIO_PAIR_INSTANCE_SETUP_TIMEZONE="{{ $.Setup.Timezone }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_FULLNAME="{{ $.Setup.Fullname }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_EMAIL="{{ $.Setup.Email }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_GITHUBOAUTHTOKEN="{{ $.Setup.GitHubOAuthToken }}"
-export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="{{ range $.Setup.Repos }}{{ . }} {{ end }}"
+export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS="{{ range $.Setup.Repos }}{{ . }} {{ end }}"
 export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
         {{ range $.Setup.Repos }}- {{ . }}
         {{ end }}
