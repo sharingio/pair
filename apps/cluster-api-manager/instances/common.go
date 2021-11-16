@@ -14,9 +14,9 @@ import (
 var (
 	instanceDefaultNodeSize              = "c3.small.x86"
 	instanceDefaultTimezone              = "Pacific/Auckland"
-	instanceDefaultEnvironmentRepository = "registry.gitlab.com/environment/environment/ii"
-	instanceDefaultEnvironmentVersion    = "2021.10.06.0847"
-	instanceDefaultKubernetesVersion     = "1.21.2"
+	instanceDefaultEnvironmentRepository = "registry.gitlab.com/sharingio/environment/environment"
+	instanceDefaultEnvironmentVersion    = "2021.11.16.1609"
+	instanceDefaultKubernetesVersion     = "1.22.3"
 )
 
 // GetEnvironmentRepository ...

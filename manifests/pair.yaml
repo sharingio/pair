@@ -16,9 +16,9 @@ spec:
       - ii
     adminEmailDomain: ii.coop
     instance:
-      kubernetesVersion: 1.21.2
-      environmentRepository: registry.gitlab.com/sharingio/environment/ii
-      environmentVersion: 2021.11.12.1719
+      kubernetesVersion: 1.22.3
+      environmentRepository: registry.gitlab.com/sharingio/environment/environment
+      environmentVersion: 2021.11.16.1609
       nodeSize: m1.xlarge.x86
     sessionSecret: pairpairpairpair
     maxInstancesForNonAdmins: 1
