@@ -52,7 +52,7 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 		return fmt.Errorf("Invalid user email")
 	}
 	if instance.Setup.Fullname == "" {
-		return fmt.Errorf("Invalid name, name must not be empty")
+		instance.Setup.Fullname = instance.Setup.User
 	}
 	return err
 }
