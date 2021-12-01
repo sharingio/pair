@@ -91,6 +91,12 @@ func GetNonAdminInstanceMaxAmount() int {
 	return max
 }
 
+// GetInstanceContainerRegistryMirror ...
+// returns the url to a mirror container registry
+func GetInstanceContainerRegistryMirror() string {
+	return GetEnvOrDefault("APP_INSTANCE_CONTAINER_REGISTRY_MIRROR", "")
+}
+
 // Logging ...
 // basic request logging middleware
 func Logging(next http.Handler) http.Handler {
