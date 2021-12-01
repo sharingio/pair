@@ -48,10 +48,10 @@ Usage: ${PROG_NAME} [OPTS...] INSTANCE
 -c|--command  change the command on connection
 
 Examples:
-- ${PROG_NAME} coolbox zz
+- ${PROG_NAME} coolbox
 - ${PROG_NAME} bobymcbobs
-- ${PROG_NAME} 133.7.0.0 hh
-- ${PROG_NAME} -c bash heyste.pair.sharing.io heyste
+- ${PROG_NAME} 133.7.0.0
+- ${PROG_NAME} -c bash heyste.pair.sharing.io
 - ${PROG_NAME} -n bernokl
 
 Notes:
