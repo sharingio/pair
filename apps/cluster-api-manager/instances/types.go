@@ -28,7 +28,7 @@ type InstanceSpec struct {
 	KubernetesNodeCount int                `json:"kubernetesNodeCount"`
 	Facility            string             `json:"facility"`
 	NameScheme          InstanceNameScheme `json:"nameScheme"`
-	RegistryMirror      string             `json:"registryMirror"`
+	RegistryMirrors     []string           `json:"registryMirrors"`
 }
 
 // InstanceResourceStatus ...

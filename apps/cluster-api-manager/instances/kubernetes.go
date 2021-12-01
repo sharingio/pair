@@ -608,7 +608,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
 	instance.NodeSize = common.ReturnValueOrDefault(instance.NodeSize, GetInstanceDefaultNodeSize())
-	instance.RegistryMirror = common.GetInstanceContainerRegistryMirror()
+	instance.RegistryMirrors = common.GetInstanceContainerRegistryMirrors()
 	instance.Setup.EnvironmentVersion = common.ReturnValueOrDefault(instance.Setup.EnvironmentVersion, GetEnvironmentVersion())
 	instance.Setup.EnvironmentRepository = common.ReturnValueOrDefault(instance.Setup.EnvironmentRepository, GetEnvironmentRepository())
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(instance.Setup.KubernetesVersion, GetKubernetesVersion())
@@ -633,8 +633,8 @@ func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err e
 cat << EOF >> /root/.sharing-io-pair-init.env
 export KUBERNETES_VERSION={{ $.Setup.KubernetesVersion }}
 export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
-{{ if $.RegistryMirror }}
-export SHARINGIO_PAIR_INSTANCE_CONTAINER_REGISTRY_MIRROR="{{ $.RegistryMirror }}"
+{{ if $.RegistryMirrors }}
+export SHARINGIO_PAIR_INSTANCE_CONTAINER_REGISTRY_MIRRORS="{{ range $.RegistryMirrors }}{{ . }} {{ end }}"
 {{ end }}
 EOF
 . /root/.sharing-io-pair-init.env
