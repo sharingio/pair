@@ -36,13 +36,12 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 
 PROG_NAME="$(basename $0)"
 PAIR_ADDR="${1:-$PAIR_ADDR}"
-PAIR_USER="${2:-$PAIR_USER}"
 PAIR_BASE_ADDR="${PAIR_BASE_ADDR:-pair.sharing.io}"
 SSH_OPTS="${SSH_OPTS:--tA -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null}"
 
 if [ $# -eq 0 ]; then
 cat << EOF
-Usage: ${PROG_NAME} [OPTS...] INSTANCE <USER>
+Usage: ${PROG_NAME} [OPTS...] INSTANCE
 
 -s|--ssh-opts specify SSH parameters
 -n|--no-keys  don't forward SSH keys
@@ -79,14 +78,9 @@ envEmpty PAIR_ADDR "${PAIR_ADDR}"
 
 echo "${PAIR_ADDR}" | grep -q '\.'
 PAIR_ADDR_IS_FQDN_OR_IPADDR=$?
-if [ -z "$PAIR_USER" ] && [ "${PAIR_ADDR_IS_FQDN_OR_IPADDR}" -eq 1 ]; then
-    PAIR_USER="${PAIR_ADDR}"
-fi
 if [ "${PAIR_ADDR_IS_FQDN_OR_IPADDR}" -eq 1 ]; then
     PAIR_ADDR="${PAIR_ADDR}.${PAIR_BASE_ADDR}"
 fi
 
-envEmpty PAIR_USER "${PAIR_USER}"
-
-COMMAND="${COMMAND:-kubectl -n $PAIR_USER exec -it statefulset/environment -- attach}"
+COMMAND="${COMMAND:-attach}"
 ssh ${SSH_OPTS} ii@${PAIR_ADDR} -- $COMMAND
