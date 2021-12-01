@@ -76,6 +76,8 @@ spec:
               value: "{{ .Values.adminEmailDomain }}"
             - name: APP_NON_ADMIN_INSTANCE_MAX_AMOUNT
               value: "{{ .Values.maxInstancesForNonAdmins }}"
+            - name: APP_INSTANCE_CONTAINER_REGISTRY_MIRRORS
+              value: "{{ range .Values.registry.ingress.hosts }}https://{{ .host }} {{ end }}{{ range .Values.instance.extraRegistryMirrors }}https://{{ . }} {{ end }}"
             {{- end }}
             {{- if .Values.clusterapimanager.extraEnv }}
             {{- toYaml .Values.clusterapimanager.extraEnv | nindent 12 }}

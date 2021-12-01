@@ -32,6 +32,7 @@ instance:
   environmentVersion: ""
   environmentRepository: registry.gitlab.com/sharingio/environment
   nodeSize: ""
+  extraRegistryMirrors: []
 
 # secrets for pulling images
 imagePullSecrets: []
@@ -250,6 +251,8 @@ reconciler:
   tolerations: []
 
 registry:
+  enabled: false
+
   config:
     version: 0.1
     log:
@@ -284,8 +287,8 @@ registry:
 
   podAnnotations: {}
 
-  podSecurityContext: {}
-  # fsGroup: 2000
+  podSecurityContext:
+    fsGroup: 1000
 
   securityContext:
     readOnlyRootFilesystem: true
@@ -305,7 +308,22 @@ registry:
 
   service:
     type: ClusterIP
-    port: 8080
+    port: 5000
+
+  ingress:
+    enabled: false
+    certmanager:
+      enabled: false
+    annotations: {}
+    #   kubernetes.io/ingress.class: nginx
+    #   kubernetes.io/tls-acme: "true"
+    hosts:
+      - host: registry.chart-example.local
+        paths: []
+    tls: []
+    #  - secretName: chart-example-tls
+    #    hosts:
+    #      - chart-example.local
 
   resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious

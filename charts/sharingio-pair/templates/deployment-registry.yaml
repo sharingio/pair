@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/part-of: sharingio-pair
     {{- include "sharingio-pair.labels" . | nindent 4 }}
   annotations:
-    checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    checksum/configmap-registry: {{ include (print $.Template.BasePath "/configmap-registry.yaml") . | sha256sum }}
 spec:
 {{- if not .Values.registry.autoscaling.enabled }}
   replicas: {{ .Values.registry.replicaCount }}
@@ -53,15 +53,20 @@ spec:
               protocol: TCP
           readinessProbe:
             tcpSocket:
-              port: 5000
+              port: {{ .Values.registry.service.port }}
             initialDelaySeconds: 2
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: 5000
+              port: {{ .Values.registry.service.port }}
             initialDelaySeconds: 1
             periodSeconds: 20
-
+          volumeMounts:
+          - name: distribution-config
+            mountPath: /etc/docker/registry/config.yml
+            subPath: config.yml
+          - name: var-lib-registry
+            mountPath: /var/lib/registry
           resources:
             {{- toYaml .Values.registry.resources | nindent 12 }}
       {{- with .Values.registry.nodeSelector }}
@@ -79,7 +84,7 @@ spec:
       volumes:
         - name: distribution-config
           configMap:
-            name: distribution-config
-        - name: distribution-auth
-          secret:
-            secretName: distribution-auth
+            name: {{ include "sharingio-pair.fullname" . }}-registry
+        - name: var-lib-registry
+          emptyDir: {}
+{{- end }}

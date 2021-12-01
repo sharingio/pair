@@ -1,0 +1,13 @@
+{{- if .Values.registry.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "sharingio-pair.fullname" . }}-registry
+  labels:
+    app: registry
+    app.kubernetes.io/part-of: sharingio-pair
+    {{- include "sharingio-pair.labels" . | nindent 4 }}
+data:
+  config.yml: |
+    {{- toYaml .Values.registry.config | nindent 4 }}
+{{- end }}
