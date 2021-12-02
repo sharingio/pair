@@ -264,9 +264,11 @@
                                             :target "_blank"
                                             :rel "noreferrer nofollower"} "Get Public Link"]))]
     [:div.info
-     [:em#age "Created by " [:a {:href (str "https://github.com/" owner)
-                                 :target "_blank"
-                                 :rel "noreferrer nofollower"} owner] " " age " ago"]
+     (if (not (nil? age))
+       [:em#age "Created by " [:a {:href (str "https://github.com/" owner)
+                                   :target "_blank"
+                                   :rel "noreferrer nofollower"} owner] " " age " ago"]
+       [:em#age "Loading..."])
      (when (> (count (filter (complement empty?) guests)) 0)
        [:div.detail
         [:h3 "Shared with:"]
@@ -334,10 +336,11 @@
   [{:keys [instance-id phase age owner]}]
   [:li.instance [:a {:href (str "/instances/id/"instance-id)}
         instance-id] [:em.phase phase]
-   [:p.age "Created by " [:a {:href (str "https://github.com/" owner)
-                                 :target "_blank"
-                                 :rel "noreferrer nofollower"} owner] " " age " ago"]])
-
+   (if (not (nil? age))
+     [:p.age "Created by " [:a {:href (str "https://github.com/" owner)
+                                :target "_blank"
+                                :rel "noreferrer nofollower"} owner] " " age " ago"]
+     [:em#age "Loading..."])])
 
 (defn all-instances
   [instances {:keys [username admin-member] :as user}]
