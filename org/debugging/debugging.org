@@ -16,6 +16,12 @@ kubectl -n sharingio-pair logs -l app=client -f --tail=100
 kubectl -n cluster-api-provider-packet-system logs -l control-plane=packet-controller-manager,cluster.x-k8s.io/provider=infrastructure-packet -f --tail=100 -c manager
 #+end_src
 
+* Helm chart
+Render the Helm chart with values from [[../../manifests/pair.yaml][pair.yaml]]
+#+begin_src tmate :window pair-debug
+helm template sharingio-pair -n sharingio-pair -f <(< ./manifests/pair.yaml SHARINGIO_PAIR_HOST=pair.sharing.io envsubst | yq e .spec.values -P -) charts/sharingio-pair/
+#+end_src
+
 * Instance
 ** Finding labels
 #+begin_src shell :wrap "SRC yaml"

@@ -15,6 +15,10 @@ if [ -f /var/run/secrets/kubernetes.io/serviceaccount/namespace ]; then
     kubectl get ns $APP_NAMESPACE || kubectl create ns $APP_NAMESPACE
     kubectl get ns $APP_NAMESPACE-instances || kubectl create ns $APP_NAMESPACE-instances
 
+    kubectl label ns "${APP_NAMESPACE}" cert-manager-tls=sync
+
+    envsubst < $GIT_ROOT/.sharing.io/pair-dev-registry.yaml | kubectl apply -f -
+
     envsubst < $GIT_ROOT/.sharing.io/pair-soa.yaml | kubectl apply -f -
 
     if [ ! -f $GIT_ROOT/.env ]; then
@@ -41,6 +45,7 @@ APP_PORT=127.0.0.1:8080
 APP_TARGET_NAMESPACE=${APP_NAMESPACE}-instances
 APP_BASE_HOST=pair.${SHARINGIO_PAIR_BASE_DNS_NAME}
 APP_NON_ADMIN_INSTANCE_MAX_AMOUNT=1000
+APP_INSTANCE_CONTAINER_REGISTRY_MIRRORS=https://docker-mirror.${SHARINGIO_PAIR_BASE_DNS_NAME}
 EOF
     fi
 

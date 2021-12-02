@@ -85,3 +85,13 @@ spec:
         - host: ${SHARINGIO_PAIR_HOST}
           paths:
             - /
+    registry:
+      enabled: true
+      ingress:
+        enabled: true
+        certmanager:
+          enabled: true
+        hosts:
+          - host: docker-mirror.sharing.io
+            paths:
+              - /

@@ -1,0 +1,140 @@
+# Source: sharingio-pair/templates/configmap-registry.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sharingio-pair-registry
+  namespace: sharingio-pair
+  labels:
+    app: registry
+    app.kubernetes.io/part-of: sharingio-pair
+data:
+  config.yml: |
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+    http:
+      addr: :5000
+      headers:
+        X-Content-Type-Options:
+        - nosniff
+    log:
+      fields:
+        service: registry
+    proxy:
+      remoteurl: https://registry-1.docker.io
+    storage:
+      cache:
+        blobdescriptor: inmemory
+      filesystem:
+        rootdirectory: /var/lib/registry
+    version: 0.1
+---
+# Source: sharingio-pair/templates/service-registry.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: sharingio-pair-registry
+  namespace: sharingio-pair
+  labels:
+    app: registry
+    app.kubernetes.io/part-of: sharingio-pair
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app: registry
+    app.kubernetes.io/part-of: sharingio-pair
+---
+# Source: sharingio-pair/templates/deployment-registry.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sharingio-pair-registry
+  namespace: sharingio-pair
+  labels:
+    app: registry
+    app.kubernetes.io/part-of: sharingio-pair
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+      app.kubernetes.io/part-of: sharingio-pair
+  template:
+    metadata:
+      labels:
+        app: registry
+        app.kubernetes.io/part-of: sharingio-pair
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: sharingio-pair-registry
+          securityContext:
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 1000
+            runAsNonRoot: true
+            runAsUser: 1000
+          image: "registry:2.7.1"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: TZ
+              value: Pacific/Auckland
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 1
+            periodSeconds: 20
+          volumeMounts:
+            - name: distribution-config
+              mountPath: /etc/docker/registry/config.yml
+              subPath: config.yml
+            - name: var-lib-registry
+              mountPath: /var/lib/registry
+          resources: {}
+      volumes:
+        - name: distribution-config
+          configMap:
+            name: sharingio-pair-registry
+        - name: var-lib-registry
+          emptyDir: {}
+---
+# Source: sharingio-pair/templates/ingress-registry.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sharingio-pair-registry
+  namespace: sharingio-pair
+spec:
+  tls:
+    - hosts:
+        - "docker-mirror.${SHARINGIO_PAIR_BASE_DNS_NAME}"
+      secretName: letsencrypt-prod
+  rules:
+    - host: "docker-mirror.${SHARINGIO_PAIR_BASE_DNS_NAME}"
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: sharingio-pair-registry
+                port:
+                  number: 5000
+---

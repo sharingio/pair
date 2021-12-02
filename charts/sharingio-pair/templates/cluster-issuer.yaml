@@ -22,5 +22,12 @@ spec:
             {{- range .Values.ingress.hosts }}
             - {{ .host | quote }}
             {{- end }}
+            {{- if .Values.registry.enabled }}
+            {{- if .Values.registry.ingress.certmanager.enabled }}
+            {{- range .Values.registry.ingress.hosts }}
+            - {{ .host | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
 {{- end }}
 {{- end }}
