@@ -1316,11 +1316,11 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, s
 }
 
 // KubernetesGetInstanceWildcardTLSCert ...
-// given an instance clientset and instance name, return a TLS wildcard cert
-func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instanceName string) (err error, secret *corev1.Secret) {
-	targetNamespace := "powerdns"
+// given an instance clientset and instance, return a TLS wildcard cert
+func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instance InstanceSpec) (err error, secret *corev1.Secret) {
+	targetNamespace := instance.Setup.UserLowercase
 	templatedSecretName := "letsencrypt-prod"
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instance.Name, clientset)
 	if err != nil {
 		return err, &corev1.Secret{}
 	}
@@ -1387,8 +1387,8 @@ func KubernetesUpsertLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientse
 // KubernetesUpsertInstanceWildcardTLSCert ...
 // given an instance clientset, username, and secert,
 // upsert the secret to the instance
-func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string, secret *corev1.Secret) (err error) {
-	targetNamespace := "powerdns"
+func KubernetesUpsertInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instance InstanceSpec, secret *corev1.Secret) (err error) {
+	targetNamespace := instance.Setup.UserLowercase
 	templatedSecretName := "letsencrypt-prod"
 	templatedSecret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1433,7 +1433,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	}
 	instanceName := instance.Name
 	// if cert secret for user name exists locally
-	namespace := "powerdns"
+	namespace := instance.Setup.UserLowercase
 	log.Printf("Managing cert for Instance '%v'\n", instanceName)
 	errLocalInstance, localSecret := KubernetesGetLocalInstanceWildcardTLSCert(clientset, instanceName)
 
@@ -1469,9 +1469,9 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 		log.Printf("Cert for Instance '%v' not found locally. Fetching from Instance\n", instanceName)
 		//   get remote cert
 		var instanceSecret *corev1.Secret
-		err, instanceSecret = KubernetesGetInstanceWildcardTLSCert(clientset, instanceName)
+		err, instanceSecret = KubernetesGetInstanceWildcardTLSCert(clientset, instance)
 		if apierrors.IsNotFound(err) || instanceSecret.ObjectMeta.Name == "" {
-			return fmt.Errorf("Secret 'letsencrypt-prod' is not found in Namespace 'powerdns' on Instance '%v' yet\n", instanceName)
+			return fmt.Errorf("Secret 'letsencrypt-prod' is not found in Namespace '%v' on Instance '%v' yet\n", namespace, instanceName)
 		}
 		//   upsert remote cert locally
 		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, instanceName, instanceSecret)
@@ -1479,7 +1479,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	} else if err == nil {
 		log.Printf("Cert for Instance '%v' found locally. Creating it in the Instance\n", instanceName)
 		//   upsert local cert secret to remote
-		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, instanceName, localSecret)
+		err = KubernetesUpsertInstanceWildcardTLSCert(instanceClientset, instance, localSecret)
 	}
 	return err
 }
