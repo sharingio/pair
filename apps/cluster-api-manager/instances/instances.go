@@ -51,9 +51,6 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	if govalidator.IsEmail(instance.Setup.Email) != true || instance.Setup.Email == "" {
 		return fmt.Errorf("Invalid user email")
 	}
-	if instance.Setup.Fullname == "" {
-		instance.Setup.Fullname = instance.Setup.User
-	}
 	return err
 }
 
@@ -131,6 +128,9 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	instance.Setup.Repos = common.AddRepoGitHubPrefix(instance.Setup.Repos)
 	if instance.Setup.Timezone == "" {
 		instance.Setup.Timezone = instanceDefaultTimezone
+	}
+	if instance.Setup.Fullname == "" {
+		instance.Setup.Fullname = instance.Setup.User
 	}
 	switch instance.Type {
 	case InstanceTypeKubernetes:
