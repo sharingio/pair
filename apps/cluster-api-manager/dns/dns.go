@@ -76,7 +76,7 @@ func UpsertDNSEndpoint(dynamicClientset dynamic.Interface, entry Entry, instance
 		},
 	}
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha1", Group: "externaldns.k8s.io", Resource: "dnsendpoints"}
-	err, asUnstructured := common.ObjectToUnstructured(endpoint)
+	asUnstructured, err := common.ObjectToUnstructured(endpoint)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "DNSEndpoint"})
 	if err != nil {
 		log.Printf("%#v\n", err)

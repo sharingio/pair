@@ -389,7 +389,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	//   - newInstance.KubeadmControlPlane
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured := common.ObjectToUnstructured(newInstance.KubeadmControlPlane)
+	asUnstructured, err := common.ObjectToUnstructured(newInstance.KubeadmControlPlane)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Kind: "KubeadmControlPlane"})
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
@@ -404,7 +404,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachinetemplates"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketMachineTemplate)
+	asUnstructured, err = common.ObjectToUnstructured(newInstance.PacketMachineTemplate)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketMachineTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -423,7 +423,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	groupVersion = clusterAPIPacketv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetclusters"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketCluster)
+	asUnstructured, err = common.ObjectToUnstructured(newInstance.PacketCluster)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketCluster"})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -442,7 +442,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "clusters"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured = common.ObjectToUnstructured(newInstance.Cluster)
+	asUnstructured, err = common.ObjectToUnstructured(newInstance.Cluster)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: "Cluster"})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -461,7 +461,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "cluster.x-k8s.io", Resource: "machinedeployments"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured = common.ObjectToUnstructured(newInstance.MachineDeploymentWorker)
+	asUnstructured, err = common.ObjectToUnstructured(newInstance.MachineDeploymentWorker)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: "MachineDeployment"})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -480,7 +480,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	groupVersion = cabpkv1.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "bootstrap.cluster.x-k8s.io", Resource: "kubeadmconfigtemplates"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured = common.ObjectToUnstructured(newInstance.KubeadmConfigTemplateWorker)
+	asUnstructured, err = common.ObjectToUnstructured(newInstance.KubeadmConfigTemplateWorker)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "KubeadmConfigTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)
@@ -499,7 +499,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	groupVersion = clusterAPIv1alpha3.GroupVersion
 	groupVersionResource = schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachinetemplates"}
 	log.Printf("%#v\n", groupVersionResource)
-	err, asUnstructured = common.ObjectToUnstructured(newInstance.PacketMachineTemplateWorker)
+	asUnstructured, err = common.ObjectToUnstructured(newInstance.PacketMachineTemplateWorker)
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketMachineTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)

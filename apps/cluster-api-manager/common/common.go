@@ -123,21 +123,21 @@ func JSONResponse(r *http.Request, w http.ResponseWriter, code int, output types
 
 // EncodeObject ...
 // encode any object as JSON, returning as bytes
-func EncodeObject(obj interface{}) (err error, data []byte) {
+func EncodeObject(obj interface{}) (data []byte, err error) {
 	data, err = json.Marshal(obj)
-	return err, data
+	return data, err
 }
 
 // ObjectToUnstructured ...
 // convert an object into an unstructured Kubernetes resource
-func ObjectToUnstructured(obj interface{}) (err error, unstr *unstructured.Unstructured) {
-	err, data := EncodeObject(obj)
+func ObjectToUnstructured(obj interface{}) (unstr *unstructured.Unstructured, err error) {
+	data, err := EncodeObject(obj)
 	if err != nil {
-		return err, unstr
+		return unstr, err
 	}
 	unstrBody := map[string]interface{}{}
 	err = json.Unmarshal(data, &unstrBody)
-	return err, &unstructured.Unstructured{Object: unstrBody}
+	return &unstructured.Unstructured{Object: unstrBody}, err
 }
 
 // AddRepoGitHubPrefix ...
