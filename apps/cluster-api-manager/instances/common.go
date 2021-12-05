@@ -67,6 +67,8 @@ func TemplateFuncMap() template.FuncMap {
 	}
 }
 
+// GetValueFromEnvMap ...
+// returns a value when keys of a map match
 func GetValueFromEnvMap(input map[string]string, key string) string {
 	for mapKey, value := range input {
 		if mapKey == key {
@@ -76,6 +78,8 @@ func GetValueFromEnvMap(input map[string]string, key string) string {
 	return ""
 }
 
+// GetValueFromEnvSlice ...
+// returns a value when keys of a slice map match
 func GetValueFromEnvSlice(input []map[string]string, key string) string {
 	for _, sliceKey := range input {
 		if value := GetValueFromEnvMap(sliceKey, key); value != "" {
