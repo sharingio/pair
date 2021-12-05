@@ -32,7 +32,7 @@ var (
 )
 
 // GetEnvOrDefault ...
-// return env value or default to value
+// returns env value or default to value
 func GetEnvOrDefault(envName string, defaultValue string) (output string) {
 	output = os.Getenv(envName)
 	if output == "" {
@@ -42,49 +42,49 @@ func GetEnvOrDefault(envName string, defaultValue string) (output string) {
 }
 
 // GetAppEnvFile ...
-// location of an env file to load
+// returns the location of an env file to load
 func GetAppEnvFile() (output string) {
 	return GetEnvOrDefault("APP_ENV_FILE", ".env")
 }
 
 // GetAppPort ...
-// the port to bind to
+// returns the port to bind to
 func GetAppPort() (output string) {
 	return GetEnvOrDefault("APP_PORT", ":8080")
 }
 
 // GetPacketProjectID ...
-// the project ID to create instances in
+// returns the project ID to create instances in
 func GetPacketProjectID() (id string) {
 	return GetEnvOrDefault("APP_PACKET_PROJECT_ID", "")
 }
 
 // GetTargetNamespace ...
-// the namespace to write Kubernetes objects to
+// returns the namespace to write Kubernetes objects to
 func GetTargetNamespace() (namespace string) {
 	return GetEnvOrDefault("APP_TARGET_NAMESPACE", "sharingio-pair-instances")
 }
 
 // GetBaseHost ...
-// the host where the frontend will be served
+// returns the host where the frontend will be served
 func GetBaseHost() (host string) {
 	return GetEnvOrDefault("APP_BASE_HOST", "")
 }
 
 // GetAdminEmailDomain ...
-// the admin email domain of accounts
+// returns the admin email domain of accounts
 func GetAdminEmailDomain() string {
 	return GetEnvOrDefault("APP_ADMIN_EMAIL_DOMAIN", "")
 }
 
-// GetGitHubAdminOrgs
-// the GitHub admin orgs
+// GetGitHubAdminOrgs ...
+// returns the GitHub admin orgs
 func GetGitHubAdminOrgs() []string {
 	return strings.Split(GetEnvOrDefault("APP_GITHUB_ADMIN_ORGS", ""), ",")
 }
 
 // GetNonAdminInstanceMaxAmount ...
-// the max number of instances for non-admins
+// returns the max number of instances for non-admins
 func GetNonAdminInstanceMaxAmount() int {
 	maxString := GetEnvOrDefault("APP_NON_ADMIN_INSTANCE_MAX_AMOUNT", "-1")
 	max, _ := strconv.Atoi(maxString)
