@@ -121,7 +121,7 @@ lint_cluster-api-manager:
     - apk add git gcc
     - go get -u golang.org/x/lint/golint
   script:
-    - golint -set_exit_status ./apps/cluster-api-manager/...
+    - golint -set_exit_status ./apps/cluster-api-manager/... ./apps/reconciler/...
 
 deploy:
   stage: deploy
