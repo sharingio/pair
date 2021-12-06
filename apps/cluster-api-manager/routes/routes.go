@@ -33,7 +33,7 @@ func GetInstanceKubernetes(dynamicClient dynamic.Interface, clientset *kubernete
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -85,7 +85,7 @@ func ListInstances(dynamicClient dynamic.Interface, clientset *kubernetes.Client
 			},
 		}
 
-		err, availableInstances := instances.List(dynamicClient, clientset, options)
+		availableInstances, err := instances.List(dynamicClient, clientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -124,7 +124,7 @@ func ListInstancesKubernetes(dynamicClient dynamic.Interface, clientset *kuberne
 			},
 		}
 
-		err, availableInstances := instances.KubernetesList(dynamicClient, clientset, options)
+		availableInstances, err := instances.KubernetesList(dynamicClient, clientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -164,7 +164,7 @@ func PostInstance(dynamicClient dynamic.Interface, clientset *kubernetes.Clients
 			DryRun: dryRunFormValue == "true",
 		}
 
-		err, instanceCreated := instances.Create(instance, dynamicClient, clientset, options)
+		instanceCreated, err := instances.Create(instance, dynamicClient, clientset, options)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -199,7 +199,7 @@ func DeleteInstanceKubernetes(dynamicClient dynamic.Interface, clientset *kubern
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClient, clientset)
 		if err != nil {
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
@@ -294,7 +294,7 @@ func GetKubernetesKubeconfig(kubernetesClientset *kubernetes.Clientset) http.Han
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, kubeconfig := instances.KubernetesGetKubeconfigYAML(name, kubernetesClientset)
+		kubeconfig, err := instances.KubernetesGetKubeconfigYAML(name, kubernetesClientset)
 		if kubeconfig == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -338,7 +338,7 @@ func GetKubernetesTmateSSHSession(clientset *kubernetes.Clientset, restConfig *r
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClientSet, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClientSet, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -353,7 +353,7 @@ func GetKubernetesTmateSSHSession(clientset *kubernetes.Clientset, restConfig *r
 		}
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
-		err, session := instances.KubernetesGetTmateSSHSession(clientset, name, instance.Spec.Setup.UserLowercase)
+		session, err := instances.KubernetesGetTmateSSHSession(clientset, name, instance.Spec.Setup.UserLowercase)
 		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
 			strings.Contains(err.Error(), "not found"))
 		if firstSnippit := strings.Split(session, " "); firstSnippit[0] != "ssh" && err == nil || notFound {
@@ -399,7 +399,7 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClientSet, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClientSet, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -414,7 +414,7 @@ func GetKubernetesTmateWebSession(clientset *kubernetes.Clientset, restConfig *r
 		}
 
 		instance.Spec.Setup.UserLowercase = strings.ToLower(instance.Spec.Setup.User)
-		err, session := instances.KubernetesGetTmateWebSession(clientset, name, instance.Spec.Setup.UserLowercase)
+		session, err := instances.KubernetesGetTmateWebSession(clientset, name, instance.Spec.Setup.UserLowercase)
 		notFound := err != nil && (strings.Contains(err.Error(), "Failed to get Kubernetes cluster Kubeconfig") ||
 			strings.Contains(err.Error(), "not found"))
 		if firstSnippit := strings.Split(session, ":"); firstSnippit[0] != "https" && err == nil || notFound {
@@ -460,7 +460,7 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, ingresses := instances.KubernetesGetInstanceIngresses(kubernetesClientset, name)
+		ingresses, err := instances.KubernetesGetInstanceIngresses(kubernetesClientset, name)
 		if len(ingresses.Items) == 0 && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -504,7 +504,7 @@ func PostKubernetesDNSManage(dynamicClient dynamic.Interface, clientset *kuberne
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -557,7 +557,7 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
@@ -610,7 +610,7 @@ func PostKubernetesUpdateInstanceNodeProviderID(clientset *kubernetes.Clientset,
 		vars := mux.Vars(r)
 		name := vars["name"]
 
-		err, instance := instances.KubernetesGet(name, dynamicClient, clientset)
+		instance, err := instances.KubernetesGet(name, dynamicClient, clientset)
 		if instance.Spec.Name == "" && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{

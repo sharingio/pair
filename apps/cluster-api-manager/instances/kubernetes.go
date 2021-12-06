@@ -78,7 +78,7 @@ var (
 
 // KubernetesGet ...
 // Get a Kubernetes instance
-func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset) (err error, instance Instance) {
+func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset) (instance Instance, err error) {
 	targetNamespace := common.GetTargetNamespace()
 	// manifests
 
@@ -93,7 +93,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 		var itemRestructuredKCP clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredKCP)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructuredKCP), Instance{}
+			return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredKCP)
 		}
 		if itemRestructuredKCP.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredKCP, itemRestructuredKCP.ObjectMeta.Name)
@@ -114,7 +114,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 			var itemRestructuredM clusterAPIv1alpha3.Machine
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredM)
 			if err != nil {
-				return fmt.Errorf("Failed to restructure %T", itemRestructuredM), Instance{}
+				return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredM)
 			}
 			instance.Status.Resources.MachineStatus = itemRestructuredM.Status
 		}
@@ -132,7 +132,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 			var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
 			if err != nil {
-				return fmt.Errorf("Failed to restructure %T", itemRestructuredPM), Instance{}
+				return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredPM)
 			}
 			var providerID string
 			if itemRestructuredPM.Spec.ProviderID != nil {
@@ -152,11 +152,11 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	item, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to get Cluster, %#v", err), instance
+		return instance, fmt.Errorf("Failed to get Cluster, %#v", err)
 	} else {
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredC)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructuredC), Instance{}
+			return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredC)
 		}
 		if itemRestructuredC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredC, itemRestructuredC.ObjectMeta.Name)
@@ -184,7 +184,7 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	instance.Spec.Setup.BaseDNSName = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-setup-baseDNSName"]
 
 	var tmateSSH string
-	err, tmateSSH = KubernetesGetTmateSSHSession(clientset, instance.Spec.Name, instance.Spec.Setup.UserLowercase)
+	tmateSSH, err = KubernetesGetTmateSSHSession(clientset, instance.Spec.Name, instance.Spec.Setup.UserLowercase)
 	if err != nil {
 		log.Printf("err: %#v\n", err.Error())
 	}
@@ -197,27 +197,26 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	}
 	log.Printf("Instance '%v' is at phase '%v'", instance.Spec.Name, instance.Status.Phase)
 
-	err = nil
-	return err, instance
+	return instance, nil
 }
 
 // KubernetesList ...
 // list all Kubernetes instances
-func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset, options InstanceListOptions) (err error, instances []Instance) {
+func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset, options InstanceListOptions) (instances []Instance, err error) {
 	targetNamespace := common.GetTargetNamespace()
 
 	groupVersionResource := schema.GroupVersionResource{Version: "v1alpha3", Group: "controlplane.cluster.x-k8s.io", Resource: "kubeadmcontrolplanes"}
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to list KubeadmControlPlane, %#v", err), instances
+		return instances, fmt.Errorf("Failed to list KubeadmControlPlane, %#v", err)
 	}
 
 	for _, item := range items.Items {
 		var itemRestructured clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+			return []Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructured)
 		}
 		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
@@ -246,14 +245,14 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to list Machine, %#v", err), instances
+		return instances, fmt.Errorf("Failed to list Machine, %#v", err)
 	}
 
 	for _, item := range items.Items {
 		var itemRestructured clusterAPIv1alpha3.Machine
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+			return []Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructured)
 		}
 	instances1:
 		for i := range instances {
@@ -270,14 +269,14 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to list PacketMachine, %#v", err), instances
+		return instances, fmt.Errorf("Failed to list PacketMachine, %#v", err)
 	}
 
 	for _, item := range items.Items {
 		var itemRestructured clusterAPIPacketv1alpha3.PacketMachine
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+			return []Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructured)
 		}
 	instances2:
 		for i := range instances {
@@ -304,14 +303,14 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to list Cluster, %#v", err), instances
+		return instances, fmt.Errorf("Failed to list Cluster, %#v", err)
 	}
 
 	for _, item := range items.Items {
 		var itemRestructured clusterAPIv1alpha3.Cluster
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructured)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructured), []Instance{}
+			return []Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructured)
 		}
 		if itemRestructured.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
 			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructured, itemRestructured.ObjectMeta.Name)
@@ -341,7 +340,7 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 				instances[i].Spec.Setup.Env = env
 				instances[i].Status.Resources.Cluster = itemRestructured.Status
 
-				err, tmateSSH := KubernetesGetTmateSSHSession(clientset, instances[i].Spec.Name, instances[i].Spec.Setup.UserLowercase)
+				tmateSSH, err := KubernetesGetTmateSSHSession(clientset, instances[i].Spec.Name, instances[i].Spec.Setup.UserLowercase)
 				if err != nil {
 					log.Printf("err: %#v\n", err.Error())
 				}
@@ -356,13 +355,12 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 			}
 		}
 	}
-	err = nil
-	return err, instances
+	return instances, nil
 }
 
 // KubernetesCreate ...
 // create a Kubernetes Instance
-func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
+func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (instanceCreated InstanceSpec, err error) {
 	// generate name
 	targetNamespace := common.GetTargetNamespace()
 	if instance.KubernetesNodeCount > 3 {
@@ -370,9 +368,9 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	} else if instance.KubernetesNodeCount < 0 {
 		instance.KubernetesNodeCount = 0
 	}
-	err, newInstance := KubernetesTemplateResources(instance, targetNamespace)
+	newInstance, err := KubernetesTemplateResources(instance, targetNamespace)
 	if err != nil {
-		return err, instanceCreated
+		return instanceCreated, err
 	}
 	instanceCreated = instance
 
@@ -382,7 +380,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 		log.Println("Exiting before create due to dry run")
 		postKubeadmCommandYAML, _ := yaml.Marshal(newInstance.KubeadmControlPlane.Spec.KubeadmConfigSpec.PostKubeadmCommands)
 		log.Printf("%v\n\n%#v", string(postKubeadmCommandYAML), instance)
-		return err, instanceCreated
+		return instanceCreated, err
 	}
 
 	// manifests
@@ -394,7 +392,7 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create KubeadmControlPlane, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
@@ -408,12 +406,12 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketMachineTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure PacketMachineTemplate, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to unstructure PacketMachineTemplate, %#v", err)
 	}
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create PacketMachineTemplate, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
@@ -427,12 +425,12 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketCluster"})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure PacketCluster, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to unstructure PacketCluster, %#v", err)
 	}
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketCluster, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create PacketCluster, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
@@ -446,12 +444,12 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: "Cluster"})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure Cluster, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to unstructure Cluster, %#v", err)
 	}
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create Cluster, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create Cluster, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
@@ -465,12 +463,12 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "cluster.x-k8s.io", Kind: "MachineDeployment"})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure MachineDeployment, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to unstructure MachineDeployment, %#v", err)
 	}
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create MachineDeployment, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create MachineDeployment, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
@@ -484,12 +482,12 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: groupVersionResource.Group, Kind: "KubeadmConfigTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure KubeadmConfigTemplate, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to unstructure KubeadmConfigTemplate, %#v", err)
 	}
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create KubeadmConfigTemplate, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
@@ -503,25 +501,25 @@ func KubernetesCreate(instance InstanceSpec, dynamicClient dynamic.Interface, cl
 	asUnstructured.SetGroupVersionKind(schema.GroupVersionKind{Version: groupVersionResource.Version, Group: "infrastructure.cluster.x-k8s.io", Kind: "PacketMachineTemplate"})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to unstructure PacketMachineTemplateWorker, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to unstructure PacketMachineTemplateWorker, %#v", err)
 	}
 	_, err = dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).Create(context.TODO(), asUnstructured, metav1.CreateOptions{})
 	if err != nil && apierrors.IsAlreadyExists(err) != true {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err), instanceCreated
+		return instanceCreated, fmt.Errorf("Failed to create PacketMachineTemplateWorker, %#v", err)
 	}
 	if apierrors.IsAlreadyExists(err) {
 		log.Println("Already exists")
 	}
 
 	// TODO return the same creation fields (repos, guests, etc...)
-	return nil, instanceCreated
+	return instanceCreated, nil
 }
 
 // KubernetesUpdate ...
 // update a Kubernetes instance
-func KubernetesUpdate(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
-	return err, instanceUpdated
+func KubernetesUpdate(instance InstanceSpec) (instanceUpdated InstanceSpec, err error) {
+	return instanceUpdated, nil
 }
 
 // KubernetesDelete ...
@@ -606,7 +604,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 
 // KubernetesTemplateResources ...
 // given an instance spec and namespace, return KubernetesCluster resources
-func KubernetesTemplateResources(instance InstanceSpec, namespace string) (err error, newInstance KubernetesCluster) {
+func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newInstance KubernetesCluster, err error) {
 	instance.NodeSize = common.ReturnValueOrDefault(instance.NodeSize, GetInstanceDefaultNodeSize())
 	instance.RegistryMirrors = common.GetInstanceContainerRegistryMirrors()
 	instance.Setup.EnvironmentVersion = common.ReturnValueOrDefault(instance.Setup.EnvironmentVersion, GetEnvironmentVersion())
@@ -641,13 +639,13 @@ EOF
 `)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
+		return newInstance, fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err)
 	}
 	templatedBuffer := new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err), newInstance
+		return newInstance, fmt.Errorf("Error templating pair-instance-template-pre commands: %#v", err)
 	}
 	kubeadmPre2 := templatedBuffer.String()
 
@@ -672,7 +670,7 @@ export EQUINIX_METAL_PROJECT={{ .PacketProjectID }}
 EOF`)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
+		return newInstance, fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err)
 	}
 	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, map[string]interface{}{
@@ -681,7 +679,7 @@ EOF`)
 	})
 	if err != nil {
 		log.Printf("%#v\n", err.Error())
-		return fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err), newInstance
+		return newInstance, fmt.Errorf("Error templating packetcloudconfigsecret command: %#v", err)
 	}
 	kubeadmPost1 := templatedBuffer.String()
 
@@ -719,13 +717,13 @@ bash -x ./postKubeadmCommands.sh
 `)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
+		return newInstance, fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err)
 	}
 	templatedBuffer = new(bytes.Buffer)
 	err = tmpl.Execute(templatedBuffer, instance)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err), newInstance
+		return newInstance, fmt.Errorf("Error templating pair-instance-template-post commands: %#v", err)
 	}
 	kubeadmPost2 := templatedBuffer.String()
 
@@ -1007,7 +1005,7 @@ export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=worker
 	envJSON, err := json.Marshal(instance.Setup.Env)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return err, newInstance
+		return newInstance, err
 	}
 	newInstance.Cluster.ObjectMeta.Annotations["io.sharing.pair-spec-setup-env"] = string(envJSON)
 	newInstance.Cluster.Spec.InfrastructureRef.Name = instance.Name
@@ -1027,30 +1025,30 @@ export SHARINGIO_PAIR_INSTANCE_NODE_TYPE=worker
 	// TODO default value configuration scope - deployment based configuration
 	newInstance.PacketMachineTemplateWorker.Spec.Template.Spec.MachineType = instance.NodeSize
 
-	return err, newInstance
+	return newInstance, nil
 }
 
 // KubernetesGetKubeconfigBytes ...
 // given an instance name and clientset, return the instance's kubeconfig as bytes
-func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) (err error, kubeconfigBytes []byte) {
+func KubernetesGetKubeconfigBytes(name string, clientset *kubernetes.Clientset) (kubeconfigBytes []byte, err error) {
 	targetNamespace := common.GetTargetNamespace()
 	secret, err := clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err), []byte{}
+		return []byte{}, fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err)
 	}
 	kubeconfigBytes = secret.Data["value"]
-	return err, kubeconfigBytes
+	return kubeconfigBytes, nil
 }
 
 // KubernetesGetKubeconfigYAML ...
 // given an instance name and clientset, return the instance's kubeconfig as YAML
-func KubernetesGetKubeconfigYAML(name string, clientset *kubernetes.Clientset) (err error, kubeconfig string) {
-	err, kubeconfigBytes := KubernetesGetKubeconfigBytes(name, clientset)
+func KubernetesGetKubeconfigYAML(name string, clientset *kubernetes.Clientset) (kubeconfig string, err error) {
+	kubeconfigBytes, err := KubernetesGetKubeconfigBytes(name, clientset)
 	if err != nil {
-		return err, kubeconfig
+		return kubeconfig, err
 	}
-	return err, string(kubeconfigBytes)
+	return string(kubeconfigBytes), nil
 }
 
 // KubernetesDynamicGetKubeconfigBytes ...
@@ -1075,15 +1073,15 @@ func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynami
 
 // KubernetesGetKubeconfig ...
 // given an instance name and clientset, return a kubeconfig for clientset
-func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (err error, kubeconfig *clientcmdapi.Config) {
-	err, valueBytes := KubernetesGetKubeconfigBytes(name, clientset)
+func KubernetesGetKubeconfig(name string, clientset *kubernetes.Clientset) (kubeconfig *clientcmdapi.Config, err error) {
+	valueBytes, err := KubernetesGetKubeconfigBytes(name, clientset)
 	kubeconfig, err = clientcmd.Load(valueBytes)
-	return err, kubeconfig
+	return kubeconfig, err
 }
 
 // KubernetesExec ...
 // exec a command in an Instance Kubernetes Pod
-func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, options ExecOptions) (err error, stdout string, stderr string) {
+func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, options ExecOptions) (stdout string, stderr string, err error) {
 	req := clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name("environment-0").
@@ -1101,7 +1099,7 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 
 	exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", req.URL())
 	if err != nil {
-		return err, stdout, stderr
+		return stdout, stderr, err
 	}
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 	err = exec.Stream(remotecommand.StreamOptions{
@@ -1111,39 +1109,39 @@ func KubernetesExec(clientset *kubernetes.Clientset, restConfig *rest.Config, op
 		Tty:    options.TTY,
 	})
 	if err != nil {
-		return err, stdoutBuffer.String(), stderrBuffer.String()
+		return stdoutBuffer.String(), stderrBuffer.String(), err
 	}
 
 	if options.PreserveWhitespace {
-		return err, stdoutBuffer.String(), stderrBuffer.String()
+		return stdoutBuffer.String(), stderrBuffer.String(), nil
 	}
-	return err, strings.TrimSpace(stdoutBuffer.String()), strings.TrimSpace(stderrBuffer.String())
+	return strings.TrimSpace(stdoutBuffer.String()), strings.TrimSpace(stderrBuffer.String()), nil
 
 	// https://github.com/kubernetes/kubectl/blob/e65caf964573fbf671c4648032da4b7df7c7eaf0/pkg/cmd/exec/exec.go#L357
 }
 
 // KubernetesGetTmateSSHSession ...
 // given a clienset, instancename, and username, get the tmate SSH session for the Environment Pod
-func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
+func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName string, userName string) (output string, err error) {
 	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
 	if err != nil {
-		return err, output
+		return "", err
 	}
 	err = KubernetesGetInstanceEnvironmentPodReadiness(clientset, instanceName, userName)
 	if err != nil {
-		return err, output
+		return "", err
 	}
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
-		return err, output
+		return "", err
 	}
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(instanceKubeconfig)
 	if err != nil {
-		return err, output
+		return "", err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
-		return err, output
+		return "", err
 	}
 
 	execOptions := ExecOptions{
@@ -1163,35 +1161,35 @@ func KubernetesGetTmateSSHSession(clientset *kubernetes.Clientset, instanceName 
 		PreserveWhitespace: false,
 		TTY:                false,
 	}
-	err, stdout, stderr := KubernetesExec(instanceClientset, restConfig, execOptions)
+	stdout, stderr, err := KubernetesExec(instanceClientset, restConfig, execOptions)
 	if stderr != "" {
-		return fmt.Errorf(stderr), stdout
+		return stdout, fmt.Errorf(stderr)
 	}
-	return err, stdout
+	return stdout, nil
 }
 
 // KubernetesGetTmateWebSession ...
 // given a clienset, instancename, and username, get the tmate web session for the Environment Pod
-func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName string, userName string) (err error, output string) {
+func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName string, userName string) (output string, err error) {
 	err = KubernetesGetInstanceAPIServerLiveness(clientset, instanceName)
 	if err != nil {
-		return err, output
+		return "", err
 	}
 	err = KubernetesGetInstanceEnvironmentPodReadiness(clientset, instanceName, userName)
 	if err != nil {
-		return err, output
+		return "", err
 	}
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
-		return err, output
+		return "", err
 	}
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(instanceKubeconfig)
 	if err != nil {
-		return err, output
+		return "", err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
-		return err, output
+		return "", err
 	}
 
 	execOptions := ExecOptions{
@@ -1211,38 +1209,38 @@ func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName 
 		PreserveWhitespace: false,
 		TTY:                false,
 	}
-	err, stdout, stderr := KubernetesExec(instanceClientset, restConfig, execOptions)
+	stdout, stderr, err := KubernetesExec(instanceClientset, restConfig, execOptions)
 	if stderr != "" {
-		return fmt.Errorf(stderr), stdout
+		return stdout, fmt.Errorf(stderr)
 	}
-	return err, stdout
+	return stdout, nil
 }
 
 // KubernetesGetInstanceIngresses ...
 // given a clienset and instance name, return the Ingresses available on the instance
-func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceName string) (err error, ingresses *networkingv1.IngressList) {
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceName string) (ingresses *networkingv1.IngressList, err error) {
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
-		return err, &networkingv1.IngressList{}
+		return &networkingv1.IngressList{}, err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
-		return err, &networkingv1.IngressList{}
+		return &networkingv1.IngressList{}, err
 	}
 
 	ingresses, err = instanceClientset.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
-	return err, ingresses
+	return ingresses, err
 }
 
 // KubernetesClientsetFromKubeconfigBytes ...
 // given an kubeconfig as a slice of bytes return a clientset
-func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (err error, clientset *kubernetes.Clientset) {
+func KubernetesClientsetFromKubeconfigBytes(kubeconfigBytes []byte) (clientset *kubernetes.Clientset, err error) {
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfigBytes)
 	if err != nil {
-		return err, &kubernetes.Clientset{}
+		return &kubernetes.Clientset{}, err
 	}
 	clientset, err = kubernetes.NewForConfig(restConfig)
-	return err, clientset
+	return clientset, err
 }
 
 // KubernetesWaitForInstanceKubeconfig ...
@@ -1317,33 +1315,36 @@ func KubernetesAddMachineIPToDNS(dynamicClient dynamic.Interface, name string, s
 
 // KubernetesGetInstanceWildcardTLSCert ...
 // given an instance clientset and instance, return a TLS wildcard cert
-func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instance InstanceSpec) (err error, secret *corev1.Secret) {
+func KubernetesGetInstanceWildcardTLSCert(clientset *kubernetes.Clientset, instance InstanceSpec) (secret *corev1.Secret, err error) {
 	targetNamespace := instance.Setup.UserLowercase
 	templatedSecretName := "letsencrypt-prod"
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instance.Name, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instance.Name, clientset)
 	if err != nil {
-		return err, &corev1.Secret{}
+		return &corev1.Secret{}, err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
-		return err, &corev1.Secret{}
+		return &corev1.Secret{}, err
 	}
 
 	secret, err = instanceClientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
-	return err, secret
+	return secret, err
 }
 
 // KubernetesGetLocalInstanceWildcardTLSCert ...
 // given a local clientset and instance name, return the local TLS wildcard cert
-func KubernetesGetLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string) (err error, secret *corev1.Secret) {
+func KubernetesGetLocalInstanceWildcardTLSCert(clientset *kubernetes.Clientset, username string) (secret *corev1.Secret, err error) {
 	targetNamespace := common.GetTargetNamespace()
 	templatedSecretName := fmt.Sprintf("%v-tls", username)
 
 	secret, err = clientset.CoreV1().Secrets(targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
+	if err != nil {
+		return &corev1.Secret{}, err
+	}
 	if secret.ObjectMeta.Name == templatedSecretName {
 		log.Printf("Found secret '%v' in namespace '%v'\n", templatedSecretName, targetNamespace)
 	}
-	return err, secret
+	return secret, nil
 }
 
 // KubernetesUpsertLocalInstanceWildcardTLSCert ...
@@ -1435,15 +1436,15 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	// if cert secret for user name exists locally
 	namespace := instance.Setup.UserLowercase
 	log.Printf("Managing cert for Instance '%v'\n", instanceName)
-	errLocalInstance, localSecret := KubernetesGetLocalInstanceWildcardTLSCert(clientset, instanceName)
+	localSecret, errLocalInstance := KubernetesGetLocalInstanceWildcardTLSCert(clientset, instanceName)
 
 	KubernetesWaitForInstanceKubeconfig(clientset, instanceName)
 
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -1459,7 +1460,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	ctx, _ := context.WithDeadline(context.TODO(), deadline)
 	_, err = instanceClientset.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("Failed to find namespace '%v' on Instance '%v', %v\n", namespace, instanceName, err)
+		return fmt.Errorf("failed to find namespace '%v' on Instance '%v', %v", namespace, instanceName, err)
 	}
 	log.Printf("Found namespace '%v' on Instance '%v'\n", namespace, instanceName)
 
@@ -1469,7 +1470,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 		log.Printf("Cert for Instance '%v' not found locally. Fetching from Instance\n", instanceName)
 		//   get remote cert
 		var instanceSecret *corev1.Secret
-		err, instanceSecret = KubernetesGetInstanceWildcardTLSCert(clientset, instance)
+		instanceSecret, err = KubernetesGetInstanceWildcardTLSCert(clientset, instance)
 		if apierrors.IsNotFound(err) || instanceSecret.ObjectMeta.Name == "" {
 			return fmt.Errorf("Secret 'letsencrypt-prod' is not found in Namespace '%v' on Instance '%v' yet\n", namespace, instanceName)
 		}
@@ -1484,12 +1485,13 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 	return err
 }
 
+// KubernetesGetInstanceAPIServerLiveness returns an error if the instance APIServer is not live or healthy
 func KubernetesGetInstanceAPIServerLiveness(clientset *kubernetes.Clientset, instanceName string) error {
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -1504,12 +1506,13 @@ func KubernetesGetInstanceAPIServerLiveness(clientset *kubernetes.Clientset, ins
 	return nil
 }
 
+// KubernetesGetInstanceEnvironmentPodReadiness returns an error given the unreadiness of the Environment Pod
 func KubernetesGetInstanceEnvironmentPodReadiness(clientset *kubernetes.Clientset, instanceName string, userLowercase string) error {
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -1526,7 +1529,7 @@ func KubernetesGetInstanceEnvironmentPodReadiness(clientset *kubernetes.Clientse
 }
 
 // UpdateInstanceSpecIfEnvOverrides ...
-// allow overrides from instance.Setup.Env to set fields in instance
+// sets overrides from instance.Setup.Env to set fields in instance
 // this way is a quick way to test new fields for new instances, but ideally these fields will be written by the client
 func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
@@ -1546,11 +1549,11 @@ func UpdateInstanceNodeWithProviderID(clientset *kubernetes.Clientset, dynamicCl
 	groupVersionResource := schema.GroupVersionResource{Version: groupVersion.Version, Group: "infrastructure.cluster.x-k8s.io", Resource: "packetmachines"}
 	items, err := dynamicClient.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + instanceName})
 
-	err, instanceKubeconfig := KubernetesGetKubeconfigBytes(instanceName, clientset)
+	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
 		return err
 	}
-	err, instanceClientset := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -1559,17 +1562,17 @@ func UpdateInstanceNodeWithProviderID(clientset *kubernetes.Clientset, dynamicCl
 		var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
 		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
 		if err != nil {
-			return fmt.Errorf("Failed to restructure %T", itemRestructuredPM)
+			return fmt.Errorf("failed to restructure %T", itemRestructuredPM)
 		}
 		node, err := instanceClientset.CoreV1().Nodes().Get(context.TODO(), itemRestructuredPM.ObjectMeta.Name, metav1.GetOptions{})
 		if err != nil {
-			return fmt.Errorf("Failed to get Node '%v':\n", itemRestructuredPM.ObjectMeta.Name, err)
+			return fmt.Errorf("failed to get Node '%v': %v", itemRestructuredPM.ObjectMeta.Name, err)
 		}
 		node.Spec.ProviderID = *itemRestructuredPM.Spec.ProviderID
 		node.Spec.Taints = []corev1.Taint{}
 		_, err = instanceClientset.CoreV1().Nodes().Update(context.TODO(), node, metav1.UpdateOptions{})
 		if err != nil {
-			return fmt.Errorf("Failed to update Node %v:\n%+v", itemRestructuredPM.ObjectMeta.Name, err)
+			return fmt.Errorf("failed to update Node %v: %v", itemRestructuredPM.ObjectMeta.Name, err)
 		}
 	}
 

@@ -51,53 +51,53 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	if govalidator.IsEmail(instance.Setup.Email) != true || instance.Setup.Email == "" {
 		return fmt.Errorf("Invalid user email")
 	}
-	return err
+	return nil
 }
 
 // Get ...
 // get an instance
-func Get(name string) (err error, instance Instance) {
-	return err, instance
+func Get(name string) (instance Instance, err error) {
+	return instance, nil
 }
 
 // List ...
 // list all instances
-func List(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceListOptions) (err error, instances []Instance) {
+func List(dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceListOptions) (instances []Instance, err error) {
 	switch options.Filter.Type {
 	case InstanceTypeKubernetes:
-		err, instances = KubernetesList(dynamicClient, clientset, options)
+		instances, err = KubernetesList(dynamicClient, clientset, options)
 		break
 
 	case InstanceTypePlain:
 		break
 
 	default:
-		err, instances = KubernetesList(dynamicClient, clientset, options)
+		instances, err = KubernetesList(dynamicClient, clientset, options)
 		// append plain type
 	}
-	return err, instances
+	return instances, nil
 }
 
 // Create ...
 // create an instance
-func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (err error, instanceCreated InstanceSpec) {
+func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *kubernetes.Clientset, options InstanceCreateOptions) (instanceCreated InstanceSpec, err error) {
 	err = ValidateInstance(instance)
 	if err != nil {
-		return err, instanceCreated
+		return instanceCreated, err
 	}
-	err, instancesOfUser := List(dynamicClient, clientset, InstanceListOptions{
+	instancesOfUser, err := List(dynamicClient, clientset, InstanceListOptions{
 		Filter: InstanceFilter{
 			Username: instance.Setup.User,
 		},
 	})
 	if err != nil {
-		return err, instanceCreated
+		return instanceCreated, err
 	}
 
 	if common.AccountIsAdmin(instance.Setup.ExtraEmails) != true {
 		switch len(instancesOfUser) {
 		case common.GetNonAdminInstanceMaxAmount():
-			return fmt.Errorf("Max number of instances reached"), instanceCreated
+			return instanceCreated, fmt.Errorf("Max number of instances reached")
 		}
 	}
 
@@ -118,7 +118,7 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	if options.NameScheme == InstanceNameSchemeSpecified {
 		for _, existingInstance := range instancesOfUser {
 			if instance.Name == existingInstance.Spec.Name {
-				return fmt.Errorf("An instance with the provided name already exists"), instanceCreated
+				return instanceCreated, fmt.Errorf("An instance with the provided name already exists")
 			}
 		}
 	}
@@ -134,22 +134,22 @@ func Create(instance InstanceSpec, dynamicClient dynamic.Interface, clientset *k
 	}
 	switch instance.Type {
 	case InstanceTypeKubernetes:
-		err, instanceCreated = KubernetesCreate(instance, dynamicClient, clientset, options)
+		instanceCreated, err = KubernetesCreate(instance, dynamicClient, clientset, options)
 		break
 
 	case InstanceTypePlain:
 		break
 
 	default:
-		return fmt.Errorf("Invalid instance type"), InstanceSpec{}
+		return InstanceSpec{}, fmt.Errorf("Invalid instance type")
 	}
-	return err, instanceCreated
+	return instanceCreated, nil
 }
 
 // Update ...
 // update an instance
-func Update(instance InstanceSpec) (err error, instanceUpdated InstanceSpec) {
-	return err, instanceUpdated
+func Update(instance InstanceSpec) (instanceUpdated InstanceSpec, err error) {
+	return instanceUpdated, nil
 }
 
 // Delete ...
