@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// GetGitHubUserSSHKeys downloads the public SSH keys of a user from GitHub
 func GetGitHubUserSSHKeys(username string) (sshKeys []string, err error) {
 	resp, err := http.Get(fmt.Sprintf("https://github.com/%s.keys", username))
 	if err != nil {

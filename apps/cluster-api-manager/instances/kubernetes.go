@@ -89,17 +89,16 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	item, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-control-plane", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
+	}
+	var itemRestructuredKCP clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredKCP)
+	if err != nil {
+		return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredKCP)
+	}
+	if itemRestructuredKCP.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredKCP, itemRestructuredKCP.ObjectMeta.Name)
 	} else {
-		var itemRestructuredKCP clusterAPIControlPlaneKubeadmv1alpha3.KubeadmControlPlane
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredKCP)
-		if err != nil {
-			return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredKCP)
-		}
-		if itemRestructuredKCP.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredKCP, itemRestructuredKCP.ObjectMeta.Name)
-		} else {
-			instance.Status.Resources.KubeadmControlPlane = itemRestructuredKCP.Status
-		}
+		instance.Status.Resources.KubeadmControlPlane = itemRestructuredKCP.Status
 	}
 
 	//   - newInstance.Machine
@@ -108,16 +107,14 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
-	} else {
-		if len(items.Items) > 0 {
-			item = &items.Items[0]
-			var itemRestructuredM clusterAPIv1alpha3.Machine
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredM)
-			if err != nil {
-				return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredM)
-			}
-			instance.Status.Resources.MachineStatus = itemRestructuredM.Status
+	} else if len(items.Items) > 0 {
+		item = &items.Items[0]
+		var itemRestructuredM clusterAPIv1alpha3.Machine
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredM)
+		if err != nil {
+			return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredM)
 		}
+		instance.Status.Resources.MachineStatus = itemRestructuredM.Status
 	}
 
 	//   - newInstance.PacketMachine
@@ -126,22 +123,20 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	items, err = kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{LabelSelector: "cluster.x-k8s.io/cluster-name=" + name})
 	if err != nil {
 		log.Printf("%#v\n", err)
-	} else {
-		if len(items.Items) > 0 {
-			item = &items.Items[0]
-			var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
-			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
-			if err != nil {
-				return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredPM)
-			}
-			var providerID string
-			if itemRestructuredPM.Spec.ProviderID != nil {
-				providerID = *itemRestructuredPM.Spec.ProviderID
-			}
-			providerIDSplit := strings.Split(providerID, "/")
-			if len(providerIDSplit) == 3 {
-				instance.Status.Resources.PacketMachineUID = &providerIDSplit[2]
-			}
+	} else if len(items.Items) > 0 {
+		item = &items.Items[0]
+		var itemRestructuredPM clusterAPIPacketv1alpha3.PacketMachine
+		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredPM)
+		if err != nil {
+			return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredPM)
+		}
+		var providerID string
+		if itemRestructuredPM.Spec.ProviderID != nil {
+			providerID = *itemRestructuredPM.Spec.ProviderID
+		}
+		providerIDSplit := strings.Split(providerID, "/")
+		if len(providerIDSplit) == 3 {
+			instance.Status.Resources.PacketMachineUID = &providerIDSplit[2]
 		}
 	}
 
@@ -153,16 +148,15 @@ func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset
 	if err != nil {
 		log.Printf("%#v\n", err)
 		return instance, fmt.Errorf("Failed to get Cluster, %#v", err)
+	}
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredC)
+	if err != nil {
+		return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredC)
+	}
+	if itemRestructuredC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
+		log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredC, itemRestructuredC.ObjectMeta.Name)
 	} else {
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &itemRestructuredC)
-		if err != nil {
-			return Instance{}, fmt.Errorf("Failed to restructure %T", itemRestructuredC)
-		}
-		if itemRestructuredC.ObjectMeta.Labels["io.sharing.pair"] != "instance" {
-			log.Printf("Not using object %s/%T/%s - not an instance managed by sharingio/pair\n", targetNamespace, itemRestructuredC, itemRestructuredC.ObjectMeta.Name)
-		} else {
-			instance.Status.Resources.Cluster = itemRestructuredC.Status
-		}
+		instance.Status.Resources.Cluster = itemRestructuredC.Status
 	}
 
 	instance.Spec.Name = itemRestructuredC.ObjectMeta.Annotations["io.sharing.pair-spec-name"]
@@ -1053,22 +1047,22 @@ func KubernetesGetKubeconfigYAML(name string, clientset *kubernetes.Clientset) (
 
 // KubernetesDynamicGetKubeconfigBytes ...
 // given an instance name and dynamic client, return the instance's kubeconfig as bytes
-func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynamic.Interface) (err error, kubeconfig []byte) {
+func KubernetesDynamicGetKubeconfigBytes(name string, kubernetesClientset dynamic.Interface) (kubeconfig []byte, err error) {
 	targetNamespace := common.GetTargetNamespace()
 	groupVersionResource := schema.GroupVersionResource{Version: "v1", Group: "", Resource: "secrets"}
 	secret, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", name), metav1.GetOptions{})
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err), []byte{}
+		return []byte{}, fmt.Errorf("Failed to get Kubernetes cluster Kubeconfig; err: %#v", err)
 	}
 	var itemRestructured corev1.Secret
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(secret.Object, &itemRestructured)
 	if err != nil {
 		log.Printf("%#v\n", err)
-		return fmt.Errorf("Failed to restructure %T; err: %v", itemRestructured, err), []byte{}
+		return []byte{}, fmt.Errorf("Failed to restructure %T; err: %v", itemRestructured, err)
 	}
 	kubeconfigBytes := itemRestructured.Data["value"]
-	return err, kubeconfigBytes
+	return kubeconfigBytes, nil
 }
 
 // KubernetesGetKubeconfig ...
@@ -1472,7 +1466,7 @@ func KubernetesAddCertToMachine(clientset *kubernetes.Clientset, dynamicClient d
 		var instanceSecret *corev1.Secret
 		instanceSecret, err = KubernetesGetInstanceWildcardTLSCert(clientset, instance)
 		if apierrors.IsNotFound(err) || instanceSecret.ObjectMeta.Name == "" {
-			return fmt.Errorf("Secret 'letsencrypt-prod' is not found in Namespace '%v' on Instance '%v' yet\n", namespace, instanceName)
+			return fmt.Errorf("secret 'letsencrypt-prod' is not found in Namespace '%v' on Instance '%v' yet", namespace, instanceName)
 		}
 		//   upsert remote cert locally
 		err = KubernetesUpsertLocalInstanceWildcardTLSCert(clientset, instanceName, instanceSecret)

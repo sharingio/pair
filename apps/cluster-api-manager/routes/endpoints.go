@@ -32,7 +32,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/hello",
 			HandlerFunc:  GetAPIHello,
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /teapot teapot getTeapot
@@ -52,7 +52,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/teapot",
 			HandlerFunc:  GetTeapot,
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance instance listInstances
@@ -73,7 +73,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance",
 			HandlerFunc:  ListInstances(dynamicClient, clientset),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance/kubernetes instance listInstancesKubernetes
@@ -94,7 +94,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes",
 			HandlerFunc:  ListInstancesKubernetes(dynamicClient, clientset),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name} instance getInstanceKubernetes
@@ -115,7 +115,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
 			HandlerFunc:  GetInstanceKubernetes(dynamicClient, clientset),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name}/kubeconfig instance getInstanceKubernetesKubeconfig
@@ -136,7 +136,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/kubeconfig",
 			HandlerFunc:  GetKubernetesKubeconfig(clientset),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name}/ingresses instance getInstanceKubernetesIngresses
@@ -157,7 +157,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/ingresses",
 			HandlerFunc:  GetKubernetesIngresses(clientset),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route POST /instance/kubernetes/{name}/certmanage instance getInstanceKubernetesCertmanage
@@ -178,7 +178,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/certmanage",
 			HandlerFunc:  PostKubernetesCertManage(clientset, dynamicClient),
-			HttpMethods:  []string{http.MethodGet, http.MethodPost},
+			HTTPMethods:  []string{http.MethodGet, http.MethodPost},
 		},
 
 		// swagger:route POST /instance/kubernetes/{name}/dnsmanage instance getInstanceKubernetesDNSmanage
@@ -199,7 +199,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/dnsmanage",
 			HandlerFunc:  PostKubernetesDNSManage(dynamicClient, clientset),
-			HttpMethods:  []string{http.MethodGet, http.MethodPost},
+			HTTPMethods:  []string{http.MethodGet, http.MethodPost},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name}/tmate instance getInstanceKubernetesTmate
@@ -220,7 +220,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate",
 			HandlerFunc:  GetKubernetesTmateSSHSession(clientset, restConfig, dynamicClient),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name}/tmate/ssh instance getInstanceKubernetesTmateSSH
@@ -241,7 +241,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate/ssh",
 			HandlerFunc:  GetKubernetesTmateSSHSession(clientset, restConfig, dynamicClient),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route GET /instance/kubernetes/{name}/tmate/web instance getInstanceKubernetesTmateWeb
@@ -262,7 +262,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/tmate/web",
 			HandlerFunc:  GetKubernetesTmateWebSession(clientset, restConfig, dynamicClient),
-			HttpMethods:  []string{http.MethodGet},
+			HTTPMethods:  []string{http.MethodGet},
 		},
 
 		// swagger:route POST /instance instance postInstance
@@ -283,7 +283,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance",
 			HandlerFunc:  PostInstance(dynamicClient, clientset),
-			HttpMethods:  []string{http.MethodPost},
+			HTTPMethods:  []string{http.MethodPost},
 		},
 
 		// swagger:route DELETE /instance/kubernetes/{name} instance deleteInstanceKubernetes
@@ -304,7 +304,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}",
 			HandlerFunc:  DeleteInstanceKubernetes(dynamicClient, clientset),
-			HttpMethods:  []string{http.MethodDelete},
+			HTTPMethods:  []string{http.MethodDelete},
 		},
 
 		// swagger:route DELETE /instance instance deleteInstance
@@ -325,7 +325,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance",
 			HandlerFunc:  DeleteInstance(dynamicClient),
-			HttpMethods:  []string{http.MethodDelete},
+			HTTPMethods:  []string{http.MethodDelete},
 		},
 
 		// swagger:route POST /instance/kubernetes/{name}/syncProviderID instance updateInstanceKubernetesNodeProviderID
@@ -346,7 +346,7 @@ func GetEndpoints(endpointPrefix string, clientset *kubernetes.Clientset, dynami
 		{
 			EndpointPath: endpointPrefix + "/instance/kubernetes/{name}/syncProviderID",
 			HandlerFunc:  PostKubernetesUpdateInstanceNodeProviderID(clientset, dynamicClient),
-			HttpMethods:  []string{http.MethodGet, http.MethodPost},
+			HTTPMethods:  []string{http.MethodGet, http.MethodPost},
 		},
 	}
 }

@@ -600,8 +600,7 @@ func PostKubernetesCertManage(clientset *kubernetes.Clientset, dynamicClient dyn
 	}
 }
 
-// PostKubernetesUpdateInstanceNodeProviderID
-// handler for updateing Kubernetes Instance Node Provider ID
+// PostKubernetesUpdateInstanceNodeProviderID handler for updateing Kubernetes Instance Node Provider ID
 func PostKubernetesUpdateInstanceNodeProviderID(clientset *kubernetes.Clientset, dynamicClient dynamic.Interface) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		response := "Failed to update Node ProviderID"

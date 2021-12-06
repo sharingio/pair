@@ -11,34 +11,37 @@ var defaultKubeClientUserAgent = "sharingio/pair/cluster-api-manager"
 
 // Client ...
 // return a clientset
-func Client() (err error, clientset *kubernetes.Clientset) {
+func Client() (clientset *kubernetes.Clientset, err error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return err, clientset
+		return clientset, err
 	}
 	config.UserAgent = defaultKubeClientUserAgent
 	config.QPS = 500
 	config.Burst = 1000
 	clientset, err = kubernetes.NewForConfig(config)
-	return err, clientset
+	return clientset, err
 }
 
 // DynamicClient ...
 // return a dynamic client
-func DynamicClient() (err error, clientset dynamic.Interface) {
+func DynamicClient() (clientset dynamic.Interface, err error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return err, clientset
+		return clientset, err
 	}
 	config.UserAgent = defaultKubeClientUserAgent
 	clientset, err = dynamic.NewForConfig(config)
-	return err, clientset
+	return clientset, err
 }
 
 // RestClient ...
 // return a rest client
-func RestClient() (err error, config *rest.Config) {
+func RestClient() (config *rest.Config, err error) {
 	config, err = rest.InClusterConfig()
+	if err != nil {
+		return &rest.Config{}, err
+	}
 	config.UserAgent = defaultKubeClientUserAgent
-	return err, config
+	return config, nil
 }

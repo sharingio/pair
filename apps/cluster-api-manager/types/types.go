@@ -13,7 +13,7 @@ import (
 type JSONResponseMetadata struct {
 	URL       string `json:"selfLink"`
 	Version   string `json:"version"`
-	RequestId string `json:"requestId"`
+	RequestID string `json:"requestId"`
 	Timestamp int64  `json:"timestamp"`
 	Response  string `json:"response"`
 }
@@ -39,9 +39,10 @@ type JSONFailure struct {
 type Endpoints []struct {
 	EndpointPath string
 	HandlerFunc  http.HandlerFunc
-	HttpMethods  []string
+	HTTPMethods  []string
 }
 
+// GitHubEmail is the GitHub API structured field of profiles
 type GitHubEmail struct {
 	Email    string `json:"email"`
 	Verified bool   `json:"verified"`

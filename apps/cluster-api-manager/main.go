@@ -59,7 +59,7 @@ func handleWebserver() {
 	}
 
 	for _, endpoint := range routes.GetEndpoints(apiEndpointPrefix, clientset, kubernetesDynamicClientset, restConfig) {
-		router.HandleFunc(endpoint.EndpointPath, endpoint.HandlerFunc).Methods(endpoint.HttpMethods...)
+		router.HandleFunc(endpoint.EndpointPath, endpoint.HandlerFunc).Methods(endpoint.HTTPMethods...)
 	}
 
 	router.HandleFunc(apiEndpointPrefix+"/{.*}", routes.APIUnknownEndpoint)
