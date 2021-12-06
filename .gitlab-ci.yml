@@ -104,7 +104,7 @@ build-client-container:
       --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
       $KANIKO_EXTRA_DESTINATION
 
-spell_check:
+spell-check:
   stage: lint
   image: golang:1.16.0-alpine3.13
   allow_failure: true
@@ -113,7 +113,7 @@ spell_check:
   script:
     - misspell -error apps charts infra org README*
 
-lint_cluster-api-manager:
+lint-backend:
   stage: lint
   image: golang:1.16.0-alpine3.13
   allow_failure: true
