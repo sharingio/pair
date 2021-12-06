@@ -1,7 +1,7 @@
 #+TITLE: CI set up
 
 #+begin_quote
-Maintainance set up for the main pair.sharing.io CI pipeline
+Maintenance set up for the main pair.sharing.io CI pipeline
 #+end_quote
 
 * Preparing
@@ -100,4 +100,4 @@ Add a new variables called =KUBECONFIG_FROM_ENV= to the CI.
 Paste the value into the Value box.
 *IMPORTANT*:
 - set Protected to =false= and Mask to =true=.
-- ensure that the kubeconfig has not been commited into this file
+- ensure that the kubeconfig has not been committed into this file

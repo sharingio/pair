@@ -19,7 +19,7 @@
 
 There was no problem with this app, it all works as expected.  As this app was random, and older, and that I used github to login to glitch itself, I don't think it's an issue with github.
 *** our dns
-    It could be that the code is fine but there is some issue with our dns record or some crossed paths with a cached dns record...since we've been reusing the pair.sharing.io name for a few things.  I can't quite say what this problem woudl be, which makes me feel like it isn't a problem, but just to rule it out, we can create sharing.io but using a different url.
+    It could be that the code is fine but there is some issue with our dns record or some crossed paths with a cached dns record...since we've been reusing the pair.sharing.io name for a few things.  I can't quite say what this problem would be, which makes me feel like it isn't a problem, but just to rule it out, we can create sharing.io but using a different url.
     For this I:
     - started up a new version of sharing.io with the canonical url pair.verycool.fun
       - this domain is one I own, and has not been used for any work stuff, and is not associated with any existing oauth apps

@@ -1,6 +1,6 @@
 #+TITLE: Cluster-API-manager
 
-* Prelimiary set up
+* Preliminary set up
 
 Install clusterctl
 #+begin_src shell

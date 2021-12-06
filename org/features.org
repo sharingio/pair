@@ -97,7 +97,7 @@ It provides the same functionality as other =.sharing.io/init= scripts.
 DNS is mapped to ={{ InstanceName }}.{{ PairHost }}= (e.g: /myinstance.pair.sharing.io/).
 
 As External-DNS also runs on each instance.
-All instances have a user-managable DNSEndpoint in the /powerdns/ namespace, which will be named after the instance.
+All instances have a user-manageable DNSEndpoint in the /powerdns/ namespace, which will be named after the instance.
 Any DNS record at or below the domain name.
 
 * Wildcard LetsEncrypt TLS cert

@@ -216,7 +216,7 @@ Easiest is to navigate to client/src/client/web.clj and then type =,scj= and cho
 
 * Build and Run for Production
   For production, you want to build an uberjar, and then run that .jar file with the correct env vars.
-  This .jar file will be an embedded server set to run on port 5000, though you can specifiy a new port by declaring a PORT env var.
+  This .jar file will be an embedded server set to run on port 5000, though you can specify a new port by declaring a PORT env var.
 
 #+NAME: Build the uberjar
 #+begin_src tmate :dir . :window prod

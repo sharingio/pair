@@ -4,7 +4,7 @@
 Setting up a production cluster for Pair
 #+end_quote
 
-* Prelimiary steps
+* Preliminary steps
 ** Local cluster / outside cluster
 Create a kind cluster
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
