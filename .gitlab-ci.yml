@@ -72,16 +72,16 @@ build-cluster-api-manager-container:
     - *kaniko-pre-build-release-version
   script:
     - |
-        /kaniko/executor \
-        --snapshotMode=redo \
-        --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
-        --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
-        --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
-        $KANIKO_EXTRA_DESTINATION \
-        --build-arg AppBuildVersion="$APP_BUILD_VERSION" \
-        --build-arg AppBuildDate="$BUILD_DATE" \
-        --build-arg AppBuildHash="$COMMIT_HASH" \
-        --build-arg AppBuildMode="$APP_BUILD_MODE"
+      /kaniko/executor \
+      --snapshotMode=redo \
+      --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
+      --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
+      --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
+      $KANIKO_EXTRA_DESTINATION \
+      --build-arg AppBuildVersion="$APP_BUILD_VERSION" \
+      --build-arg AppBuildDate="$BUILD_DATE" \
+      --build-arg AppBuildHash="$COMMIT_HASH" \
+      --build-arg AppBuildMode="$APP_BUILD_MODE"
 
 build-client-container:
   stage: build
@@ -98,11 +98,11 @@ build-client-container:
     - *kaniko-pre-build-release-version
   script:
     - |
-        /kaniko/executor \
-        --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
-        --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
-        --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
-        $KANIKO_EXTRA_DESTINATION
+      /kaniko/executor \
+      --context $CI_PROJECT_DIR/apps/$APP_PATH_NAME \
+      --dockerfile $CI_PROJECT_DIR/apps/$APP_PATH_NAME/Dockerfile \
+      --destination $CI_REGISTRY_IMAGE/$APP:latest$BRANCH_NAME \
+      $KANIKO_EXTRA_DESTINATION
 
 spell_check:
   stage: lint
@@ -144,12 +144,12 @@ deploy:
     - export SHARINGIO_PAIR_TAG=$CI_COMMIT_TAG
   script:
     - |
-        for MANIFEST in $MANIFEST_FOLDER/*; do
-          if cat $MANIFEST | grep -q ci-sa:noapply=true; then
-            continue
-          fi
-          envsubst < $MANIFEST | kubectl apply -f -
-        done
+      for MANIFEST in $MANIFEST_FOLDER/*; do
+        if cat $MANIFEST | grep -q ci-sa:noapply=true; then
+          continue
+        fi
+        envsubst < $MANIFEST | kubectl apply -f -
+      done
   only:
     refs:
       - tags
