@@ -42,6 +42,7 @@ import (
 	camk8s "github.com/sharingio/pair/apps/cluster-api-manager/kubernetes"
 )
 
+// overwritable variables
 var (
 	AppBuildVersion            = "0.0.0"
 	AppBuildHash               = "???"

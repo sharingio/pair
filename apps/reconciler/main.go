@@ -26,6 +26,7 @@ import (
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
+// overwritable variables
 var (
 	AppBuildVersion            = "0.0.0"
 	AppBuildHash               = "???"
@@ -40,7 +41,8 @@ var (
 	defaultCertDaysToPreExpireString = time.Duration(5)
 )
 
-type reconciler struct {
+// Reconciler fields needed to initialise
+type Reconciler struct {
 	clientset             *kubernetes.Clientset
 	dynamicClientset      dynamic.Interface
 	restConfig            *rest.Config
@@ -50,7 +52,8 @@ type reconciler struct {
 	certDaysToPreExpire   time.Duration
 }
 
-func NewReconciler() (r reconciler, err error) {
+// NewReconciler returns a reconciler struct
+func NewReconciler() (r Reconciler, err error) {
 	err, clientset := camk8s.Client()
 	if err != nil {
 		log.Panicln(err)
@@ -86,7 +89,7 @@ func NewReconciler() (r reconciler, err error) {
 		certDaysToPreExpire = int(defaultCertDaysToPreExpireString)
 	}
 
-	return reconciler{
+	return Reconciler{
 		clientset:             clientset,
 		dynamicClientset:      dynamicClientset,
 		restConfig:            restConfig,
@@ -97,7 +100,8 @@ func NewReconciler() (r reconciler, err error) {
 	}, err
 }
 
-func (r *reconciler) getClustersList() (clusters []clusterAPIv1alpha3.Cluster, err error) {
+// getClustersList returns a list of clusters using the backend
+func (r *Reconciler) getClustersList() (clusters []clusterAPIv1alpha3.Cluster, err error) {
 	groupVersion := clusterAPIv1alpha3.GroupVersion
 	groupVersionResource := schema.GroupVersionResource{
 		Version:  groupVersion.Version,
@@ -127,7 +131,8 @@ func (r *reconciler) getClustersList() (clusters []clusterAPIv1alpha3.Cluster, e
 	return clusters, err
 }
 
-func (r *reconciler) getCertForInstance(name string) (certificate *x509.Certificate, exists bool, err error) {
+// getCertForInstance returns an x509 cert, given an instance name
+func (r *Reconciler) getCertForInstance(name string) (certificate *x509.Certificate, exists bool, err error) {
 	templatedSecretName := fmt.Sprintf("%v-tls", name)
 	secret, err := r.clientset.CoreV1().Secrets(r.targetNamespace).Get(context.TODO(), templatedSecretName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
@@ -141,7 +146,8 @@ func (r *reconciler) getCertForInstance(name string) (certificate *x509.Certific
 	return certificate, true, err
 }
 
-func (r *reconciler) isCertExpired(name string) (expired, exists bool, err error) {
+// isCertExpired returns if a cert is expired, given an instance name
+func (r *Reconciler) isCertExpired(name string) (expired, exists bool, err error) {
 	certificate, exists, err := r.getCertForInstance(name)
 	if certificate == nil {
 		return false, exists, err
@@ -151,7 +157,8 @@ func (r *reconciler) isCertExpired(name string) (expired, exists bool, err error
 	return expireTime.After(certificate.NotAfter), exists, err
 }
 
-func (r *reconciler) RemoveExpiredCertificate(name string) (err error) {
+// removeExpiredCertificate removes an instance cached TLS cert, given an instance name
+func (r *Reconciler) removeExpiredCertificate(name string) (err error) {
 	templatedSecretName := fmt.Sprintf("%v-tls", name)
 	log.Printf("Checking for expired TLS cert for '%v'\n", name)
 	expired, exists, err := r.isCertExpired(name)
@@ -167,7 +174,8 @@ func (r *reconciler) RemoveExpiredCertificate(name string) (err error) {
 	return nil
 }
 
-func GetClusterAPIManagerEndpoint(url string) (response string, err error) {
+// httpGetJSON makes a HTTP get request, given a URL, returns as a strings
+func httpGetJSON(url string) (response string, err error) {
 	if url[:1] == "/" {
 		url = url[1:]
 	}
@@ -211,13 +219,13 @@ list:
 				url := fmt.Sprintf("%s/api/instance/kubernetes/%s/%s", r.clusterAPIManagerHost, c.ObjectMeta.Name, endpoint)
 				log.Printf("Trying cluster-api-manager endpoint '%s' (%s)\n", endpoint, url)
 				go func() {
-					resp, err := GetClusterAPIManagerEndpoint(url)
+					resp, err := httpGetJSON(url)
 					if err != nil {
 						log.Printf("Error from cluster-api-manager endpoint '%s'\n", err)
 					}
 					log.Printf("Response from cluster-api-manager endpoint '%s'\n", endpoint, resp)
 				}()
-				err := r.RemoveExpiredCertificate(c.ObjectMeta.Name)
+				err := r.removeExpiredCertificate(c.ObjectMeta.Name)
 				if err != nil {
 					log.Printf("Error with certificates '%v'\n", err)
 				}
