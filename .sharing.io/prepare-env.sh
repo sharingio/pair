@@ -21,7 +21,11 @@ read -r -p "PAIR_PERMITTED_ORGS (github orgs to require for use)           : " P
 read -r -p "PAIR_ADMIN_EMAIL_DOMAIN (email address domain for admin access): " PAIR_ADMIN_EMAIL_DOMAIN
 read -r -p "PACKET_API_KEY (the API key for taking to Packet)              : " PACKET_API_KEY
 echo       "PACKET_PROJECT_ID (the ID for the Packet project to use)       :"
-read -r -p "  default: ${PACKET_PROJECT_ID}                : "                  PACKET_PROJECT_ID_READ
+read -r -p "  default: ${PACKET_PROJECT_ID}                : "                 PACKET_PROJECT_ID_READ
+if [ -z "${GITHUB_TOKEN}" ]; then
+    read -r -p \
+           "GITHUB_TOKEN (the API token for talking to GitHub)             :"  GITHUB_TOKEN
+fi
 echo
 echo "Appending to '$GIT_ROOT/.env'"
 cat <<EOF >> $GIT_ROOT/.env
@@ -45,7 +49,7 @@ echo "Access Pair's backend from 'http://localhost:8080/api'"
 echo
 if ! kubectl -n capi-system get deployment capi-controller-manager 2> /dev/null; then
     echo "Initialising cluster-api..."
-    export $(cat $GIT_ROOT/.env | xargs)
+    export $(cat $GIT_ROOT/.env | xargs) GITHUB_TOKEN
     clusterctl init --infrastructure packet
 fi
 read -r -p "Press enter to exit"
