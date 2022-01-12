@@ -18,7 +18,7 @@ spec:
     instance:
       kubernetesVersion: 1.22.3
       environmentRepository: registry.gitlab.com/sharingio/environment/environment
-      environmentVersion: 2021.11.16.1609
+      environmentVersion: 2022.01.11.1543
       nodeSize: m1.xlarge.x86
     sessionSecret: pairpairpairpair
     maxInstancesForNonAdmins: 1
