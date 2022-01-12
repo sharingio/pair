@@ -31,6 +31,6 @@ Note:
 
 * License
 
-Copyright 2020-2021 Sharingio authors and contributors.
+Copyright 2020-2022 Sharingio authors and contributors.
 
 Pair is license under the Apache 2.0 license.
