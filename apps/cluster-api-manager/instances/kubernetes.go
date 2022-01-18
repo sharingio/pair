@@ -661,7 +661,7 @@ if ! ( [ -f .sharing.io/cluster-api/preKubeadmCommands.sh ] || [ -f .sharing.io/
   git clone https://github.com/sharingio/.sharing.io
 fi
 
-if [ -z "${SHARINGIO_REPO_BRANCH}" ]; then
+if [ -n "${SHARINGIO_REPO_BRANCH}" ]; then
   (
     cd ~/.sharing.io
     git switch "${SHARINGIO_REPO_BRANCH}" || true
