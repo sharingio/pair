@@ -93,7 +93,7 @@
         " and "
         [:a {:href "https://gitlab.com/sharingio/pair"} "GitLab"]
         "."]]
-      [:p "To use sharing.io, you must be a member of a permitted github org."]
+      [:p "To use sharing.io, you must be a public member of a permitted github org."]
       ]
      )]]
    user))
