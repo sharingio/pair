@@ -2,8 +2,8 @@
 
 * Environment
 Is the container image that is used for providing a shared environment with a shared terminal session and lots of useful utilities.
-It also contains [[https://humacs.org][Humacs]] is a distribution of Emacs, maintained by [[https://ii.coop][ii]].
 It features Doom, but also packages Spacemacs, with custom shared configurations.
+It also contains [[https://humacs.org][Humacs]], some extra configuration on top of Doom, maintained by [[https://ii.coop][ii]].
 
 Environment is deployed as a container image into the cluster as a StatefulSet, which is accessed as a Pod.
 
