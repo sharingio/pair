@@ -663,7 +663,7 @@ fi
 
 if [ -n "${SHARINGIO_REPO_BRANCH}" ]; then
   (
-    cd ~/.sharing.io
+    cd .sharing.io
     git switch "${SHARINGIO_REPO_BRANCH}" || true
   )
 fi
