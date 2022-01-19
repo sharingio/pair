@@ -122,6 +122,7 @@ metadata:
   name: sharingio-pair-registry
   namespace: sharingio-pair
 spec:
+  ingressClassName: nginx
   tls:
     - hosts:
         - "docker-mirror.${SHARINGIO_PAIR_BASE_DNS_NAME}"
