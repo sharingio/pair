@@ -628,6 +628,14 @@ export SHARINGIO_PAIR_INSTANCE_SETUP_USER="{{ $.Setup.User }}"
 {{ if $.RegistryMirrors }}
 export SHARINGIO_PAIR_INSTANCE_CONTAINER_REGISTRY_MIRRORS="{{ range $.RegistryMirrors }}{{ . }} {{ end }}"
 {{ end }}
+
+{{ range $key, $map := .Setup.Env }}
+{{ range $mapkey, $mapvalue := $map }}
+{{ if (and (eq $mapkey "SHARINGIO_REPO_BRANCH") (ne $mapvalue "")) }}
+export SHARINGIO_REPO_BRANCH="{{ $mapvalue }}"
+{{ end }}
+{{ end }}
+{{ end }}
 EOF
 . /root/.sharing-io-pair-init.env
 `)
@@ -651,6 +659,13 @@ git clone https://github.com/${SHARINGIO_PAIR_INSTANCE_SETUP_USER}/.sharing.io |
 if ! ( [ -f .sharing.io/cluster-api/preKubeadmCommands.sh ] || [ -f .sharing.io/cluster-api/postKubeadmCommands.sh ] ); then
   rm -rf .sharing.io
   git clone https://github.com/sharingio/.sharing.io
+fi
+
+if [ -n "${SHARINGIO_REPO_BRANCH}" ]; then
+  (
+    cd .sharing.io
+    git switch "${SHARINGIO_REPO_BRANCH}" || true
+  )
 fi
 
 cd /root/.sharing.io/cluster-api
