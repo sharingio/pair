@@ -28,7 +28,8 @@ var (
 	AppBuildHash    = "???"
 	AppBuildDate    = "???"
 	AppBuildMode    = "development"
-	letters         = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
+	// https://github.com/kubernetes/apimachinery/blob/v0.23.3/pkg/util/rand/rand.go#L83
+	letters = []rune("bcdfghjklmnpqrstvwxz2456789")
 )
 
 // GetEnvOrDefault ...
