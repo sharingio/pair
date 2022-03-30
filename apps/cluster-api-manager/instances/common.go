@@ -15,8 +15,8 @@ var (
 	instanceDefaultNodeSize              = "c3.small.x86"
 	instanceDefaultTimezone              = "Pacific/Auckland"
 	instanceDefaultEnvironmentRepository = "registry.gitlab.com/sharingio/environment/environment"
-	instanceDefaultEnvironmentVersion    = "2021.11.16.1609"
-	instanceDefaultKubernetesVersion     = "1.22.3"
+	instanceDefaultEnvironmentVersion    = "2022.03.30.1618"
+	instanceDefaultKubernetesVersion     = "1.23.5"
 )
 
 // GetEnvironmentRepository ...
