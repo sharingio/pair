@@ -47,7 +47,7 @@ spec:
                 topologyKey: "kubernetes.io/hostname"
       resources:
         requests:
-          cpu: 50m
+          cpu: 200m
           memory: 400Mi
     clusterapimanager:
       image:
@@ -57,10 +57,10 @@ spec:
         minReplicas: 9
       resources:
         requests:
-          cpu: 60m
+          cpu: 200m
           memory: 70Mi
         limits:
-          cpu: 60m
+          cpu: 200m
           memory: 70Mi
       affinity:
         podAntiAffinity:
