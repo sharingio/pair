@@ -87,13 +87,8 @@
 
 (defn get-sites
   [ingresses]
-  (let [items (-> ingresses  :list :items)
-        rules (mapcat #(map :host (-> % :spec :rules)) items)
-        tls (mapcat #(mapcat :hosts (-> % :spec :tls)) items)]
-    (map (fn [addr]
-           (if (some #{addr} tls)
-             (str "https://"addr)
-             (str "http://"addr))) rules)))
+  (let [items (-> ingresses :list)
+        urls (mapcat #(map :url (-> % :url)) items)]))
 
 (defn launch
   [{:keys [username token emails]} {:keys [name project timezone envvars facility type guests fullname email repos kubernetesNodeCount noGitHubToken] :as params}]
@@ -155,7 +150,7 @@
      :tmate-ssh (-> tmate-ssh :spec)
      :tmate-web (-> tmate-web :spec)
      :ingresses (-> ingresses :list)
-     :sites (get-sites ingresses)
+     :sites (-> ingresses :list)
      :created-at created-at
      :age (if (nil? created-at) nil (relative-age created-at))}))
 

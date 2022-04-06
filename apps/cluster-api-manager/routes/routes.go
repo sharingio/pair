@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	networkingv1 "k8s.io/api/networking/v1"
+	// networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -461,13 +461,13 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 		name := vars["name"]
 
 		ingresses, err := instances.KubernetesGetInstanceIngresses(kubernetesClientset, name)
-		if len(ingresses.Items) == 0 && err == nil {
+		if len(ingresses) == 0 && err == nil {
 			responseCode = http.StatusNotFound
 			JSONresp := types.JSONMessageResponse{
 				Metadata: types.JSONResponseMetadata{
 					Response: "Resource not found",
 				},
-				Spec: networkingv1.IngressList{},
+				Spec: []instances.Ingress{},
 			}
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return
@@ -478,7 +478,7 @@ func GetKubernetesIngresses(kubernetesClientset *kubernetes.Clientset) http.Hand
 				Metadata: types.JSONResponseMetadata{
 					Response: err.Error(),
 				},
-				Spec: networkingv1.IngressList{},
+				Spec: []instances.Ingress{},
 			}
 			common.JSONResponse(r, w, responseCode, JSONresp)
 			return

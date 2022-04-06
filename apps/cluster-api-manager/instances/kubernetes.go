@@ -17,7 +17,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
+	// networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -203,7 +203,10 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 	items, err := kubernetesClientset.Resource(groupVersionResource).Namespace(targetNamespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
-		return instances, fmt.Errorf("Failed to list KubeadmControlPlane, %#v", err)
+		return instances, fmt.Errorf("Failed to list KubeadmControlPlanes, %#v", err)
+	}
+	if items == nil {
+		return []Instance{}, fmt.Errorf("Failed to list KubeadmControlPlanes")
 	}
 
 	for _, item := range items.Items {
@@ -241,6 +244,9 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 		log.Printf("%#v\n", err)
 		return instances, fmt.Errorf("Failed to list Machine, %#v", err)
 	}
+	if items == nil {
+		return []Instance{}, fmt.Errorf("Failed to list Machines")
+	}
 
 	for _, item := range items.Items {
 		var itemRestructured clusterAPIv1alpha3.Machine
@@ -264,6 +270,9 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return instances, fmt.Errorf("Failed to list PacketMachine, %#v", err)
+	}
+	if items == nil {
+		return []Instance{}, fmt.Errorf("Failed to list PacketMachines")
 	}
 
 	for _, item := range items.Items {
@@ -298,6 +307,9 @@ func KubernetesList(kubernetesClientset dynamic.Interface, clientset *kubernetes
 	if err != nil && apierrors.IsNotFound(err) != true {
 		log.Printf("%#v\n", err)
 		return instances, fmt.Errorf("Failed to list Cluster, %#v", err)
+	}
+	if items == nil {
+		return []Instance{}, fmt.Errorf("Failed to list Clusters")
 	}
 
 	for _, item := range items.Items {
@@ -1225,19 +1237,47 @@ func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName 
 	return stdout, nil
 }
 
+type Ingress struct {
+	Protocol string `json:"protocol"`
+	Host     string `json:"host"`
+	URL      string `json:"url"`
+}
+
 // KubernetesGetInstanceIngresses ...
 // given a clienset and instance name, return the Ingresses available on the instance
-func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceName string) (ingresses *networkingv1.IngressList, err error) {
+func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceName string) (ingresses []Ingress, err error) {
 	instanceKubeconfig, err := KubernetesGetKubeconfigBytes(instanceName, clientset)
 	if err != nil {
-		return &networkingv1.IngressList{}, err
+		return []Ingress{}, err
 	}
 	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
 	if err != nil {
-		return &networkingv1.IngressList{}, err
+		return []Ingress{}, err
 	}
 
-	ingresses, err = instanceClientset.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
+	v1ingresses, err := instanceClientset.NetworkingV1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return []Ingress{}, err
+	}
+	for _, v1ingress := range v1ingresses.Items {
+		ings := []Ingress{}
+		for _, rule := range v1ingress.Spec.Rules {
+			protocol := "http"
+			for _, tls := range v1ingress.Spec.TLS {
+				for _, host := range tls.Hosts {
+					if host == rule.Host {
+						protocol = "https"
+					}
+				}
+			}
+			ings = append(ings, Ingress{
+				Host:     rule.Host,
+				Protocol: protocol,
+				URL:      fmt.Sprintf("%v://%v", rule.Host, protocol),
+			})
+		}
+	}
+
 	return ingresses, err
 }
 
