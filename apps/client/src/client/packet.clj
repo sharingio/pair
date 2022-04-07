@@ -85,11 +85,6 @@
         results (doall (map (fn [[name future]] [name (deref future)]) futures))]
     (into {} results)))
 
-(defn get-sites
-  [ingresses]
-  (let [items (-> ingresses :list)
-        urls (mapcat #(map :url (-> % :url)) items)]))
-
 (defn launch
   [{:keys [username token emails]} {:keys [name project timezone envvars facility type guests fullname email repos kubernetesNodeCount noGitHubToken] :as params}]
   (let [backend (str "http://"(env :backend-address)"/api/instance")
@@ -149,8 +144,8 @@
      :kubeconfig (-> kubeconfig :spec)
      :tmate-ssh (-> tmate-ssh :spec)
      :tmate-web (-> tmate-web :spec)
-     :ingresses (-> ingresses :list)
-     :sites (-> ingresses :list)
+     :ingresses (map :url (:list ingresses))
+     :sites (map :url (:list ingresses))
      :created-at created-at
      :age (if (nil? created-at) nil (relative-age created-at))}))
 
