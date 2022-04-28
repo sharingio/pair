@@ -54,7 +54,7 @@ type Reconciler struct {
 
 // NewReconciler returns a reconciler struct
 func NewReconciler() (r Reconciler, err error) {
-	err, clientset := camk8s.Client()
+	clientset, err := camk8s.Client()
 	if err != nil {
 		log.Panicln(err)
 		return
@@ -64,13 +64,13 @@ func NewReconciler() (r Reconciler, err error) {
 		return
 	}
 
-	err, dynamicClientset := camk8s.DynamicClient()
+	dynamicClientset, err := camk8s.DynamicClient()
 	if err != nil {
 		log.Panicln(err)
 		return
 	}
 
-	err, restConfig := camk8s.RestClient()
+	restConfig, err := camk8s.RestClient()
 	if err != nil {
 		log.Panicln(err)
 		return

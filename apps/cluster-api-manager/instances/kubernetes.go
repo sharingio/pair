@@ -33,7 +33,7 @@ import (
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
-	kubeadmv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/v1beta1"
+	upstreamv1beta1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	clusterAPIControlPlaneKubeadmv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/yaml"
 )
@@ -753,16 +753,16 @@ bash -x ./postKubeadmCommands.sh
 					Kind:       "PacketMachineTemplate",
 				},
 				KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
-					InitConfiguration: &kubeadmv1beta1.InitConfiguration{
-						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					InitConfiguration: &upstreamv1beta1.InitConfiguration{
+						NodeRegistration: upstreamv1beta1.NodeRegistrationOptions{
 							KubeletExtraArgs: map[string]string{
 								"cloud-provider": "external",
 							},
 						},
 					},
-					ClusterConfiguration: &kubeadmv1beta1.ClusterConfiguration{
-						APIServer: kubeadmv1beta1.APIServer{
-							ControlPlaneComponent: kubeadmv1beta1.ControlPlaneComponent{
+					ClusterConfiguration: &upstreamv1beta1.ClusterConfiguration{
+						APIServer: upstreamv1beta1.APIServer{
+							ControlPlaneComponent: upstreamv1beta1.ControlPlaneComponent{
 								ExtraArgs: map[string]string{
 									"cloud-provider":            "external",
 									"audit-policy-file":         "/etc/kubernetes/pki/audit-policy.yaml",
@@ -772,14 +772,14 @@ bash -x ./postKubeadmCommands.sh
 								},
 							},
 						},
-						ControllerManager: kubeadmv1beta1.ControlPlaneComponent{
+						ControllerManager: upstreamv1beta1.ControlPlaneComponent{
 							ExtraArgs: map[string]string{
 								"cloud-provider": "external",
 							},
 						},
 					},
-					JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-						NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+					JoinConfiguration: &upstreamv1beta1.JoinConfiguration{
+						NodeRegistration: upstreamv1beta1.NodeRegistrationOptions{
 							KubeletExtraArgs: map[string]string{
 								"cloud-provider": "external",
 							},
@@ -893,8 +893,8 @@ EOF`,
 							"DEBIAN_FRONTEND=noninteractive apt-get install -y git",
 							kubeadmPre5,
 						},
-						JoinConfiguration: &kubeadmv1beta1.JoinConfiguration{
-							NodeRegistration: kubeadmv1beta1.NodeRegistrationOptions{
+						JoinConfiguration: &upstreamv1beta1.JoinConfiguration{
+							NodeRegistration: upstreamv1beta1.NodeRegistrationOptions{
 								KubeletExtraArgs: map[string]string{
 									"cloud-provider": "external",
 								},
