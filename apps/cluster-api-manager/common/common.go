@@ -10,13 +10,13 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/sharingio/pair/apps/cluster-api-manager/types"
@@ -145,7 +145,9 @@ func ObjectToUnstructured(obj interface{}) (unstr *unstructured.Unstructured, er
 // add a HTTPS GitHub prefix to a repo link if it's not a valid URL
 func AddRepoGitHubPrefix(repos []string) (reposModified []string) {
 	for _, repo := range repos {
-		if govalidator.IsURL(repo) != true {
+		_, err := url.ParseRequestURI(repo)
+		isURL := err == nil
+		if !isURL {
 			repo = fmt.Sprintf("https://github.com/%s", repo)
 		}
 		reposModified = append(reposModified, repo)
