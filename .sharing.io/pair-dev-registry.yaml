@@ -121,8 +121,10 @@ kind: Ingress
 metadata:
   name: sharingio-pair-registry
   namespace: sharingio-pair
+  annotations:
+    kubernetes.io/ingress.class: $SHARINGIO_PAIR_INSTANCE_INGRESS_CLASS_NAME
 spec:
-  ingressClassName: nginx
+  ingressClassName: $SHARINGIO_PAIR_INSTANCE_INGRESS_CLASS_NAME
   tls:
     - hosts:
         - "docker-mirror.${SHARINGIO_PAIR_BASE_DNS_NAME}"
