@@ -32,6 +32,8 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/tools/remotecommand"
 
+	knetv1alpha1 "knative.dev/networking/pkg/apis/networking/v1alpha1"
+	knnetclientset "knative.dev/networking/pkg/client/clientset/versioned"
 	clusterAPIPacketv1alpha3 "sigs.k8s.io/cluster-api-provider-packet/api/v1alpha3"
 	clusterAPIv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
@@ -1240,9 +1242,11 @@ func KubernetesGetTmateWebSession(clientset *kubernetes.Clientset, instanceName 
 }
 
 type Ingress struct {
-	Protocol string `json:"protocol"`
-	Host     string `json:"host"`
-	URL      string `json:"url"`
+	Protocol     string `json:"protocol"`
+	Host         string `json:"host"`
+	URL          string `json:"url"`
+	Source       string `json:"source"`
+	IngressClass string `json:"ingressClass"`
 }
 
 // KubernetesGetInstanceIngresses ...
@@ -1253,6 +1257,14 @@ func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceNam
 		return []Ingress{}, err
 	}
 	instanceClientset, err := KubernetesClientsetFromKubeconfigBytes(instanceKubeconfig)
+	if err != nil {
+		return []Ingress{}, err
+	}
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(instanceKubeconfig)
+	if err != nil {
+		return []Ingress{}, err
+	}
+	knnetcs, err := knnetclientset.NewForConfig(restConfig)
 	if err != nil {
 		return []Ingress{}, err
 	}
@@ -1277,9 +1289,41 @@ func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceNam
 				Host:     rule.Host,
 				Protocol: protocol,
 				URL:      uri.String(),
+				Source:   "ingresses.networking.k8s.io/v1",
 			})
 		}
 	}
+
+	v1alpha1kingresses, err := knnetcs.NetworkingV1alpha1().Ingresses("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return []Ingress{}, err
+	}
+	for _, king := range v1alpha1kingresses.Items {
+		for _, rule := range king.Spec.Rules {
+			if rule.Visibility != knetv1alpha1.IngressVisibilityExternalIP {
+				continue
+			}
+			for _, ruleHost := range rule.Hosts {
+				protocol := "http"
+				for _, tls := range king.Spec.TLS {
+					for _, tlsHost := range tls.Hosts {
+						if ruleHost == tlsHost {
+							protocol = "https"
+						}
+					}
+				}
+				uri, _ := url.Parse(ruleHost)
+				uri.Scheme = protocol
+				ingresses = append(ingresses, Ingress{
+					Host:     ruleHost,
+					Protocol: protocol,
+					URL:      uri.String(),
+					Source:   "ingresses.networking.internal.knative.dev/v1alpha1",
+				})
+			}
+		}
+	}
+
 	sort.Slice(ingresses, func(i int, j int) bool {
 		return ingresses[i].URL < ingresses[j].URL
 	})
