@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
@@ -1270,10 +1271,12 @@ func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceNam
 					}
 				}
 			}
+			uri, _ := url.Parse(rule.Host)
+			uri.Scheme = protocol
 			ingresses = append(ingresses, Ingress{
 				Host:     rule.Host,
 				Protocol: protocol,
-				URL:      fmt.Sprintf("%v://%v", protocol, rule.Host),
+				URL:      uri.String(),
 			})
 		}
 	}
