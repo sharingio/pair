@@ -2,6 +2,7 @@ package instances
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
@@ -40,8 +41,10 @@ func ValidateInstance(instance InstanceSpec) (err error) {
 	}
 	invalidRepos := []string{}
 	for _, repo := range instance.Setup.Repos {
+		_, err = url.ParseRequestURI(repo)
+		isURL := err == nil
 		filePathValid, _ := govalidator.IsFilePath(repo)
-		if repo == "" || !(govalidator.IsURL(repo) != true || filePathValid != true) {
+		if repo == "" || !(isURL != true || filePathValid != true) {
 			invalidRepos = append(invalidRepos, repo)
 		}
 	}
