@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"text/template"
@@ -1260,7 +1261,6 @@ func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceNam
 		return []Ingress{}, err
 	}
 	for _, v1ingress := range v1ingresses.Items {
-		ings := []Ingress{}
 		for _, rule := range v1ingress.Spec.Rules {
 			protocol := "http"
 			for _, tls := range v1ingress.Spec.TLS {
@@ -1270,13 +1270,16 @@ func KubernetesGetInstanceIngresses(clientset *kubernetes.Clientset, instanceNam
 					}
 				}
 			}
-			ings = append(ings, Ingress{
+			ingresses = append(ingresses, Ingress{
 				Host:     rule.Host,
 				Protocol: protocol,
-				URL:      fmt.Sprintf("%v://%v", rule.Host, protocol),
+				URL:      fmt.Sprintf("%v://%v", protocol, rule.Host),
 			})
 		}
 	}
+	sort.Slice(ingresses, func(i int, j int) bool {
+		return ingresses[i].URL < ingresses[j].URL
+	})
 
 	return ingresses, err
 }
