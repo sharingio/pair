@@ -10,10 +10,7 @@ spec:
     path: charts/sharingio-pair
   values:
     permittedOrgs:
-      - sharingio
-      - cncf
-      - kubernetes
-      - ii
+      - "*"
     adminEmailDomain: ii.coop
     instance:
       kubernetesVersion: 1.23.5
