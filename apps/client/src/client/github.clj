@@ -48,7 +48,7 @@
   [orgs]
   (let [permitted-orgs (set (clojure.string/split (env :pair-permitted-orgs) #" "))
         user-orgs (set (map :login orgs))]
-    ((complement empty?) (clojure.set/intersection user-orgs permitted-orgs))))
+    (or ((complement empty?) (clojure.set/intersection user-orgs permitted-orgs)) (= (env :pair-permitted-orgs) "*"))))
 
 (s/fdef is-admin?
   :args (s/cat :emails :gh/emails)
