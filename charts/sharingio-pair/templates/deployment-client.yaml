@@ -69,7 +69,7 @@ spec:
             - name: TZ
               value: {{ .Values.timezone }}
             - name: PAIR_PERMITTED_ORGS
-              value: "{{ range .Values.permittedOrgs }}{{ . }} {{ end }}"
+              value: "{{ range $i, $v := .Values.permittedOrgs }}{{$i}}:{{ $v }}{{ if not (eq (len $.Values.permittedOrgs) (add $i 1)) }} {{ end }}{{ end }}"
             - name: PAIR_ADMIN_EMAIL_DOMAIN
               value: "{{ .Values.adminEmailDomain }}"
             - name: MAX_INSTANCE_LIMIT
