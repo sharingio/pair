@@ -13,6 +13,7 @@ import (
 // misc default vars
 var (
 	instanceDefaultNodeSize              = "c3.small.x86"
+	instanceDefaultNodeOS                = "ubuntu_20_04"
 	instanceDefaultTimezone              = "Pacific/Auckland"
 	instanceDefaultEnvironmentRepository = "registry.gitlab.com/sharingio/environment/environment"
 	instanceDefaultEnvironmentVersion    = "2022.03.30.1618"
@@ -35,6 +36,12 @@ func GetEnvironmentVersion() string {
 // get the version of Kubernetes to use in the cluster
 func GetKubernetesVersion() string {
 	return common.GetEnvOrDefault("APP_INSTANCE_KUBERNETES_VERSION", instanceDefaultKubernetesVersion)
+}
+
+// GetInstanceDefaultNodeOS ...
+// get the OS of node to create
+func GetInstanceDefaultNodeOS() string {
+	return common.GetEnvOrDefault("APP_INSTANCE_NODE_OS", instanceDefaultNodeOS)
 }
 
 // GetInstanceDefaultNodeSize ...

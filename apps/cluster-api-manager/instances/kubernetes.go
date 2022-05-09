@@ -75,11 +75,6 @@ func Int32ToInt32Pointer(input int32) *int32 {
 	return &input
 }
 
-// misc vars
-var (
-	defaultMachineOS = "ubuntu_20_04"
-)
-
 // KubernetesGet ...
 // Get a Kubernetes instance
 func KubernetesGet(name string, kubernetesClientset dynamic.Interface, clientset *kubernetes.Clientset) (instance Instance, err error) {
@@ -616,6 +611,7 @@ func KubernetesDelete(name string, kubernetesClientset dynamic.Interface) (err e
 // given an instance spec and namespace, return KubernetesCluster resources
 func KubernetesTemplateResources(instance InstanceSpec, namespace string) (newInstance KubernetesCluster, err error) {
 	instance.NodeSize = common.ReturnValueOrDefault(instance.NodeSize, GetInstanceDefaultNodeSize())
+	instance.NodeOS = common.ReturnValueOrDefault(instance.NodeOS, GetInstanceDefaultNodeOS())
 	instance.RegistryMirrors = common.GetInstanceContainerRegistryMirrors()
 	instance.Setup.EnvironmentVersion = common.ReturnValueOrDefault(instance.Setup.EnvironmentVersion, GetEnvironmentVersion())
 	instance.Setup.EnvironmentRepository = common.ReturnValueOrDefault(instance.Setup.EnvironmentRepository, GetEnvironmentRepository())
@@ -928,7 +924,7 @@ EOF`,
 			Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
 				Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
 					Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
-						OS:           defaultMachineOS,
+						OS:           instance.NodeOS,
 						BillingCycle: "hourly",
 						// 1 = machine type
 						MachineType: "",
@@ -957,7 +953,7 @@ EOF`,
 			Spec: clusterAPIPacketv1alpha3.PacketMachineTemplateSpec{
 				Template: clusterAPIPacketv1alpha3.PacketMachineTemplateResource{
 					Spec: clusterAPIPacketv1alpha3.PacketMachineSpec{
-						OS:           defaultMachineOS,
+						OS:           instance.NodeOS,
 						BillingCycle: "hourly",
 						// 1 = machine type
 						MachineType: "",
@@ -1632,6 +1628,7 @@ func KubernetesGetInstanceEnvironmentPodReadiness(clientset *kubernetes.Clientse
 // this way is a quick way to test new fields for new instances, but ideally these fields will be written by the client
 func UpdateInstanceSpecIfEnvOverrides(instance InstanceSpec) InstanceSpec {
 	instance.NodeSize = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_SIZE"), instance.NodeSize)
+	instance.NodeOS = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_NODE_OS"), instance.NodeOS)
 	instance.Setup.EnvironmentVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_ENVIRONMENT_VERSION"), instance.Setup.EnvironmentVersion)
 	instance.Setup.EnvironmentRepository = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_ENVIRONMENT_REPOSITORY"), instance.Setup.EnvironmentRepository)
 	instance.Setup.KubernetesVersion = common.ReturnValueOrDefault(GetValueFromEnvSlice(instance.Setup.Env, "__SHARINGIO_PAIR_KUBERNETES_VERSION"), instance.Setup.KubernetesVersion)

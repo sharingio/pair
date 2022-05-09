@@ -25,6 +25,7 @@ type InstanceSpec struct {
 	Type                InstanceType       `json:"type"`
 	Setup               types.SetupSpec    `json:"setup"`
 	NodeSize            string             `json:"nodeSize"`
+	NodeOS              string             `json:"nodeOS"`
 	KubernetesNodeCount int                `json:"kubernetesNodeCount"`
 	Facility            string             `json:"facility"`
 	NameScheme          InstanceNameScheme `json:"nameScheme"`
