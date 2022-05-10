@@ -117,7 +117,6 @@ div#more-info {
 }
 
 div#more-info a,
-div.missing-keys > p > a,
 #cta > div.missing-keys > p > a {
   font-size: var(--font-base);
   padding: 0;
@@ -472,9 +471,9 @@ ul#sites-available > li > a {
 div.missing-keys {
   background-color: black;
   color: white;
-  padding: 10px;
+  padding: 0.5rem;
   border-radius: 3px;
-  max-width: 300px;
+  max-width: 19rem;
   margin-bottom: var(--section-spacing);
 }
 
