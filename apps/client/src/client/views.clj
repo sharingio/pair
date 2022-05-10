@@ -233,7 +233,7 @@
       (code-box "tmate-ssh" tmate-ssh)]]))
 
 (defn status
-  [{:keys [facility type phase sites dns cert noGitHubToken kubernetesNodeCount]}]
+  [{:keys [facility type phase sites dns cert noGitHubToken kubernetesNodeCount external-ips]}]
   [:section#status
    (if (empty? phase)
      [:h3#phase "Status: Unknown"]
@@ -241,6 +241,10 @@
    [:p#type "Type: " type]
    [:p#kubernetesNodeCount "Node count: " kubernetesNodeCount]
    [:p#facility "Region: " facility]
+   [:p#external-ips-title "External IPs: " ]
+   [:ul#external-ips
+    (for [ip (map :address external-ips)]
+      [:li [:p ip]])]
    [:h3 "Sites Available"]
    [:ul#sites-available
     (if (> (count (filter (complement empty?) sites)) 0)

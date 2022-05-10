@@ -36,6 +36,14 @@
              (filter #(= "Ready" (:type %))) first :lastTransitionTime)]
     last-transition-time))
 
+(defn status->external-ips
+  [status]
+  (let [ips
+        (->> status :resources :MachineStatus :addresses
+             (filter #(= "ExternalIP" (:type %))))]
+    (println "ips:" ips)
+    ips))
+
 (s/fdef k8stime->unix-timestamp
   :args (s/cat :k8s-time string?)
   :ret int?)
@@ -147,6 +155,7 @@
      :ingresses (map :url (:list ingresses))
      :sites (map :url (:list ingresses))
      :created-at created-at
+     :external-ips (status->external-ips (:status instance))
      :age (if (nil? created-at) nil (relative-age created-at))}))
 
 (defn get-all-instances
