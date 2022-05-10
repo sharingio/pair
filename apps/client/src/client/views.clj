@@ -24,7 +24,7 @@
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      (when (and permitted-member (not (empty? (:ssh-keys user))))
+      (when (and permitted-member (not (empty? (:ssh-keys user))))(not= (:ssh-keys user) nil)
         (list
         [:a.btn.beta {:href "/instances/new"} "New"]
         [:a.btn.alpha {:href "/instances"} "All"]))
@@ -87,7 +87,7 @@
           [:a {:href "/instances"} "All"]]
          [:div.missing-keys
           [:p "Pair requires your GitHub account have SSH keys added to it."
-           [:a {:href "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"} "Add keys to your account"]]]
+           [:a {:target "blank" :rel "noreferrer" :href "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"} "Add keys to your account"]]]
          )
        [:div.display-block
         [:div#more-info.display-block
