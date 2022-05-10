@@ -26,6 +26,10 @@ const pasteButtons = [
   {
     button: "button#copy-kc",
     value: "pre#kc"
+  },
+  {
+    button: "button#copy-pair-ssh-instance-command",
+    value: "pre#pair-ssh-instance-command"
   }
 ]
 
