@@ -11,6 +11,8 @@
   --font-base: 20px;
   --section-spacing: 1rem;
   --hover_action: hue-rotate(30deg);
+  --white: #fff;
+  --black: #000;
 }
 
 body,
@@ -469,7 +471,7 @@ ul#sites-available > li > a {
 }
 
 div.missing-keys {
-  background-color: black;
+  background-color: var(--black);
   color: white;
   padding: 0.5rem;
   border-radius: 3px;
