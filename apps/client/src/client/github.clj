@@ -50,8 +50,6 @@
     (:body (http/get (str "https://github.com/" username ".keys")))
     (catch Exception e nil)))
 
-(user-ssh-keys "BobyMCbobs")
-
 (s/fdef in-permitted-org?
   :args (s/cat :orgs :gh/orgs)
   :ret boolean?)
