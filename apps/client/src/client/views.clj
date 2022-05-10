@@ -24,7 +24,7 @@
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      (when permitted-member
+      (when (and permitted-member (not (empty? (:ssh-keys user))))
         (list
         [:a.btn.beta {:href "/instances/new"} "New"]
         [:a.btn.alpha {:href "/instances"} "All"]))
@@ -80,22 +80,28 @@
     [:section#cta
      [:p.tagline "Sharing is Pairing"]
      (if permitted-member
-     [:div
-      [:a {:href "/instances/new"} "New"]
-      [:a {:href "/instances"} "All"]]
-     [:div.display-block
-      [:div#more-info.display-block
-       [:p
-        "Sharable Pairing Environments (on Equinix Metal)."]
-       [:p
-        "Contribute over at "
-        [:a {:href "https://github.com/sharingio/pair"} "GitHub"]
-        " and "
-        [:a {:href "https://gitlab.com/sharingio/pair"} "GitLab"]
-        "."]]
-      [:p "To use sharing.io, you must be a public member of a permitted github org."]
-      ]
-     )]]
+       ;; if has no ssh-keys
+       (if (not (empty? (:ssh-keys user)))
+         [:div#action-buttons
+          [:a {:href "/instances/new"} "New"]
+          [:a {:href "/instances"} "All"]]
+         [:div.missing-keys
+          [:p "Pair requires your GitHub account have SSH keys added to it."
+           [:a {:href "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"} "Add keys to your account"]]]
+         )
+       [:div.display-block
+        [:div#more-info.display-block
+         [:p
+          "Sharable Pairing Environments (on Equinix Metal)."]
+         [:p
+          "Contribute over at "
+          [:a {:href "https://github.com/sharingio/pair"} "GitHub"]
+          " and "
+          [:a {:href "https://gitlab.com/sharingio/pair"} "GitLab"]
+          "."]]
+        [:p "To use sharing.io, you must be a public member of a permitted github org."]
+        ]
+       )]]
    user))
 
 (defn new-box-form
