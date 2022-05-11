@@ -238,6 +238,18 @@
       [:p "Join via ssh:"]
       (code-box "tmate-ssh" tmate-ssh)]]))
 
+(defn pair-ssh-instance
+  [{:keys [instance-id]}]
+  (if instance-id
+    (list
+     [:h3 "pair-ssh-instance "]
+     [:p "connect with SSH, passing through the SSH agent (options with no args)"]
+     (code-box "pair-ssh-instance-command" (str "pair-ssh-instance " instance-id))
+     [:a#psi-dl {:href "https://raw.githubusercontent.com/sharingio/pair/master/hack/pair-ssh-instance"
+                :download "pair-ssh-instance"} "download pair-ssh-instance"]
+
+     )))
+
 (defn status
   [{:keys [facility type phase sites dns cert noGitHubToken kubernetesNodeCount external-ips]}]
   [:section#status
@@ -313,6 +325,7 @@
     [:article
      [:section.status
     (tmate instance)
+    (pair-ssh-instance instance)
     (kubeconfig-box instance)
     (envvars-box instance)]
     [:aside
