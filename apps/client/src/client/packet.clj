@@ -41,7 +41,6 @@
   (let [ips
         (->> status :resources :MachineStatus :addresses
              (filter #(= "ExternalIP" (:type %))))]
-    (println "ips:" ips)
     ips))
 
 (s/fdef k8stime->unix-timestamp
