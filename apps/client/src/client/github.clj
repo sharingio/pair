@@ -41,6 +41,15 @@
   [emails]
   (:email (first (filter #(= (:primary %) true) emails))))
 
+(s/fdef user-ssh-keys
+  :args (s/cat :username string?)
+  :ret (s/nilable string?))
+(defn user-ssh-keys
+  [username]
+  (try
+    (:body (http/get (str "https://github.com/" username ".keys")))
+    (catch Exception e nil)))
+
 (s/fdef in-permitted-org?
   :args (s/cat :orgs :gh/orgs)
   :ret boolean?)
@@ -76,6 +85,7 @@
    :profile html_url
    :avatar avatar_url
    :permitted-member (in-permitted-org? orgs)
+   :ssh-keys (user-ssh-keys login)
    :admin-member (is-admin? emails)})
 
 (s/fdef get-user-info

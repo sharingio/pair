@@ -9,8 +9,10 @@
   --color_action_alert: tomato;
   --font_body: "Manrope", "Helvetica", sans-serif;
   --font-base: 20px;
-  --section-spacing: 3rem;
+  --section-spacing: 1rem;
   --hover_action: hue-rotate(30deg);
+  --white: #fff;
+  --black: #000;
 }
 
 body,
@@ -116,7 +118,8 @@ div#more-info {
   margin-bottom: 20px;
 }
 
-div#more-info a {
+div#more-info a,
+#cta > div.missing-keys > p > a {
   font-size: var(--font-base);
   padding: 0;
   color: var(--color_action);
@@ -140,7 +143,7 @@ nav#login-options {
 
 #cta div {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 #cta a {
@@ -465,6 +468,20 @@ p.instanceCountMessage {
 
 ul#sites-available > li > a {
   line-break: anywhere;
+}
+
+div.missing-keys {
+  background-color: var(--black);
+  color: white;
+  padding: 0.5rem;
+  border-radius: 3px;
+  max-width: 19rem;
+  margin-bottom: var(--section-spacing);
+}
+
+#action-buttons > a {
+  margin-right: 10px;
+  margin-left: 10px;
 }
 
 @keyframes fadeout {
