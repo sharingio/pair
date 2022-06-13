@@ -24,7 +24,7 @@
     [:header#top
      [:h1 [:a.home {:href "/"} "sharing.io"]]
      [:nav
-      (when (and permitted-member (seq (:ssh-keys user)))
+      (when (and permitted-member (not (= (seq (:ssh-keys user)) nil)))
         (list
         [:a.btn.beta {:href "/instances/new"} "New"]
         [:a.btn.alpha {:href "/instances"} "All"]))
@@ -81,7 +81,7 @@
      [:p.tagline "Sharing is Pairing"]
      (if permitted-member
        ;; if has no ssh-keys
-       (if (seq (:ssh-keys user))
+       (if (not (= (seq (:ssh-keys user)) nil))
          [:div#action-buttons
           [:a {:href "/instances/new"} "New"]
           [:a {:href "/instances"} "All"]]
