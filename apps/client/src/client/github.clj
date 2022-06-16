@@ -46,9 +46,10 @@
   :ret (s/nilable string?))
 (defn user-ssh-keys
   [username]
-  (try
-    (:body (http/get (str "https://github.com/" username ".keys")))
-    (catch Exception e nil)))
+  (let [req (try+ (-> (http/get (str "https://github.com/" username ".keys")))
+                      (catch Object e
+                        (log/warn (str "Couldn't get SSH keys from GitHub user '" username "'; error: " e)) nil))]
+    (:body req)))
 
 (s/fdef in-permitted-org?
   :args (s/cat :orgs :gh/orgs)
