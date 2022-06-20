@@ -32,7 +32,8 @@
   {:user (get "user" token)
    :emails (get "user/emails" token)
    :token token
-   :orgs (get "user/orgs" token)})
+   :orgs (get "user/orgs" token)
+   :ssh-keys (get "user/keys" token)})
 
 (s/fdef primary-email
   :args (s/cat :emails :gh/emails)
@@ -66,7 +67,8 @@
   [{{:keys [login name avatar_url html_url]} :user
     emails :emails
     orgs :orgs
-    token :token}]
+    token :token
+    ssh-keys :ssh-keys}]
   (println "orgs: " orgs)
   {:username login
    :fullname name
@@ -75,6 +77,7 @@
    :token token
    :profile html_url
    :avatar avatar_url
+   :ssh-keys ssh-keys
    :permitted-member (in-permitted-org? orgs)
    :admin-member (is-admin? emails)})
 
@@ -84,10 +87,3 @@
 (defn get-user-info
   [code]
   (-> code get-token get-raw-info user-info))
-
-
-(comment
-  (def user (get-user-info "376cab7a8724c40cebe8"))
-user
-
-)

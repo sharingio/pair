@@ -10,7 +10,7 @@
   [rw?]
   (str "https://github.com/login/oauth/authorize?"
                     "client_id=" (env :oauth-client-id)
-                    "&scope=read:user user:email read:org" (when rw? " repo")))
+                    "&scope=read:user user:email read:org read:public_key" (when rw? " repo")))
 
 (defn code-box
   [id val]
