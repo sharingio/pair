@@ -32,7 +32,8 @@
   {:user (get "user" token)
    :emails (get "user/emails" token)
    :token token
-   :orgs (get "user/orgs" token)})
+   :orgs (get "user/orgs" token)
+   :ssh-keys (get "user/keys" token)})
 
 (s/fdef primary-email
   :args (s/cat :emails :gh/emails)
@@ -40,16 +41,6 @@
 (defn primary-email
   [emails]
   (:email (first (filter #(= (:primary %) true) emails))))
-
-(s/fdef user-ssh-keys
-  :args (s/cat :username string?)
-  :ret (s/nilable string?))
-(defn user-ssh-keys
-  [username]
-  (let [req (try+ (-> (http/get (str "https://github.com/" username ".keys")))
-                      (catch Object e
-                        (log/warn (str "Couldn't get SSH keys from GitHub user '" username "'; error: " e)) nil))]
-    (:body req)))
 
 (s/fdef in-permitted-org?
   :args (s/cat :orgs :gh/orgs)
@@ -76,7 +67,8 @@
   [{{:keys [login name avatar_url html_url]} :user
     emails :emails
     orgs :orgs
-    token :token}]
+    token :token
+    ssh-keys :ssh-keys}]
   (println "orgs: " orgs)
   {:username login
    :fullname name
@@ -85,8 +77,8 @@
    :token token
    :profile html_url
    :avatar avatar_url
+   :ssh-keys ssh-keys
    :permitted-member (in-permitted-org? orgs)
-   :ssh-keys (user-ssh-keys login)
    :admin-member (is-admin? emails)})
 
 (s/fdef get-user-info
@@ -95,10 +87,3 @@
 (defn get-user-info
   [code]
   (-> code get-token get-raw-info user-info))
-
-
-(comment
-  (def user (get-user-info "376cab7a8724c40cebe8"))
-user
-
-)

@@ -10,7 +10,7 @@
   [rw?]
   (str "https://github.com/login/oauth/authorize?"
                     "client_id=" (env :oauth-client-id)
-                    "&scope=read:user user:email read:org" (when rw? " repo")))
+                    "&scope=read:user user:email read:org read:public_key" (when rw? " repo")))
 
 (defn code-box
   [id val]
@@ -86,8 +86,10 @@
           [:a {:href "/instances/new"} "New"]
           [:a {:href "/instances"} "All"]]
          [:div.missing-keys
-          [:p "Pair requires your GitHub account have SSH keys added to it."
-           [:a {:target "blank" :rel "noreferrer" :href "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"} "Add keys to your account"]]]
+          [:p "Pair requires your GitHub account to have SSH keys added to it. "
+           [:a {:target "blank" :rel "noreferrer" :href "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"} "Add keys to your account"]
+           " and log back in."
+           ]]
          )
        [:div.display-block
         [:div#more-info.display-block
