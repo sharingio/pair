@@ -113,7 +113,7 @@
    (form/drop-down "type" '("Kubernetes")
                    "kubernetes")
    [:label {:for "facility"} "Facility"]
-   (form/drop-down "facility" '("sjc1" "any") "sjc1")
+   (form/drop-down "facility" '("sv15" "sjc1" "any") "sv15")
    (when admin-member
      [:div.form-group
        [:label {:for "kubernetesNodeCount"} "Additional node count"]
