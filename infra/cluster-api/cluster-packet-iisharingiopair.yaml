@@ -1,13 +1,13 @@
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
 metadata:
-  name: sharingiopair-control-plane
+  name: iisharingiopair-control-plane
   namespace: sharingio
 spec:
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: PacketMachineTemplate
-    name: sharingiopair-control-plane
+    name: iisharingiopair-control-plane
   kubeadmConfigSpec:
     clusterConfiguration:
       apiServer:
@@ -35,7 +35,8 @@ spec:
     - systemctl restart networking
     - mkdir -p ~/.kube/
     - cp /etc/kubernetes/admin.conf ~/.kube/config
-    - 'kubectl create secret generic -n kube-system metal-cloud-config --from-literal=cloud-sa.json=''{"apiKey": "{{ .apiKey }}","projectID": "7a44b778-41d2-49fa-9c92-99148516c600","loadbalancer":"metallb:///"}'''
+    - 'kubectl create secret generic -n kube-system metal-cloud-config --from-literal=cloud-sa.json=''{"apiKey":
+      "{{ .apiKey }}","projectID": "7a44b778-41d2-49fa-9c92-99148516c600","loadbalancer":"metallb:///"}'''
     - kubectl apply -f https://github.com/equinix/cloud-provider-equinix-metal/releases/download/v3.2.2/deployment.yaml
     - kubectl taint node --all node-role.kubernetes.io/master-
     preKubeadmCommands:
@@ -58,30 +59,36 @@ spec:
     - sysctl --system
     - apt-get -y update
     - DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
-    - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+    - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
+      -
     - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
     - apt-get update -y
-    - TRIMMED_KUBERNETES_VERSION=$(echo {{ .kubernetesVersion }} | sed 's/\./\./g' | sed 's/^v//')
-    - RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION} '$1~ VERSION { print $1 }' | head -n1)
-    - apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips containerd kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION} kubectl=${RESOLVED_KUBERNETES_VERSION}
+    - TRIMMED_KUBERNETES_VERSION=$(echo {{ .kubernetesVersion }} | sed 's/\./\\./g'
+      | sed 's/^v//')
+    - RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION}
+      '$1~ VERSION { print $1 }' | head -n1)
+    - apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils
+      prips containerd kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION}
+      kubectl=${RESOLVED_KUBERNETES_VERSION}
     - systemctl daemon-reload
     - systemctl enable containerd
     - systemctl start containerd
-    - ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint }} dev lo
+    - ping -c 3 -q {{ .controlPlaneEndpoint }} && echo OK || ip addr add {{ .controlPlaneEndpoint
+      }} dev lo
   replicas: 3
-  version: v1.21.2
+  version: v1.22.11
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: PacketMachineTemplate
 metadata:
-  name: sharingiopair-control-plane
+  name: iisharingiopair-control-plane
   namespace: sharingio
 spec:
   template:
     spec:
       OS: ubuntu_20_04
       billingCycle: hourly
-      machineType: c1.small.x86
+      machineType: c3.small.x86
       sshKeys:
       - gh:BobyMCbobs
       tags: []
@@ -89,7 +96,7 @@ spec:
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
-  name: sharingiopair
+  name: iisharingiopair
   namespace: sharingio
 spec:
   clusterNetwork:
@@ -102,65 +109,65 @@ spec:
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     kind: KubeadmControlPlane
-    name: sharingiopair-control-plane
+    name: iisharingiopair-control-plane
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: PacketCluster
-    name: sharingiopair
+    name: iisharingiopair1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: PacketCluster
 metadata:
-  name: sharingiopair
+  name: iisharingiopair1
   namespace: sharingio
 spec:
-  facility: sjc1
+  facility: sv15
   projectID: 7a44b778-41d2-49fa-9c92-99148516c600
 ---
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   labels:
-    cluster.x-k8s.io/cluster-name: sharingiopair
+    cluster.x-k8s.io/cluster-name: iisharingiopair
     pool: worker-a
-  name: sharingiopair-worker-a
+  name: iisharingiopair-worker-a
   namespace: sharingio
 spec:
-  clusterName: sharingiopair
+  clusterName: iisharingiopair
   replicas: 0
   selector:
     matchLabels:
-      cluster.x-k8s.io/cluster-name: sharingiopair
+      cluster.x-k8s.io/cluster-name: iisharingiopair
       pool: worker-a
   template:
     metadata:
       labels:
-        cluster.x-k8s.io/cluster-name: sharingiopair
+        cluster.x-k8s.io/cluster-name: iisharingiopair
         pool: worker-a
     spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
-          name: sharingiopair-worker-a
-      clusterName: sharingiopair
+          name: iisharingiopair-worker-a
+      clusterName: iisharingiopair
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: PacketMachineTemplate
-        name: sharingiopair-worker-a
-      version: v1.21.2
+        name: iisharingiopair-worker-a
+      version: v1.22.11
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: PacketMachineTemplate
 metadata:
-  name: sharingiopair-worker-a
+  name: iisharingiopair-worker-a
   namespace: sharingio
 spec:
   template:
     spec:
       OS: ubuntu_20_04
       billingCycle: hourly
-      machineType: c1.small.x86
+      machineType: c3.small.x86
       sshKeys:
       - gh:BobyMCbobs
       tags: []
@@ -168,7 +175,7 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
-  name: sharingiopair-worker-a
+  name: iisharingiopair-worker-a
   namespace: sharingio
 spec:
   template:
@@ -197,12 +204,17 @@ spec:
       - sysctl --system
       - apt-get -y update
       - DEBIAN_FRONTEND=noninteractive apt-get install -y apt-transport-https curl
-      - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+      - curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add
+        -
       - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
       - apt-get update -y
-      - TRIMMED_KUBERNETES_VERSION=$(echo {{ .kubernetesVersion }} | sed 's/\./\./g' | sed 's/^v//')
-      - RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION} '$1~ VERSION { print $1 }' | head -n1)
-      - apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils prips containerd kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION} kubectl=${RESOLVED_KUBERNETES_VERSION}
+      - TRIMMED_KUBERNETES_VERSION=$(echo {{ .kubernetesVersion }} | sed 's/\./\\./g'
+        | sed 's/^v//')
+      - RESOLVED_KUBERNETES_VERSION=$(apt-cache policy kubelet | awk -v VERSION=${TRIMMED_KUBERNETES_VERSION}
+        '$1~ VERSION { print $1 }' | head -n1)
+      - apt-get install -y ca-certificates socat jq ebtables apt-transport-https cloud-utils
+        prips containerd kubelet=${RESOLVED_KUBERNETES_VERSION} kubeadm=${RESOLVED_KUBERNETES_VERSION}
+        kubectl=${RESOLVED_KUBERNETES_VERSION}
       - systemctl daemon-reload
       - systemctl enable containerd
       - systemctl start containerd

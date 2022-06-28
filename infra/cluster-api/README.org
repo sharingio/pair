@@ -36,20 +36,20 @@ kubectl -n cluster-api-provider-packet-system logs -l control-plane=controller-m
 ** Create configuration for the Packet machine
 
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-export CLUSTER_NAME="sharingiopair"
+export CLUSTER_NAME="iisharingiopair"
 export PROJECT_ID=7a44b778-41d2-49fa-9c92-99148516c600
 export PACKET_PROJECT_ID=$PROJECT_ID
-export FACILITY=sjc1
-export KUBERNETES_VERSION=v1.21.2
+export FACILITY=sv15
+export KUBERNETES_VERSION=v1.22.11
 export POD_CIDR=10.244.0.0/16
 export SERVICE_CIDR=10.96.0.0/12
 export NODE_OS=ubuntu_20_04
-export CONTROLPLANE_NODE_TYPE=c1.small.x86
+export CONTROLPLANE_NODE_TYPE=c3.small.x86
 export CONTROL_PLANE_MACHINE_COUNT=3
-export WORKER_NODE_TYPE=c1.small.x86
+export WORKER_NODE_TYPE=c3.small.x86
 export WORKER_MACHINE_COUNT=0
 export SSH_KEY="gh:BobyMCbobs"
-clusterctl config cluster "${CLUSTER_NAME}" --from ./cluster-template-packet.yaml -n sharingio > cluster-packet-"${CLUSTER_NAME}".yaml
+clusterctl generate cluster "${CLUSTER_NAME}" --from ./cluster-template-packet.yaml -n sharingio > cluster-packet-"${CLUSTER_NAME}".yaml
 #+end_src
 
 ** Create the namespace
@@ -69,18 +69,18 @@ kubectl -n sharingio get machines,packetmachines
 
 ** Get the Kubeconfig
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-kubectl -n sharingio get secrets ${CLUSTER_NAME}-kubeconfig -o=jsonpath='{.data.value}' | base64 -d > ~/.kube/packet-sharingio
+kubectl -n sharingio get secrets ${CLUSTER_NAME}-kubeconfig -o=jsonpath='{.data.value}' | base64 -d > ~/.kube/packet-${CLUSTER_NAME}
 #+end_src
 
 ** View logs
 #+begin_src tmate :window ssh :session packet-cluster-api :noweb yes
-ssh root@$(kubectl -n sharingio get cluster sharingio -o=jsonpath='{.spec.controlPlaneEndpoint.host}') tail -f /var/log/cloud-init-output.log
+ssh root@$(kubectl -n sharingio get cluster ${CLUSTER_NAME} -o=jsonpath='{.spec.controlPlaneEndpoint.host}') tail -f /var/log/cloud-init-output.log
 #+end_src
 
 * Setting the cluster up
 ** Prepare
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-export KUBECONFIG="$HOME/.kube/packet-sharingio"
+export KUBECONFIG="$HOME/.kube/packet-${CLUSTER_NAME}"
 #+end_src
 
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
@@ -98,17 +98,6 @@ curl -s -L -o ./weavenet.yaml "https://cloud.weave.works/k8s/net?k8s-version=$(k
 kubectl apply -f ./weavenet.yaml
 #+end_src
 
-** Cert-Manager
-*** Prepare
-#+begin_src shell :results silent
-curl -s -L -o ./cert-manager.yaml https://github.com/jetstack/cert-manager/releases/download/v1.1.0/cert-manager.yaml
-#+end_src
-
-*** Install
-#+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-kubectl apply -f ./cert-manager.yaml
-#+end_src
-
 ** Cluster-API
 *** Prepare
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
@@ -120,11 +109,13 @@ kubectl create namespace sharingio
 clusterctl init --infrastructure=packet
 #+end_src
 
+Note: this also installs /cert-manager/.
+
 *** Finalise
 
 Move the management from /kind/ to the Pair cluster
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-KUBECONFIG= clusterctl move -n sharingio --kubeconfig "$HOME/.kube/config" --to-kubeconfig "$HOME/.kube/packet-sharingio"
+KUBECONFIG= clusterctl move -n sharingio --kubeconfig "$HOME/.kube/config" --to-kubeconfig "$HOME/.kube/packet-${CLUSTER_NAME}"
 #+end_src
 
 ** Helm-Operator
@@ -162,7 +153,7 @@ spec:
   chart:
     repository: https://kubernetes.github.io/ingress-nginx
     name: ingress-nginx
-    version: 4.0.1
+    version: 4.1.4
   values:
     controller:
       ingressClassResource:
@@ -200,6 +191,7 @@ kubectl create namespace nginx-ingress -o yaml --dry-run=client | \
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
 kubectl -n nginx-ingress apply -f ./nginx-ingress.yaml
 #+end_src
+
 ** External-DNS
 *** Prepare
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
@@ -449,29 +441,9 @@ kubectl apply -f ./external-dns-crd.yaml -f ./external-dns.yaml
 #+end_src
 
 ** Metrics-Server
-*** Configure
-#+begin_src yaml :tangle ./metrics-server.yaml
-apiVersion: helm.fluxcd.io/v1
-kind: HelmRelease
-metadata:
-  name: metrics-server
-  namespace: kube-system
-spec:
-  releaseName: metrics-server
-  chart:
-    repository: https://charts.helm.sh/stable
-    name: metrics-server
-    version: 2.11.2
-  values:
-    args:
-      - --logtostderr
-      - --kubelet-preferred-address-types=InternalIP
-      - --kubelet-insecure-tls
-#+end_src
-
 *** Install
 #+begin_src tmate :window cluster-api-apply :session packet-cluster-api :noweb yes
-kubectl apply -f ./metrics-server.yaml
+kubectl -n kube-system apply -f https://github.com/sharingio/.sharing.io/raw/main/cluster-api/manifests/metrics-server.yaml
 #+end_src
 ** Kube-Prometheus
 *** Prepare
@@ -554,7 +526,7 @@ kubectl -n nginx-ingress get svc nginx-ingress-ingress-nginx-controller -o=jsonp
 should be assign as an /A/ record to
 #+RESULTS: HTTP web traffic LoadBalancer IP
 #+begin_example
-145.40.67.62
+86.109.11.231
 #+end_example
 
 *** Configure
