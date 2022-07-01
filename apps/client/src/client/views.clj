@@ -22,7 +22,7 @@
   [{:keys [avatar username permitted-member] :as user}]
   (if (and user (not (= username "guest")))
     [:header#top
-     [:h1 [:a.home {:href "/"} "sharing.io"]]
+     [:h1 [:a.home {:href "/"} "pair.sharing.io"]]
      [:nav
       (when permitted-member
         (list
@@ -31,7 +31,7 @@
       [:p [:img {:width "50px" :src avatar :alt (str "avatar icon for "username)}]
        [:a.logout {:href "/logout"} "logout"]]]]
   [:header#top
-   [:h1 [:a.home {:href "/"} "sharing.io"]
+   [:h1 [:a.home {:href "/"} "pair.sharing.io"]
     (when (= "guest" username)[:sup "public link"])]
    [:nav
     (when (nil? user) [:a {:href "/login"} "login with github"])]]))
@@ -78,24 +78,34 @@
   (layout
    [:main#splash
     [:section#cta
-     [:p.tagline "Sharing is Pairing"]
+     [:p.home-title "Pair"]
+     [:p.tagline "Pairing is sharing"]
      (if permitted-member
-     [:div
-      [:a {:href "/instances/new"} "New"]
-      [:a {:href "/instances"} "All"]]
-     [:div.display-block
-      [:div#more-info.display-block
-       [:p
-        "Sharable Pairing Environments (on Equinix Metal)."]
-       [:p
-        "Contribute over at "
-        [:a {:href "https://github.com/sharingio/pair"} "GitHub"]
-        " and "
-        [:a {:href "https://gitlab.com/sharingio/pair"} "GitLab"]
-        "."]]
-      [:p "To use sharing.io, you must be a public member of a permitted github org."]
-      ]
-     )]]
+       ;; if has no ssh-keys
+       (if (not (= (seq (:ssh-keys user)) nil))
+         [:div#action-buttons
+          [:a {:href "/instances/new"} "New"]
+          [:a {:href "/instances"} "All"]]
+         [:div.missing-keys
+          [:p "Pair requires your GitHub account to have SSH keys added to it. "
+           [:a {:target "blank" :rel "noreferrer" :href "https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account"} "Add keys to your account"]
+           " and log back in."
+           ]]
+         )
+       [:div.display-block
+        [:div#more-info.display-block
+         [:p
+          "Sharable Kubernetes-native pairing environments running on Equinix Metal."]
+         [:p
+          "Contribute over at "
+          [:a {:href "https://github.com/sharingio/pair"} "GitHub"]
+          " and "
+          [:a {:href "https://gitlab.com/sharingio/pair"} "GitLab"]
+          "."]]
+        (when (not= (env :pair-permitted-orgs) "*")
+          [:p "To use Pair, you must be a public member of a permitted github org."])
+        ]
+       )]]
    user))
 
 (defn new-box-form
