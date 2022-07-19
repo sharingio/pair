@@ -72,6 +72,17 @@
        [:em.helper "Logout from sharing.io"]]]]]
    user))
 
+(defn explore
+  [user]
+  (layout
+   [:main
+    [:header
+     [:h2 "Explore Pair"]]
+    [:div
+     [:h2 "Features"]
+     ]
+    ]
+   user))
 
 (defn splash
   [{:keys [permitted-member] :as user}]
@@ -105,7 +116,9 @@
         (when (not= (env :pair-permitted-orgs) "*")
           [:p "To use Pair, you must be a public member of a permitted github org."])
         ]
-       )]]
+       )
+     [:a.explore {:href "/explore"} "Explore pair"]
+     ]]
    user))
 
 (defn new-box-form

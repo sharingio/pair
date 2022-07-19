@@ -30,6 +30,9 @@
   (GET "/login" {{:keys [user]} :session}
        (views/login user))
 
+  (GET "/explore" {{:keys [user]} :session}
+       (views/explore user))
+
   (POST "/instances/new" {{:keys [user] :as session} :session
                           {:keys [project] :as params} :params}
         (when-not (:username user)
