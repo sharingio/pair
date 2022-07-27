@@ -723,11 +723,10 @@ export SHARINGIO_PAIR_INSTANCE_SETUP_REPOS_EXPANDED="
         {{ range $.Setup.Repos }}- {{ . }}
         {{ end }}
 "
-export SHARINGIO_PAIR_INSTANCE_SETUP_ENV_EXPANDED="
-      {{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
-            - name: \"{{ $key }}\"
-              value: \"{{ $value }}\"       {{ end }}{{ end }}{{- end }}
-"
+EOF
+cat << EOF >> /root/.sharing-io-pair-user.env
+{{- if $.Setup.Env }}{{ range $index, $map := $.Setup.Env }}{{ range $key, $value := $map }}
+{{ $key }}={{ $value }}{{ end }}{{ end }}{{- end }}
 EOF
 
 . /root/.sharing-io-pair-init.env
