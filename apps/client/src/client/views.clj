@@ -179,12 +179,13 @@
 
 (defn new
   [user instances]
-  (let [max-instance-limit (Integer. (or (System/getenv "MAX_INSTANCE_LIMIT") 1))]
+  (let [max-instance-limit (Integer. (or (System/getenv "MAX_INSTANCE_LIMIT") 1))
+        owned-instance-count (count (filter #(= (:username user) (:owner %)) instances))]
     (layout
      [:main
       [:header
        [:h2 "Create a new Pairing Box"]]
-      (if (or (:admin-member user) (< (count instances) max-instance-limit))
+      (if (or (:admin-member user) (< owned-instance-count max-instance-limit))
       (new-box-form user)
       [:div.warning
        [:h2.warning__title "Max Instance Reached"]
