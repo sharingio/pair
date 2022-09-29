@@ -19,6 +19,7 @@ data:
       headers:
         X-Content-Type-Options:
         - nosniff
+        Registry-Mirrors-From: [docker]
     log:
       fields:
         service: registry
