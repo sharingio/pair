@@ -39,6 +39,7 @@ imagePullSecrets: []
 
 ingress:
   enabled: false
+  ingress: ""
   certmanager:
     enabled: false
   annotations:
@@ -304,6 +305,7 @@ registry:
 
   ingress:
     enabled: false
+    className: ""
     certmanager:
       enabled: false
     annotations: {}

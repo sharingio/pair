@@ -76,6 +76,7 @@ spec:
         tag: ${SHARINGIO_PAIR_TAG}
     ingress:
       enabled: true
+      className: nginx
       certmanager:
         enabled: true
       hosts:
@@ -86,6 +87,7 @@ spec:
       enabled: true
       ingress:
         enabled: true
+        className: nginx
         certmanager:
           enabled: true
-          domainSuffix: -docker-mirror.sharing.io
+        domainSuffix: -docker-mirror.bobymcbobs.pair.sharing.io

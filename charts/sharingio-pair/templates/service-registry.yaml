@@ -21,7 +21,7 @@ spec:
       name: http
   selector:
     app: registry
-    mirroring: {{ .url }}
+    mirroring: {{ .name }}
     app.kubernetes.io/part-of: sharingio-pair
     {{- $selectorLabels | nindent 4 }}
 {{ printf "---" }}

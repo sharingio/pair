@@ -11,7 +11,7 @@ metadata:
   labels:
     app: registry
     app.kubernetes.io/part-of: sharingio-pair
-    mirroring: {{ .url }}
+    mirroring: {{ .name }}
     {{- $labels | nindent 4 }}
 spec:
 {{- if not $.Values.registry.autoscaling.enabled }}
@@ -20,7 +20,7 @@ spec:
   selector:
     matchLabels:
       app: registry
-      mirroring: {{ .url }}
+      mirroring: {{ .name }}
       app.kubernetes.io/part-of: sharingio-pair
       {{- $selectorLabels | nindent 6 }}
   template:
@@ -31,7 +31,7 @@ spec:
     {{- end }}
       labels:
         app: registry
-        mirroring: {{ .url }}
+        mirroring: {{ .name }}
         app.kubernetes.io/part-of: sharingio-pair
         {{- $selectorLabels | nindent 8 }}
     spec:
@@ -68,7 +68,7 @@ spec:
             initialDelaySeconds: 1
             periodSeconds: 20
           volumeMounts:
-          - name: distribution-config-{{ $registryName }}
+          - name: distribution-config
             mountPath: /etc/docker/registry/config.yml
             subPath: config.yml
           - name: var-lib-registry
