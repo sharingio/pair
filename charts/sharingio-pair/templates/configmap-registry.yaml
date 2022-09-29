@@ -1,13 +1,39 @@
 {{- if .Values.registry.enabled }}
+{{ $fullname := include "sharingio-pair.fullname" . }}
+{{ $labels := include "sharingio-pair.labels" . }}
+{{ $selectorLabels := include "sharingio-pair.selectorLabels" . }}
+{{ range $.Values.registry.mirrors }}
+{{ $registryName := .name }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "sharingio-pair.fullname" . }}-registry
+  name: {{ $fullname }}-registry-{{ .name }}
   labels:
     app: registry
     app.kubernetes.io/part-of: sharingio-pair
-    {{- include "sharingio-pair.labels" . | nindent 4 }}
+    {{- $labels | nindent 4 }}
 data:
   config.yml: |
-    {{- toYaml .Values.registry.config | nindent 4 }}
+    version: 0.1
+    log:
+      fields:
+        service: registry
+    storage:
+      cache:
+        blobdescriptor: inmemory
+      filesystem:
+        rootdirectory: /var/lib/registry
+    http:
+      addr: :5000
+      headers:
+        X-Content-Type-Options: [nosniff]
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+    proxy:
+      remoteurl: {{ .url }}
+{{ printf "---" }}
+{{- end }}
 {{- end }}

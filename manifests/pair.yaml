@@ -88,7 +88,4 @@ spec:
         enabled: true
         certmanager:
           enabled: true
-        hosts:
-          - host: docker-mirror.sharing.io
-            paths:
-              - /
+          domainSuffix: -docker-mirror.sharing.io
