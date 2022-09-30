@@ -39,6 +39,7 @@ imagePullSecrets: []
 
 ingress:
   enabled: false
+  ingress: ""
   certmanager:
     enabled: false
   annotations:
@@ -253,27 +254,19 @@ reconciler:
 registry:
   enabled: false
 
-  config:
-    version: 0.1
-    log:
-      fields:
-        service: registry
-    storage:
-      cache:
-        blobdescriptor: inmemory
-      filesystem:
-        rootdirectory: /var/lib/registry
-    http:
-      addr: :5000
-      headers:
-        X-Content-Type-Options: [nosniff]
-    health:
-      storagedriver:
-        enabled: true
-        interval: 10s
-        threshold: 3
-    proxy:
-      remoteurl: https://registry-1.docker.io
+  mirrors:
+    - name: docker
+      url: https://registry-1.docker.io
+    - name: gitlab
+      url: https://registry.gitlab.com
+    - name: quay
+      url: https://quay.io
+    - name: k8s
+      url: https://registry.k8s.io
+    - name: gcr
+      url: https://gcr.io
+    - name: k8sgcr
+      url: https://k8s.gcr.io
 
   replicaCount: 1
 
@@ -312,14 +305,13 @@ registry:
 
   ingress:
     enabled: false
+    className: ""
     certmanager:
       enabled: false
     annotations: {}
     #   kubernetes.io/ingress.class: nginx
     #   kubernetes.io/tls-acme: "true"
-    hosts:
-      - host: registry.chart-example.local
-        paths: []
+    domainSuffix: -registry.chart-example.local
     tls: []
     #  - secretName: chart-example-tls
     #    hosts:

@@ -76,6 +76,7 @@ spec:
         tag: ${SHARINGIO_PAIR_TAG}
     ingress:
       enabled: true
+      className: nginx
       certmanager:
         enabled: true
       hosts:
@@ -84,11 +85,26 @@ spec:
             - /
     registry:
       enabled: true
+
+      mirrors:
+        - name: docker
+          url: https://registry-1.docker.io
+        - name: gitlab
+          url: https://registry.gitlab.com
+        - name: quay
+          url: https://quay.io
+        - name: k8s
+          url: https://registry.k8s.io
+        - name: gcr
+          url: https://gcr.io
+        - name: k8sgcr
+          url: https://k8s.gcr.io
+        - name: ghcr
+          url: https://ghcr.io
+
       ingress:
         enabled: true
+        className: nginx
         certmanager:
           enabled: true
-        hosts:
-          - host: docker-mirror.sharing.io
-            paths:
-              - /
+        domainSuffix: -docker-mirror.bobymcbobs.pair.sharing.io

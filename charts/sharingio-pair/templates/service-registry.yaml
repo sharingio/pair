@@ -1,21 +1,29 @@
 {{- if .Values.registry.enabled }}
+{{ $fullname := include "sharingio-pair.fullname" . }}
+{{ $labels := include "sharingio-pair.labels" . }}
+{{ $selectorLabels := include "sharingio-pair.selectorLabels" . }}
+{{ range $.Values.registry.mirrors }}
+{{ $registryName := .name }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "sharingio-pair.fullname" . }}-registry
+  name: {{ $fullname }}-registry-{{ .name }}
   labels:
     app: registry
     app.kubernetes.io/part-of: sharingio-pair
-    {{- include "sharingio-pair.labels" . | nindent 4 }}
+    {{- $labels | nindent 4 }}
 spec:
-  type: {{ .Values.registry.service.type }}
+  type: {{ $.Values.registry.service.type }}
   ports:
-    - port: {{ .Values.registry.service.port }}
-      targetPort: {{ .Values.registry.service.port }}
+    - port: {{ $.Values.registry.service.port }}
+      targetPort: {{ $.Values.registry.service.port }}
       protocol: TCP
       name: http
   selector:
     app: registry
+    mirroring: {{ .name }}
     app.kubernetes.io/part-of: sharingio-pair
-    {{- include "sharingio-pair.selectorLabels" . | nindent 4 }}
+    {{- $selectorLabels | nindent 4 }}
+{{ printf "---" }}
+{{- end}}
 {{- end}}

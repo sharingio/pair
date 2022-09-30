@@ -1,64 +1,70 @@
 {{- if .Values.registry.enabled }}
+{{ $fullname := include "sharingio-pair.fullname" . }}
+{{ $labels := include "sharingio-pair.labels" . }}
+{{ $selectorLabels := include "sharingio-pair.selectorLabels" . }}
+{{ range $.Values.registry.mirrors }}
+{{ $registryName := .name }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "sharingio-pair.fullname" . }}-registry
+  name: {{ $fullname }}-registry-{{ $registryName }}
   labels:
     app: registry
     app.kubernetes.io/part-of: sharingio-pair
-    {{- include "sharingio-pair.labels" . | nindent 4 }}
-  annotations:
-    checksum/configmap-registry: {{ include (print $.Template.BasePath "/configmap-registry.yaml") . | sha256sum }}
+    mirroring: {{ .name }}
+    {{- $labels | nindent 4 }}
 spec:
-{{- if not .Values.registry.autoscaling.enabled }}
-  replicas: {{ .Values.registry.replicaCount }}
+{{- if not $.Values.registry.autoscaling.enabled }}
+  replicas: {{ $.Values.registry.replicaCount }}
 {{- end }}
   selector:
     matchLabels:
       app: registry
+      mirroring: {{ .name }}
       app.kubernetes.io/part-of: sharingio-pair
-      {{- include "sharingio-pair.selectorLabels" . | nindent 6 }}
+      {{- $selectorLabels | nindent 6 }}
   template:
     metadata:
-    {{- with .Values.registry.podAnnotations }}
+    {{- with $.Values.registry.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       labels:
         app: registry
+        mirroring: {{ .name }}
         app.kubernetes.io/part-of: sharingio-pair
-        {{- include "sharingio-pair.selectorLabels" . | nindent 8 }}
+        {{- $selectorLabels | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       securityContext:
-        {{- toYaml .Values.registry.podSecurityContext | nindent 8 }}
+        {{- toYaml $.Values.registry.podSecurityContext | nindent 8 }}
       containers:
-        - name: {{ .Chart.Name }}-registry
+        - name: {{ $.Chart.Name }}-registry
           securityContext:
-            {{- toYaml .Values.registry.securityContext | nindent 12 }}
-          image: "{{ .Values.registry.image.repository }}:{{ .Values.registry.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.registry.image.pullPolicy }}
+            {{- toYaml $.Values.registry.securityContext | nindent 12 }}
+          image: "{{ $.Values.registry.image.repository }}:{{ $.Values.registry.image.tag | default $.Chart.AppVersion }}"
+          imagePullPolicy: {{ $.Values.registry.image.pullPolicy }}
           env:
             - name: TZ
-              value: {{ .Values.timezone }}
-            {{- if .Values.registry.extraEnv }}
-            {{- toYaml .Values.registry.extraEnv | nindent 12 }}
+              value: {{ $.Values.timezone }}
+            {{- if $.Values.registry.extraEnv }}
+            {{- toYaml $.Values.registry.extraEnv | nindent 12 }}
             {{- end }}
           ports:
             - name: http
-              containerPort: {{ .Values.registry.service.port }}
+              containerPort: {{ $.Values.registry.service.port }}
               protocol: TCP
           readinessProbe:
             tcpSocket:
-              port: {{ .Values.registry.service.port }}
+              port: {{ $.Values.registry.service.port }}
             initialDelaySeconds: 2
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: {{ .Values.registry.service.port }}
+              port: {{ $.Values.registry.service.port }}
             initialDelaySeconds: 1
             periodSeconds: 20
           volumeMounts:
@@ -68,23 +74,25 @@ spec:
           - name: var-lib-registry
             mountPath: /var/lib/registry
           resources:
-            {{- toYaml .Values.registry.resources | nindent 12 }}
-      {{- with .Values.registry.nodeSelector }}
+            {{- toYaml $.Values.registry.resources | nindent 12 }}
+      {{- with $.Values.registry.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.registry.affinity }}
+      {{- with $.Values.registry.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.registry.tolerations }}
+      {{- with $.Values.registry.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       volumes:
         - name: distribution-config
           configMap:
-            name: {{ include "sharingio-pair.fullname" . }}-registry
+            name: {{ $fullname }}-registry-{{ $registryName }}
         - name: var-lib-registry
           emptyDir: {}
+{{ printf "---" }}
+{{- end }}
 {{- end }}

@@ -19,6 +19,7 @@ data:
       headers:
         X-Content-Type-Options:
         - nosniff
+        Registry-Mirrors-From: [docker]
     log:
       fields:
         service: registry
@@ -121,8 +122,6 @@ kind: Ingress
 metadata:
   name: sharingio-pair-registry
   namespace: sharingio-pair
-  annotations:
-    kubernetes.io/ingress.class: $SHARINGIO_PAIR_INSTANCE_INGRESS_CLASS_NAME
 spec:
   ingressClassName: $SHARINGIO_PAIR_INSTANCE_INGRESS_CLASS_NAME
   tls:
