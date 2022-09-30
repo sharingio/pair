@@ -24,8 +24,8 @@ spec:
             {{- end }}
             {{- if .Values.registry.enabled }}
             {{- if .Values.registry.ingress.certmanager.enabled }}
-            {{- range .Values.registry.ingress.hosts }}
-            - {{ .host | quote }}
+            {{ range .Values.registry.mirrors }}
+            - "{{ .name }}{{ $.Values.registry.ingress.domainSuffix }}"
             {{- end }}
             {{- end }}
             {{- end }}
