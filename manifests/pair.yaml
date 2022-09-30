@@ -107,4 +107,4 @@ spec:
         className: nginx
         certmanager:
           enabled: true
-        domainSuffix: -docker-mirror.bobymcbobs.pair.sharing.io
+        domainSuffix: -docker-mirror.sharing.io
